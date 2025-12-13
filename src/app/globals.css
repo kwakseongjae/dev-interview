@@ -1,27 +1,271 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Warm cream & deep navy palette */
+    --background: 42 30% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 42 25% 99%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 42 25% 99%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 20%;
+    --primary-foreground: 42 30% 97%;
+
+    --secondary: 42 20% 94%;
+    --secondary-foreground: 222 47% 20%;
+
+    --muted: 42 15% 92%;
+    --muted-foreground: 222 20% 45%;
+
+    --accent: 38 65% 50%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 42 30% 97%;
+
+    --border: 42 20% 88%;
+    --input: 42 20% 88%;
+    --ring: 222 47% 30%;
+
+    /* Custom colors */
+    --gold: 38 65% 50%;
+    --gold-light: 38 60% 70%;
+    --navy: 222 47% 20%;
+    --navy-light: 222 30% 35%;
+    --cream: 42 30% 97%;
+    --cream-dark: 42 20% 92%;
+
+    --radius: 0.75rem;
+
+    /* Timer colors */
+    --timer-safe: 142 76% 36%;
+    --timer-warning: 38 92% 50%;
+    --timer-danger: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 42 30% 97%;
+
+    --card: 222 45% 12%;
+    --card-foreground: 42 30% 97%;
+
+    --popover: 222 45% 12%;
+    --popover-foreground: 42 30% 97%;
+
+    --primary: 38 65% 50%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 222 40% 18%;
+    --secondary-foreground: 42 30% 97%;
+
+    --muted: 222 40% 15%;
+    --muted-foreground: 42 15% 65%;
+
+    --accent: 38 65% 50%;
+    --accent-foreground: 222 47% 8%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 42 30% 97%;
+
+    --border: 222 35% 20%;
+    --input: 222 35% 20%;
+    --ring: 38 65% 50%;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    @apply tracking-tight;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  .font-display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  /* Grain texture overlay */
+  .grain {
+    position: relative;
+  }
+
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+  }
+
+  /* Soft glow effect */
+  .glow {
+    box-shadow:
+      0 0 20px -5px hsl(var(--accent) / 0.3),
+      0 0 40px -10px hsl(var(--accent) / 0.2);
+  }
+
+  /* Glass morphism */
+  .glass {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Elegant shadow */
+  .shadow-elegant {
+    box-shadow:
+      0 4px 6px -1px hsl(var(--foreground) / 0.04),
+      0 10px 20px -5px hsl(var(--foreground) / 0.06),
+      0 25px 50px -12px hsl(var(--foreground) / 0.1);
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 25px -5px hsl(var(--foreground) / 0.08),
+      0 20px 40px -10px hsl(var(--foreground) / 0.1);
+  }
+
+  /* Animated gradient background */
+  .gradient-animate {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--cream)) 0%,
+      hsl(var(--cream-dark)) 50%,
+      hsl(var(--cream)) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Stagger delay utilities */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
+  /* Search pulse animation */
+  .search-pulse {
+    animation: search-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes search-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Timer warning pulse */
+  .timer-pulse {
+    animation: timer-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes timer-pulse {
+    0%, 100% {
+      color: hsl(var(--timer-danger));
+    }
+    50% {
+      color: hsl(var(--timer-danger) / 0.6);
+    }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Selection color */
+::selection {
+  background: hsl(var(--accent) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Placeholder styling */
+::placeholder {
+  color: hsl(var(--muted-foreground) / 0.7);
 }
