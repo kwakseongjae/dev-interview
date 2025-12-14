@@ -28,6 +28,12 @@ import {
   saveSession,
   toggleFavorite,
 } from "@/lib/storage";
+import {
+  isLoggedIn,
+  submitAnswerApi,
+  completeSessionApi,
+  toggleFavoriteApi,
+} from "@/lib/api";
 import { useTimer, formatSeconds } from "@/hooks/useTimer";
 
 function InterviewContent() {
@@ -261,14 +267,35 @@ function InterviewContent() {
     timer.start();
   };
 
-  const handleToggleFavorite = () => {
+  const handleToggleFavorite = async () => {
     if (!currentQuestion || !session) return;
 
-    const isFav = toggleFavorite(currentQuestion.id, {
-      content: currentQuestion.content,
-      hint: currentQuestion.hint,
-      category: currentQuestion.category,
-    });
+    let isFav: boolean;
+
+    if (isLoggedIn()) {
+      // API로 찜하기 토글
+      try {
+        isFav = await toggleFavoriteApi(currentQuestion.id, {
+          content: currentQuestion.content,
+          hint: currentQuestion.hint,
+          category: currentQuestion.category,
+        });
+      } catch (error) {
+        console.error("찜하기 API 실패, 로컬 스토리지 폴백:", error);
+        isFav = toggleFavorite(currentQuestion.id, {
+          content: currentQuestion.content,
+          hint: currentQuestion.hint,
+          category: currentQuestion.category,
+        });
+      }
+    } else {
+      // 로컬 스토리지로 찜하기 토글
+      isFav = toggleFavorite(currentQuestion.id, {
+        content: currentQuestion.content,
+        hint: currentQuestion.hint,
+        category: currentQuestion.category,
+      });
+    }
 
     const updatedQuestions = session.questions.map((q) =>
       q.id === currentQuestion.id ? { ...q, isFavorite: isFav } : q
@@ -279,7 +306,7 @@ function InterviewContent() {
     setCurrentSession(updatedSession);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!session) return;
 
     saveCurrentProgress();
@@ -288,6 +315,7 @@ function InterviewContent() {
     const updatedQuestions = session.questions.map((q) => ({
       ...q,
       answer: answers[q.id] || "",
+      timeSpent: questionTimes[q.id] || 0,
       isAnswered: (answers[q.id] || "").trim().length > 0,
     }));
 
@@ -298,7 +326,29 @@ function InterviewContent() {
       isCompleted: true,
     };
 
-    // Save to archive
+    // 로그인 상태면 API로 답변 제출
+    if (isLoggedIn()) {
+      try {
+        // 각 질문에 대한 답변을 API로 제출
+        for (const question of updatedQuestions) {
+          if (question.answer && question.answer.trim().length > 0) {
+            await submitAnswerApi(
+              session.id,
+              question.id,
+              question.answer,
+              question.timeSpent || 0
+            );
+          }
+        }
+
+        // 세션 완료 처리
+        await completeSessionApi(session.id, totalElapsedTime);
+      } catch (error) {
+        console.error("API 제출 실패, 로컬 스토리지에만 저장:", error);
+      }
+    }
+
+    // 로컬 스토리지에도 저장 (백업 및 비로그인 유저용)
     saveSession(completedSession);
     setCurrentSession(null);
 

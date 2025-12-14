@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Archive,
@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock,
   Heart,
+  Loader2,
   Play,
   Sparkles,
   Trash2,
@@ -20,29 +21,82 @@ import Link from "next/link";
 
 import type { InterviewSession } from "@/types/interview";
 import { getSessions, deleteSession } from "@/lib/storage";
+import {
+  getSessionsApi,
+  deleteSessionApi,
+  isLoggedIn,
+  type ApiSession,
+} from "@/lib/api";
 import { SAMPLE_SESSIONS } from "@/data/dummy-sessions";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 
 export default function ArchivePage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [useApi, setUseApi] = useState(false);
 
-  useEffect(() => {
-    // Load sessions from localStorage, fallback to sample data if empty
+  // API 데이터를 InterviewSession 형태로 변환
+  const convertApiSession = (apiSession: ApiSession): InterviewSession => ({
+    id: apiSession.id,
+    createdAt: apiSession.created_at,
+    query: apiSession.query,
+    questions: [], // 목록에서는 questions 불필요
+    totalTime: apiSession.total_time,
+    isCompleted: apiSession.is_completed,
+  });
+
+  // 데이터 로드
+  const loadSessions = useCallback(async () => {
+    setIsLoading(true);
+
+    // 로그인 상태면 API 사용
+    if (isLoggedIn()) {
+      try {
+        const response = await getSessionsApi(1, 50);
+        const converted = response.sessions.map(convertApiSession);
+        setSessions(converted);
+        setUseApi(true);
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error("API 호출 실패, 로컬 스토리지 폴백:", error);
+      }
+    }
+
+    // 로컬 스토리지 사용 (비로그인 또는 API 실패)
     const storedSessions = getSessions();
     if (storedSessions.length > 0) {
       setSessions(storedSessions);
     } else {
-      // Use sample data for demo
+      // 데모용 샘플 데이터
       setSessions(SAMPLE_SESSIONS);
     }
+    setUseApi(false);
     setIsLoading(false);
   }, []);
 
-  const handleDelete = (id: string) => {
-    if (confirm("이 면접 기록을 삭제하시겠습니까?")) {
-      deleteSession(id);
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("이 면접 기록을 삭제하시겠습니까?")) return;
+
+    setIsDeleting(id);
+
+    try {
+      if (useApi) {
+        await deleteSessionApi(id);
+      } else {
+        deleteSession(id);
+      }
       setSessions((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      console.error("삭제 실패:", error);
+      alert("면접 기록 삭제에 실패했습니다.");
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -124,13 +178,8 @@ export default function ArchivePage() {
 
         {/* Sessions List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-6 animate-pulse">
-                <div className="h-6 bg-muted rounded w-1/3 mb-3" />
-                <div className="h-4 bg-muted rounded w-1/2" />
-              </Card>
-            ))}
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
         ) : sessions.length === 0 ? (
           <Card className="p-12 text-center">
@@ -193,12 +242,14 @@ export default function ArchivePage() {
                             <Clock className="w-4 h-4" />
                             <span>{formatSecondsKorean(session.totalTime)}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>
-                              {answeredCount}/{totalQuestions} 완료
-                            </span>
-                          </div>
+                          {totalQuestions > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>
+                                {answeredCount}/{totalQuestions} 완료
+                              </span>
+                            </div>
+                          )}
                           {favoriteCount > 0 && (
                             <div className="flex items-center gap-1.5">
                               <Heart className="w-4 h-4 fill-red-500 text-red-500" />
@@ -223,9 +274,14 @@ export default function ArchivePage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(session.id)}
+                          disabled={isDeleting === session.id}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {isDeleting === session.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>

@@ -19,6 +19,7 @@ import Confetti from "react-confetti";
 
 import type { InterviewSession } from "@/types/interview";
 import { getSessionById } from "@/lib/storage";
+import { isLoggedIn, getSessionByIdApi, type ApiSessionDetail } from "@/lib/api";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 
 function CompleteContent() {
@@ -48,12 +49,52 @@ function CompleteContent() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // API 데이터를 InterviewSession 형태로 변환
+  const convertApiSession = (apiSession: ApiSessionDetail): InterviewSession => ({
+    id: apiSession.id,
+    query: apiSession.query,
+    createdAt: apiSession.created_at,
+    questions: apiSession.questions.map((q) => ({
+      id: q.id,
+      content: q.content,
+      hint: q.hint || "",
+      category: q.category.display_name,
+      subcategory: q.subcategory?.display_name || undefined,
+      answer: q.answer?.content || "",
+      timeSpent: q.answer?.time_spent || 0,
+      isAnswered: !!q.answer,
+      isFavorite: q.is_favorited,
+    })),
+    totalTime: apiSession.total_time,
+    isCompleted: apiSession.is_completed,
+  });
+
   useEffect(() => {
-    if (sessionId) {
+    const loadSession = async () => {
+      if (!sessionId) {
+        setIsLoading(false);
+        return;
+      }
+
+      // 로그인 상태면 API에서 먼저 조회 시도
+      if (isLoggedIn()) {
+        try {
+          const apiSession = await getSessionByIdApi(sessionId);
+          setSession(convertApiSession(apiSession));
+          setIsLoading(false);
+          return;
+        } catch (error) {
+          console.error("API 조회 실패, 로컬 스토리지 폴백:", error);
+        }
+      }
+
+      // 로컬 스토리지에서 조회
       const loadedSession = getSessionById(sessionId);
       setSession(loadedSession);
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    loadSession();
 
     // Stop confetti after 5 seconds
     const timer = setTimeout(() => setShowConfetti(false), 5000);

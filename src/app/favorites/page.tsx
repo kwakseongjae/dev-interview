@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Archive,
   ArrowLeft,
   Heart,
+  Loader2,
   Play,
   Sparkles,
   Trash2,
@@ -18,24 +19,64 @@ import Link from "next/link";
 
 import type { FavoriteQuestion } from "@/types/interview";
 import { getFavorites, removeFavorite } from "@/lib/storage";
+import {
+  getFavoritesApi,
+  removeFavoriteApi,
+  isLoggedIn,
+  type ApiFavorite,
+} from "@/lib/api";
 import { SAMPLE_FAVORITES } from "@/data/dummy-sessions";
 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteQuestion[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [useApi, setUseApi] = useState(false);
 
-  useEffect(() => {
-    // Load favorites from localStorage, fallback to sample data if empty
+  // API 데이터를 FavoriteQuestion 형태로 변환
+  const convertApiFavorite = (apiFav: ApiFavorite): FavoriteQuestion => ({
+    id: apiFav.id,
+    questionId: apiFav.question_id,
+    content: apiFav.content,
+    hint: apiFav.hint || "",
+    category: apiFav.category,
+    savedAt: apiFav.created_at,
+  });
+
+  // 데이터 로드
+  const loadFavorites = useCallback(async () => {
+    setIsLoading(true);
+
+    // 로그인 상태면 API 사용
+    if (isLoggedIn()) {
+      try {
+        const response = await getFavoritesApi();
+        const converted = response.favorites.map(convertApiFavorite);
+        setFavorites(converted);
+        setUseApi(true);
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error("API 호출 실패, 로컬 스토리지 폴백:", error);
+      }
+    }
+
+    // 로컬 스토리지 사용 (비로그인 또는 API 실패)
     const storedFavorites = getFavorites();
     if (storedFavorites.length > 0) {
       setFavorites(storedFavorites);
     } else {
-      // Use sample data for demo
+      // 데모용 샘플 데이터
       setFavorites(SAMPLE_FAVORITES);
     }
+    setUseApi(false);
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -57,14 +98,30 @@ export default function FavoritesPage() {
     }
   };
 
-  const handleRemove = (id: string, questionId: string) => {
-    removeFavorite(questionId);
-    setFavorites((prev) => prev.filter((f) => f.id !== id));
-    setSelectedIds((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
+  const handleRemove = async (id: string, questionId: string) => {
+    setIsRemoving(id);
+
+    try {
+      if (useApi) {
+        // API로 삭제
+        await removeFavoriteApi(questionId);
+      } else {
+        // 로컬 스토리지에서 삭제
+        removeFavorite(questionId);
+      }
+
+      setFavorites((prev) => prev.filter((f) => f.id !== id));
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    } catch (error) {
+      console.error("찜 삭제 실패:", error);
+      alert("찜 삭제에 실패했습니다.");
+    } finally {
+      setIsRemoving(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -145,13 +202,8 @@ export default function FavoritesPage() {
 
         {/* Favorites List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-6 animate-pulse">
-                <div className="h-6 bg-muted rounded w-2/3 mb-3" />
-                <div className="h-4 bg-muted rounded w-1/3" />
-              </Card>
-            ))}
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
         ) : favorites.length === 0 ? (
           <Card className="p-12 text-center">
@@ -257,9 +309,14 @@ export default function FavoritesPage() {
                           onClick={() =>
                             handleRemove(favorite.id, favorite.questionId)
                           }
+                          disabled={isRemoving === favorite.id}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {isRemoving === favorite.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
