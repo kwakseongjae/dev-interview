@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateQuestions } from "@/lib/claude";
+import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 
 // POST /api/questions/replace - 선택된 질문들만 새로 생성
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, questions_to_replace, keep_questions } = body;
+    const {
+      query,
+      questions_to_replace,
+      keep_questions,
+      reference_urls,
+    }: {
+      query: string;
+      questions_to_replace: string[];
+      keep_questions: Array<{ content: string }>;
+      reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
+    } = body;
 
     // 입력 검증
     if (!query) {
@@ -34,11 +44,12 @@ export async function POST(request: NextRequest) {
     // 교체할 질문 수만큼 새로 생성
     const replaceCount = questions_to_replace.length;
 
-    // Claude로 새 질문 생성 (기존 질문들과 중복 방지)
+    // Claude로 새 질문 생성 (기존 질문들과 중복 방지, 레퍼런스 URL 포함)
     const newQuestions = await generateQuestions(
       query,
       keepQuestionContents,
-      replaceCount
+      replaceCount,
+      reference_urls
     );
 
     return NextResponse.json({

@@ -6,12 +6,17 @@ import { supabaseAdmin } from "@/lib/supabase";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const category = searchParams.get("category");
-    const subcategory = searchParams.get("subcategory");
-    const difficulty = searchParams.get("difficulty");
-    const search = searchParams.get("search");
+
+    // 입력 검증 및 제한
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20"))
+    ); // 최대 100개로 제한
+    const category = searchParams.get("category")?.slice(0, 50) || null; // 최대 50자
+    const subcategory = searchParams.get("subcategory")?.slice(0, 50) || null; // 최대 50자
+    const difficulty = searchParams.get("difficulty")?.slice(0, 20) || null; // 최대 20자
+    const search = searchParams.get("search")?.slice(0, 200) || null; // 최대 200자로 제한
 
     const offset = (page - 1) * limit;
 
@@ -58,7 +63,11 @@ export async function GET(request: NextRequest) {
     const { data: questions, error, count } = await query;
 
     if (error) {
-      throw new Error("질문 목록 조회 실패");
+      console.error("질문 목록 조회 실패:", error);
+      return NextResponse.json(
+        { error: "질문 목록을 불러올 수 없습니다" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -69,9 +78,12 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil((count || 0) / limit),
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "질문 목록 조회에 실패했습니다";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("질문 목록 조회 실패:", error);
+    return NextResponse.json(
+      { error: "질문 목록을 불러올 수 없습니다" },
+      { status: 500 }
+    );
   }
 }
 
@@ -82,12 +94,31 @@ export async function POST(request: NextRequest) {
     const auth = getAuthFromRequest(authHeader);
 
     const body = await request.json();
-    const { content, hint, category_id, subcategory_id, difficulty } = body;
+    let { content, hint, category_id, subcategory_id, difficulty } = body;
 
-    // 입력 검증
-    if (!content || !category_id) {
+    // 입력 검증 및 길이 제한
+    content = content?.slice(0, 2000)?.trim() || null; // 최대 2000자
+    hint = hint?.slice(0, 1000) || null; // 최대 1000자
+    difficulty = difficulty?.slice(0, 20)?.toUpperCase() || "MEDIUM"; // 최대 20자
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!content || content.length === 0) {
       return NextResponse.json(
-        { error: "질문 내용과 카테고리는 필수입니다" },
+        { error: "질문 내용은 필수입니다" },
+        { status: 400 }
+      );
+    }
+    if (!category_id || !uuidRegex.test(category_id)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 카테고리 ID입니다" },
+        { status: 400 }
+      );
+    }
+    if (subcategory_id && !uuidRegex.test(subcategory_id)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 서브카테고리 ID입니다" },
         { status: 400 }
       );
     }
@@ -122,13 +153,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      throw new Error("질문 생성 실패");
+      console.error("질문 생성 실패:", error);
+      return NextResponse.json(
+        { error: "질문 생성에 실패했습니다" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ question }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "질문 생성에 실패했습니다";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("질문 생성 실패:", error);
+    return NextResponse.json(
+      { error: "질문 생성에 실패했습니다" },
+      { status: 500 }
+    );
   }
 }

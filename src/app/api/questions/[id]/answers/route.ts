@@ -4,15 +4,30 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/questions/:questionId/answers - 다른 사람 답변 둘러보기
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const questionId = params.id;
+    const { id: questionId } = await params;
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(questionId)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 질문 ID입니다" },
+        { status: 400 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const sort = searchParams.get("sort") || "score"; // score | recent
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "10"))
+    ); // 최대 100개로 제한
+    const sort = (
+      searchParams.get("sort") === "recent" ? "recent" : "score"
+    ) as "score" | "recent"; // 허용된 값만 사용
     const offset = (page - 1) * limit;
 
     // 공개된 답변만 조회
@@ -45,7 +60,11 @@ export async function GET(
     const { data: answers, error, count } = await query;
 
     if (error) {
-      throw new Error("답변 목록 조회 실패");
+      console.error("답변 목록 조회 실패:", error);
+      return NextResponse.json(
+        { error: "답변 목록을 불러올 수 없습니다" },
+        { status: 500 }
+      );
     }
 
     // 응답 형식 변환
@@ -65,8 +84,11 @@ export async function GET(
       limit,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "답변 목록 조회에 실패했습니다";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("답변 목록 조회 실패:", error);
+    return NextResponse.json(
+      { error: "답변 목록을 불러올 수 없습니다" },
+      { status: 500 }
+    );
   }
 }

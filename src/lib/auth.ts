@@ -181,33 +181,34 @@ export async function revokeAllUserTokens(userId: string): Promise<void> {
  * 회원가입
  */
 export async function signUp(
-  email: string,
+  username: string,
   password: string,
-  nickname?: string
+  email?: string
 ): Promise<AuthResponse> {
-  // 이메일 중복 확인
+  // 아이디 중복 확인
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existingUser } = await (supabaseAdmin as any)
     .from("users")
     .select("id")
-    .eq("email", email)
+    .eq("username", username)
     .single();
 
   if (existingUser) {
-    throw new Error("이미 존재하는 이메일입니다");
+    throw new Error("이미 존재하는 아이디입니다");
   }
 
   // 비밀번호 해시
   const passwordHash = await hashPassword(password);
 
-  // 사용자 생성
+  // 사용자 생성 (email은 선택사항, username을 기본으로 사용)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: newUser, error } = await (supabaseAdmin as any)
     .from("users")
     .insert({
-      email,
+      username,
+      email: email || `${username}@devinterview.local`,
       password_hash: passwordHash,
-      nickname: nickname || null,
+      nickname: null,
     })
     .select()
     .single();
@@ -217,13 +218,16 @@ export async function signUp(
   }
 
   // 토큰 생성
-  const accessToken = generateAccessToken(newUser.id, newUser.email);
+  const accessToken = generateAccessToken(
+    newUser.id,
+    newUser.email || newUser.username
+  );
   const refreshToken = await generateRefreshToken(newUser.id);
 
   // 공개 사용자 정보 (password_hash 제외)
   const publicUser: PublicUser = {
     id: newUser.id,
-    email: newUser.email,
+    email: newUser.email || newUser.username,
     nickname: newUser.nickname,
     avatar_url: newUser.avatar_url,
     created_at: newUser.created_at,
@@ -241,35 +245,35 @@ export async function signUp(
  * 로그인
  */
 export async function signIn(
-  email: string,
+  username: string,
   password: string
 ): Promise<AuthResponse> {
-  // 사용자 조회
+  // 사용자 조회 (username으로 조회)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: user, error } = await (supabaseAdmin as any)
     .from("users")
     .select("*")
-    .eq("email", email)
+    .eq("username", username)
     .single();
 
   if (error || !user) {
-    throw new Error("이메일 또는 비밀번호가 올바르지 않습니다");
+    throw new Error("아이디 또는 비밀번호가 올바르지 않습니다");
   }
 
   // 비밀번호 검증
   const isValidPassword = await verifyPassword(password, user.password_hash);
   if (!isValidPassword) {
-    throw new Error("이메일 또는 비밀번호가 올바르지 않습니다");
+    throw new Error("아이디 또는 비밀번호가 올바르지 않습니다");
   }
 
   // 토큰 생성
-  const accessToken = generateAccessToken(user.id, user.email);
+  const accessToken = generateAccessToken(user.id, user.email || user.username);
   const refreshToken = await generateRefreshToken(user.id);
 
   // 공개 사용자 정보
   const publicUser: PublicUser = {
     id: user.id,
-    email: user.email,
+    email: user.email || user.username,
     nickname: user.nickname,
     avatar_url: user.avatar_url,
     created_at: user.created_at,

@@ -15,12 +15,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import Image from "next/image";
+import logoImage from "@/assets/images/logo.png";
+import logoTextImage from "@/assets/images/logo-text.png";
 import Confetti from "react-confetti";
 
 import type { InterviewSession } from "@/types/interview";
-import { getSessionById } from "@/lib/storage";
-import { isLoggedIn, getSessionByIdApi, type ApiSessionDetail } from "@/lib/api";
+import {
+  isLoggedIn,
+  getSessionByIdApi,
+  type ApiSessionDetail,
+  createSessionApi,
+  submitAnswerApi,
+  completeSessionApi,
+} from "@/lib/api";
 import { formatSecondsKorean } from "@/hooks/useTimer";
+import { LoginPromptModal } from "@/components/LoginPromptModal";
 
 function CompleteContent() {
   const searchParams = useSearchParams();
@@ -30,6 +40,10 @@ function CompleteContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(true);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingSession, setPendingSession] = useState<InterviewSession | null>(
+    null
+  );
 
   useEffect(() => {
     // Get window size for confetti
@@ -50,7 +64,9 @@ function CompleteContent() {
   }, []);
 
   // API 데이터를 InterviewSession 형태로 변환
-  const convertApiSession = (apiSession: ApiSessionDetail): InterviewSession => ({
+  const convertApiSession = (
+    apiSession: ApiSessionDetail
+  ): InterviewSession => ({
     id: apiSession.id,
     query: apiSession.query,
     createdAt: apiSession.created_at,
@@ -88,10 +104,22 @@ function CompleteContent() {
         }
       }
 
-      // 로컬 스토리지에서 조회
-      const loadedSession = getSessionById(sessionId);
-      setSession(loadedSession);
+      // 로그인하지 않은 경우
+      setSession(null);
       setIsLoading(false);
+
+      // 로그인 유도 모달 표시
+      const dismissedUntil = localStorage.getItem(
+        "loginPrompt_complete_dismissedUntil"
+      );
+      if (dismissedUntil) {
+        const dismissedDate = new Date(dismissedUntil);
+        if (dismissedDate > new Date()) {
+          // 아직 하루가 지나지 않음
+          return;
+        }
+      }
+      setTimeout(() => setShowLoginModal(true), 1000);
     };
 
     loadSession();
@@ -101,6 +129,85 @@ function CompleteContent() {
     return () => clearTimeout(timer);
   }, [sessionId]);
 
+  // 로그인 상태 변경 감지하여 세션 저장
+  useEffect(() => {
+    const checkLoginAndSave = async () => {
+      if (isLoggedIn() && pendingSession && !session) {
+        // 로그인 후 세션 저장
+        await handleSaveSession();
+      }
+    };
+    checkLoginAndSave();
+  }, [isLoggedIn, pendingSession, session]);
+
+  const handleSaveSession = async () => {
+    if (!pendingSession || !isLoggedIn()) return;
+
+    try {
+      // 세션 생성
+      const sessionData = await createSessionApi(
+        pendingSession.query,
+        pendingSession.questions.map((q) => ({
+          content: q.content,
+          hint: q.hint,
+          category: q.category,
+        }))
+      );
+
+      // 세션의 질문 목록 조회하여 질문 ID 매칭
+      const sessionDetail = await getSessionByIdApi(sessionData.session.id);
+
+      // 질문 내용으로 매칭하여 답변 제출
+      for (const question of pendingSession.questions) {
+        if (question.answer && question.answer.trim().length > 0) {
+          // 세션의 질문 중 내용이 일치하는 질문 찾기
+          const matchedQuestion = sessionDetail.questions.find(
+            (sq) => sq.content === question.content
+          );
+
+          if (matchedQuestion) {
+            try {
+              await submitAnswerApi(
+                sessionData.session.id,
+                matchedQuestion.id,
+                question.answer,
+                question.timeSpent || 0
+              );
+            } catch (error) {
+              console.error(
+                `답변 제출 실패 (question ${matchedQuestion.id}):`,
+                error
+              );
+            }
+          }
+        }
+      }
+
+      // 세션 완료 처리
+      await completeSessionApi(
+        sessionData.session.id,
+        pendingSession.totalTime
+      );
+
+      // 페이지 새로고침하여 저장된 세션 표시
+      window.location.href = `/complete?session=${sessionData.session.id}`;
+    } catch (error) {
+      console.error("세션 저장 실패:", error);
+      alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  const handleLater = () => {
+    // 하루 동안 모달 안뜨게 설정
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    localStorage.setItem(
+      "loginPrompt_complete_dismissedUntil",
+      tomorrow.toISOString()
+    );
+    setShowLoginModal(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -109,7 +216,8 @@ function CompleteContent() {
     );
   }
 
-  const answeredCount = session?.questions.filter((q) => q.isAnswered).length || 0;
+  const answeredCount =
+    session?.questions.filter((q) => q.isAnswered).length || 0;
   const totalQuestions = session?.questions.length || 0;
 
   return (
@@ -206,7 +314,10 @@ function CompleteContent() {
           className="flex flex-col sm:flex-row items-center justify-center gap-3"
         >
           <Link href={`/archive/${sessionId}`}>
-            <Button size="lg" className="w-full sm:w-auto bg-navy hover:bg-navy-light">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-navy hover:bg-navy-light"
+            >
               <Eye className="w-4 h-4 mr-2" />
               결과 보기
             </Button>
@@ -243,13 +354,37 @@ function CompleteContent() {
         transition={{ delay: 1 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-          <div className="w-6 h-6 rounded-md bg-navy flex items-center justify-center">
-            <Sparkles className="w-3 h-3 text-gold" />
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <div className="w-9 h-9 rounded-md flex items-center justify-center overflow-hidden">
+            <Image
+              src={logoImage}
+              alt="모카번 Logo"
+              width={36}
+              height={36}
+              className="w-full h-full object-contain"
+            />
           </div>
-          <span className="font-display text-sm">DevInterview</span>
+          <Image
+            src={logoTextImage}
+            alt="모카번"
+            width={50}
+            height={21}
+            className="h-4 w-auto object-contain"
+            priority
+          />
         </Link>
       </motion.div>
+
+      {/* Login Prompt Modal */}
+      <LoginPromptModal
+        open={showLoginModal}
+        onOpenChange={setShowLoginModal}
+        type="complete"
+        onLater={handleLater}
+      />
     </main>
   );
 }

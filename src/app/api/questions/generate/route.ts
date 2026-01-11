@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateQuestions } from "@/lib/claude";
+import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 
 // POST /api/questions/generate - Claude로 질문 생성 (세션 저장 없이)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, exclude_questions, count } = body;
+    const {
+      query,
+      exclude_questions,
+      count,
+      reference_urls,
+    }: {
+      query: string;
+      exclude_questions?: string[];
+      count?: number;
+      reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
+    } = body;
 
     // 입력 검증
     if (!query) {
@@ -21,12 +31,27 @@ export async function POST(request: NextRequest) {
     // 생성할 질문 수 (기본값: 5)
     const questionCount: number = count || 5;
 
-    // Claude로 질문 생성
+    console.log("질문 생성 요청:", {
+      query,
+      excludeQuestionsCount: excludeQuestions.length,
+      count: questionCount,
+      referenceUrlsCount: reference_urls?.length || 0,
+      referenceUrls: reference_urls,
+    });
+
+    // Claude로 질문 생성 (레퍼런스 URL 포함)
     const generatedQuestions = await generateQuestions(
       query,
       excludeQuestions,
-      questionCount
+      questionCount,
+      reference_urls
     );
+
+    console.log("생성된 질문:", {
+      count: generatedQuestions.length,
+      referenceBasedCount: generatedQuestions.filter((q) => q.isReferenceBased)
+        .length,
+    });
 
     return NextResponse.json({
       questions: generatedQuestions,

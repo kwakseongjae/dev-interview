@@ -12,6 +12,7 @@ export interface Question {
   timeSpent: number;
   isAnswered: boolean;
   isFavorite: boolean;
+  isReferenceBased?: boolean; // 레퍼런스 기반 질문 여부
 }
 
 export interface InterviewSession {
@@ -21,6 +22,12 @@ export interface InterviewSession {
   questions: Question[];
   totalTime: number;
   isCompleted: boolean;
+  user_id?: string; // 소유자 ID (삭제 권한 확인용)
+  sharedBy?: {
+    id: string;
+    username: string;
+    nickname: string | null;
+  };
 }
 
 export interface GenerateQuestionsRequest {
@@ -44,7 +51,12 @@ export interface FavoriteQuestion {
   savedAt: string;
 }
 
-export type InterviewStep = 'idle' | 'searching' | 'questions' | 'interview' | 'complete';
+export type InterviewStep =
+  | "idle"
+  | "searching"
+  | "questions"
+  | "interview"
+  | "complete";
 
 export interface SearchProgress {
   step: number;

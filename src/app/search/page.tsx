@@ -18,15 +18,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import Image from "next/image";
+import logoImage from "@/assets/images/logo.png";
+import logoTextImage from "@/assets/images/logo-text.png";
 import { v4 as uuidv4 } from "uuid";
 
 import { SEARCH_STEPS } from "@/data/dummy-questions";
 import type { Question, InterviewSession } from "@/types/interview";
 import {
-  setCurrentSession,
-  toggleFavorite,
-  isFavorite as checkIsFavorite,
-} from "@/lib/storage";
+  toggleFavoriteApi,
+  isLoggedIn,
+  checkFavoriteApi,
+  createSessionApi,
+} from "@/lib/api";
 
 // API 응답 타입
 interface GeneratedQuestion {
@@ -34,12 +38,14 @@ interface GeneratedQuestion {
   hint: string;
   category: string;
   subcategory?: string;
+  isReferenceBased?: boolean;
 }
 
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
+  const referenceUrlsParam = searchParams.get("references") || "";
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSearching, setIsSearching] = useState(true);
@@ -50,21 +56,54 @@ function SearchContent() {
   );
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [referenceUrls, setReferenceUrls] = useState<
+    Array<{ url: string; type: string }>
+  >([]);
+
+  // 레퍼런스 URL 파싱
+  useEffect(() => {
+    if (referenceUrlsParam) {
+      const urls = referenceUrlsParam.split(",").map((param) => {
+        // URL과 타입이 함께 전달됨 (형식: url::type)
+        const [url, type] = param.split("::");
+        return {
+          url: decodeURIComponent(url),
+          type:
+            type ||
+            (url.toLowerCase().endsWith(".pdf")
+              ? "application/pdf"
+              : "image/png"),
+        };
+      });
+      console.log("레퍼런스 URL 파싱 완료:", urls);
+      setReferenceUrls(urls);
+    } else {
+      console.log("레퍼런스 URL 파라미터 없음");
+      setReferenceUrls([]);
+    }
+  }, [referenceUrlsParam]);
 
   // API를 통해 질문 생성
   const fetchQuestions = useCallback(
     async (excludeQuestions: string[] = []) => {
       try {
+        const requestBody = {
+          query,
+          exclude_questions: excludeQuestions,
+          count: 5,
+          reference_urls: referenceUrls.length > 0 ? referenceUrls : undefined,
+        };
+        console.log("질문 생성 API 호출:", {
+          query,
+          referenceUrlsCount: referenceUrls.length,
+          referenceUrls: referenceUrls,
+        });
         const response = await fetch("/api/questions/generate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            query,
-            exclude_questions: excludeQuestions,
-            count: 5,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -78,7 +117,7 @@ function SearchContent() {
         throw error;
       }
     },
-    [query]
+    [query, referenceUrls]
   );
 
   // GeneratedQuestion을 Question으로 변환
@@ -94,6 +133,7 @@ function SearchContent() {
       timeSpent: 0,
       isAnswered: false,
       isFavorite: false,
+      isReferenceBased: gq.isReferenceBased || false,
     }));
   };
 
@@ -128,11 +168,23 @@ function SearchContent() {
 
         setQuestions(convertedQuestions);
 
-        // 찜 상태 확인
+        // 찜 상태 확인 (로그인한 유저만)
         const favMap: Record<string, boolean> = {};
-        convertedQuestions.forEach((q) => {
-          favMap[q.id] = checkIsFavorite(q.id);
-        });
+        if (isLoggedIn()) {
+          try {
+            await Promise.all(
+              convertedQuestions.map(async (q) => {
+                try {
+                  favMap[q.id] = await checkFavoriteApi(q.id);
+                } catch {
+                  favMap[q.id] = false;
+                }
+              })
+            );
+          } catch (error) {
+            console.error("찜 상태 확인 실패:", error);
+          }
+        }
         setFavorites(favMap);
 
         setIsSearching(false);
@@ -149,13 +201,24 @@ function SearchContent() {
   }, [query, router, fetchQuestions]);
 
   // 찜하기 토글
-  const handleToggleFavorite = (question: Question) => {
-    const isFav = toggleFavorite(question.id, {
-      content: question.content,
-      hint: question.hint,
-      category: question.category,
-    });
-    setFavorites((prev) => ({ ...prev, [question.id]: isFav }));
+  const handleToggleFavorite = async (question: Question) => {
+    // 로그인한 유저만 찜하기 가능
+    if (!isLoggedIn()) {
+      alert("찜하기 기능은 로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const isFav = await toggleFavoriteApi(question.id, {
+        content: question.content,
+        hint: question.hint,
+        category: question.category,
+      });
+      setFavorites((prev) => ({ ...prev, [question.id]: isFav }));
+    } catch (error) {
+      console.error("찜하기 실패:", error);
+      alert("찜하기에 실패했습니다.");
+    }
   };
 
   // 교체할 질문 선택/해제
@@ -186,7 +249,7 @@ function SearchContent() {
         (q) => !selectedForReplace.has(q.id)
       );
 
-      // 새 질문 생성 (유지할 질문들 제외)
+      // 새 질문 생성 (유지할 질문들 제외, 레퍼런스 URL 포함)
       const response = await fetch("/api/questions/replace", {
         method: "POST",
         headers: {
@@ -196,6 +259,7 @@ function SearchContent() {
           query,
           questions_to_replace: Array.from(selectedForReplace),
           keep_questions: keepQuestions.map((q) => ({ content: q.content })),
+          reference_urls: referenceUrls.length > 0 ? referenceUrls : undefined,
         }),
       });
 
@@ -218,10 +282,10 @@ function SearchContent() {
       setQuestions(updatedQuestions);
       setSelectedForReplace(new Set());
 
-      // 새 질문들의 찜 상태 확인
+      // 새 질문들의 찜 상태 초기화 (새로 생성된 질문은 찜 상태가 없음)
       const favMap: Record<string, boolean> = { ...favorites };
       newQuestions.forEach((q) => {
-        favMap[q.id] = checkIsFavorite(q.id);
+        favMap[q.id] = false;
       });
       setFavorites(favMap);
     } catch (error) {
@@ -237,7 +301,7 @@ function SearchContent() {
     setIsRegenerating(true);
 
     try {
-      // 기존 질문들 제외하고 새로 생성
+      // 기존 질문들 제외하고 새로 생성 (레퍼런스 URL 포함)
       const excludeContents = questions.map((q) => q.content);
       const generatedQuestions = await fetchQuestions(excludeContents);
       const convertedQuestions = convertToQuestions(generatedQuestions);
@@ -245,11 +309,23 @@ function SearchContent() {
       setQuestions(convertedQuestions);
       setSelectedForReplace(new Set());
 
-      // 찜 상태 확인
+      // 찜 상태 확인 (로그인한 유저만)
       const favMap: Record<string, boolean> = {};
-      convertedQuestions.forEach((q) => {
-        favMap[q.id] = checkIsFavorite(q.id);
-      });
+      if (isLoggedIn()) {
+        try {
+          await Promise.all(
+            convertedQuestions.map(async (q) => {
+              try {
+                favMap[q.id] = await checkFavoriteApi(q.id);
+              } catch {
+                favMap[q.id] = false;
+              }
+            })
+          );
+        } catch (error) {
+          console.error("찜 상태 확인 실패:", error);
+        }
+      }
       setFavorites(favMap);
     } catch (error) {
       console.error("재검색 오류:", error);
@@ -260,21 +336,30 @@ function SearchContent() {
   };
 
   // 인터뷰 시작
-  const handleStartInterview = () => {
-    const session: InterviewSession = {
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
-      query,
-      questions: questions.map((q) => ({
-        ...q,
-        isFavorite: favorites[q.id] || false,
-      })),
-      totalTime: 0,
-      isCompleted: false,
-    };
+  const handleStartInterview = async () => {
+    // 로그인 상태 확인
+    if (!isLoggedIn()) {
+      alert("로그인이 필요합니다.");
+      router.push("/auth");
+      return;
+    }
 
-    setCurrentSession(session);
-    router.push(`/interview?session=${session.id}`);
+    try {
+      // API를 통해 세션 생성
+      const sessionData = await createSessionApi(
+        query,
+        questions.map((q) => ({
+          content: q.content,
+          hint: q.hint,
+          category: q.category,
+        }))
+      );
+
+      router.push(`/interview?session=${sessionData.session.id}`);
+    } catch (error) {
+      console.error("세션 생성 오류:", error);
+      alert("세션 생성에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   return (
@@ -295,13 +380,24 @@ function SearchContent() {
             <ArrowLeft className="w-4 h-4" />
             <span>뒤로</span>
           </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-navy flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-gold" />
+          <Link href="/" className="flex items-center gap-1">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image
+                src={logoImage}
+                alt="모카번 Logo"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="font-display text-xl font-semibold tracking-tight">
-              DevInterview
-            </span>
+            <Image
+              src={logoTextImage}
+              alt="모카번"
+              width={66}
+              height={28}
+              className="h-5 w-auto object-contain"
+              priority
+            />
           </Link>
         </nav>
       </header>
@@ -488,9 +584,19 @@ function SearchContent() {
                             <p className="text-foreground leading-relaxed">
                               {question.content}
                             </p>
-                            <Badge variant="outline" className="mt-2 text-xs">
-                              {question.category}
-                            </Badge>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <Badge variant="outline" className="text-xs">
+                                {question.category}
+                              </Badge>
+                              {question.isReferenceBased && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                                >
+                                  레퍼런스 기반
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <button

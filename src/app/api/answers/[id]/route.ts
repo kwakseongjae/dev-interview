@@ -8,13 +8,23 @@ type AnswerUpdate = Database["public"]["Tables"]["answers"]["Update"];
 // GET /api/answers/:id - 답변 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
     const auth = requireAuth(authHeader);
 
-    const answerId = params.id;
+    const { id: answerId } = await params;
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(answerId)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 답변 ID입니다" },
+        { status: 400 }
+      );
+    }
 
     const { data: answer, error } = await supabaseAdmin
       .from("answers")
@@ -44,29 +54,57 @@ export async function GET(
 
     return NextResponse.json({ answer });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "답변 조회에 실패했습니다";
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("답변 조회 실패:", error);
 
-    if (message.includes("인증이 필요")) {
-      return NextResponse.json({ error: message }, { status: 401 });
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (errorMessage.includes("인증이 필요")) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "답변을 불러올 수 없습니다" },
+      { status: 500 }
+    );
   }
 }
 
 // PATCH /api/answers/:id - 답변 수정
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
     const auth = requireAuth(authHeader);
 
-    const answerId = params.id;
+    const { id: answerId } = await params;
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(answerId)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 답변 ID입니다" },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
-    const { content, is_public } = body;
+    let { content, is_public } = body;
+
+    // 입력 검증 및 길이 제한
+    if (content !== undefined) {
+      content = content?.slice(0, 10000) || null; // 최대 10000자
+      if (!content || content.trim().length === 0) {
+        return NextResponse.json(
+          { error: "답변 내용은 필수입니다" },
+          { status: 400 }
+        );
+      }
+    }
+    if (is_public !== undefined) {
+      is_public = Boolean(is_public); // boolean으로 강제 변환
+    }
 
     // 소유권 확인
     const { data: existingAnswer } = await supabaseAdmin
@@ -100,7 +138,11 @@ export async function PATCH(
       .single();
 
     if (error || !answer) {
-      throw new Error("답변 수정 실패");
+      console.error("답변 수정 실패:", error);
+      return NextResponse.json(
+        { error: "답변 수정에 실패했습니다" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -110,13 +152,17 @@ export async function PATCH(
       updated_at: answer.updated_at,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "답변 수정에 실패했습니다";
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("답변 수정 실패:", error);
 
-    if (message.includes("인증이 필요")) {
-      return NextResponse.json({ error: message }, { status: 401 });
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (errorMessage.includes("인증이 필요")) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "답변 수정에 실패했습니다" },
+      { status: 500 }
+    );
   }
 }

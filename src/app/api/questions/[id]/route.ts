@@ -4,10 +4,20 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/questions/:id - 질문 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const questionId = params.id;
+    const { id: questionId } = await params;
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(questionId)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 질문 ID입니다" },
+        { status: 400 }
+      );
+    }
 
     const { data: question, error } = await supabaseAdmin
       .from("questions")
@@ -36,8 +46,11 @@ export async function GET(
 
     return NextResponse.json({ question });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "질문 조회에 실패했습니다";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("질문 조회 실패:", error);
+    return NextResponse.json(
+      { error: "질문을 불러올 수 없습니다" },
+      { status: 500 }
+    );
   }
 }

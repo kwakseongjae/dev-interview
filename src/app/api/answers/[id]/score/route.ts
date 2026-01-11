@@ -6,13 +6,23 @@ import { evaluateAnswer } from "@/lib/claude";
 // POST /api/answers/:id/score - AI 답변 평가 요청
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
     const auth = requireAuth(authHeader);
 
-    const answerId = params.id;
+    const { id: answerId } = await params;
+
+    // UUID 형식 검증
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(answerId)) {
+      return NextResponse.json(
+        { error: "유효하지 않은 답변 ID입니다" },
+        { status: 400 }
+      );
+    }
 
     // 답변 및 질문 정보 조회
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,10 +48,7 @@ export async function POST(
 
     // 소유권 확인
     if (answer.user_id !== auth.sub) {
-      return NextResponse.json(
-        { error: "권한이 없습니다" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
 
     const question = answer.questions as {
@@ -69,7 +76,11 @@ export async function POST(
       .eq("id", answerId);
 
     if (updateError) {
-      throw new Error("평가 결과 저장 실패");
+      console.error("평가 결과 저장 실패:", updateError);
+      return NextResponse.json(
+        { error: "평가 결과 저장에 실패했습니다" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -77,17 +88,21 @@ export async function POST(
       ai_feedback: evaluation.feedback,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "답변 평가에 실패했습니다";
+    // 보안: 상세한 에러 메시지 노출 방지
+    console.error("답변 평가 실패:", error);
 
-    if (message.includes("인증이 필요")) {
-      return NextResponse.json({ error: message }, { status: 401 });
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (errorMessage.includes("인증이 필요")) {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
-    if (message.includes("권한이 없습니다")) {
-      return NextResponse.json({ error: message }, { status: 403 });
+    if (errorMessage.includes("권한이 없습니다")) {
+      return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "답변 평가에 실패했습니다" },
+      { status: 500 }
+    );
   }
 }

@@ -7,6 +7,9 @@
 const TOKEN_KEY = "devinterview_access_token";
 const REFRESH_TOKEN_KEY = "devinterview_refresh_token";
 
+// 토큰 갱신 중복 방지를 위한 Promise 저장
+let refreshPromise: Promise<boolean> | null = null;
+
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -16,12 +19,20 @@ export function setTokens(accessToken: string, refreshToken: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  // 로그인 이벤트 발생 (다른 컴포넌트에서 감지 가능)
+  window.dispatchEvent(
+    new CustomEvent("authStateChanged", { detail: { isLoggedIn: true } })
+  );
 }
 
 export function clearTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // 로그아웃 이벤트 발생 (다른 컴포넌트에서 감지 가능)
+  window.dispatchEvent(
+    new CustomEvent("authStateChanged", { detail: { isLoggedIn: false } })
+  );
 }
 
 export function getRefreshToken(): string | null {
@@ -29,10 +40,11 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-// API 호출 헬퍼
+// API 호출 헬퍼 (자동 토큰 갱신 포함)
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryCount = 0
 ): Promise<T> {
   const token = getAccessToken();
 
@@ -45,10 +57,71 @@ async function fetchApi<T>(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
+  // 현재 선택된 팀 스페이스 ID를 헤더에 추가
+  if (typeof window !== "undefined") {
+    const currentTeamSpaceId = localStorage.getItem("currentTeamSpaceId");
+    if (currentTeamSpaceId) {
+      (headers as Record<string, string>)["X-Current-Team-Space-Id"] =
+        currentTeamSpaceId;
+    }
+  }
+
   const response = await fetch(endpoint, {
     ...options,
     headers,
   });
+
+  // 401 에러 발생 시 토큰 갱신 시도 (한 번만)
+  if (response.status === 401 && retryCount === 0) {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        // 이미 토큰 갱신이 진행 중이면 기다림
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            try {
+              // 토큰 갱신 API 직접 호출 (순환 참조 방지)
+              const refreshResponse = await fetch("/api/auth/refresh", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refreshToken }),
+              });
+
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                setTokens(refreshData.accessToken, refreshData.refreshToken);
+                return true;
+              } else {
+                // 토큰 갱신 실패 시 토큰 제거
+                clearTokens();
+                return false;
+              }
+            } catch (refreshError) {
+              // 토큰 갱신 실패 시 토큰 제거
+              clearTokens();
+              return false;
+            } finally {
+              // Promise 완료 후 초기화
+              refreshPromise = null;
+            }
+          })();
+        }
+
+        const refreshed = await refreshPromise;
+        if (refreshed) {
+          // 갱신된 토큰으로 원래 요청 재시도
+          return fetchApi<T>(endpoint, options, retryCount + 1);
+        }
+      } catch (refreshError) {
+        // 토큰 갱신 실패는 이미 처리됨
+      }
+    } else {
+      // Refresh token이 없으면 토큰 제거
+      clearTokens();
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -71,28 +144,59 @@ interface AuthResponse {
 }
 
 export async function signUp(
-  email: string,
+  username: string,
   password: string,
-  nickname?: string
+  passwordConfirm: string
 ): Promise<AuthResponse> {
   const data = await fetchApi<AuthResponse>("/api/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password, nickname }),
+    body: JSON.stringify({ username, password, passwordConfirm }),
   });
   setTokens(data.accessToken, data.refreshToken);
+
+  // 회원가입 후 마지막 선택한 팀스페이스 불러오기 (보통 null이지만 일관성을 위해)
+  try {
+    const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
+    if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
+      localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
+    }
+  } catch {
+    // 실패해도 회원가입은 계속 진행
+  }
+
   return data;
 }
 
 export async function signIn(
-  email: string,
+  username: string,
   password: string
 ): Promise<AuthResponse> {
   const data = await fetchApi<AuthResponse>("/api/auth/signin", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   });
   setTokens(data.accessToken, data.refreshToken);
+
+  // 로그인 후 마지막 선택한 팀스페이스 불러오기
+  try {
+    const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
+    if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
+      localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
+    }
+  } catch {
+    // 실패해도 로그인은 계속 진행
+  }
+
   return data;
+}
+
+export async function checkUsername(username: string): Promise<{
+  available: boolean;
+  message: string;
+}> {
+  return fetchApi(
+    `/api/auth/check-username?username=${encodeURIComponent(username)}`
+  );
 }
 
 export async function signOut(): Promise<void> {
@@ -100,6 +204,12 @@ export async function signOut(): Promise<void> {
     await fetchApi("/api/auth/signout", { method: "POST" });
   } finally {
     clearTokens();
+    // 로그아웃 이벤트 발생 (다른 컴포넌트에서 감지 가능)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("authStateChanged", { detail: { isLoggedIn: false } })
+      );
+    }
   }
 }
 
@@ -107,20 +217,63 @@ export async function refreshAccessToken(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
-  try {
-    const data = await fetchApi<{ accessToken: string; refreshToken: string }>(
-      "/api/auth/refresh",
-      {
-        method: "POST",
-        body: JSON.stringify({ refreshToken }),
-      }
-    );
-    setTokens(data.accessToken, data.refreshToken);
-    return true;
-  } catch {
-    clearTokens();
-    return false;
+  // 이미 토큰 갱신이 진행 중이면 기다림
+  if (refreshPromise) {
+    return refreshPromise;
   }
+
+  // 새로운 토큰 갱신 시작
+  refreshPromise = (async () => {
+    try {
+      // 직접 fetch 사용 (순환 참조 방지)
+      const response = await fetch("/api/auth/refresh", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        clearTokens();
+        return false;
+      }
+
+      const data = await response.json();
+      setTokens(data.accessToken, data.refreshToken);
+      return true;
+    } catch {
+      clearTokens();
+      return false;
+    } finally {
+      // Promise 완료 후 초기화
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+// ============ User Preferences API ============
+
+export async function getLastSelectedTeamSpaceApi(): Promise<{
+  lastSelectedTeamSpaceId: string | null;
+}> {
+  return fetchApi<{ lastSelectedTeamSpaceId: string | null }>(
+    "/api/user/last-team-space"
+  );
+}
+
+export async function setLastSelectedTeamSpaceApi(
+  teamSpaceId: string | null
+): Promise<{ success: boolean; lastSelectedTeamSpaceId: string | null }> {
+  return fetchApi<{ success: boolean; lastSelectedTeamSpaceId: string | null }>(
+    "/api/user/last-team-space",
+    {
+      method: "PUT",
+      body: JSON.stringify({ teamSpaceId }),
+    }
+  );
 }
 
 // ============ Favorites API ============
@@ -145,12 +298,11 @@ export async function getFavoritesApi(): Promise<FavoritesResponse> {
   return fetchApi<FavoritesResponse>("/api/favorites");
 }
 
-export async function addFavoriteApi(questionId: string): Promise<ApiFavorite> {
-  const data = await fetchApi<{ favorite: ApiFavorite }>("/api/favorites", {
+export async function addFavoriteApi(questionId: string): Promise<void> {
+  await fetchApi("/api/favorites", {
     method: "POST",
     body: JSON.stringify({ question_id: questionId }),
   });
-  return data.favorite;
 }
 
 export async function removeFavoriteApi(questionId: string): Promise<void> {
@@ -180,8 +332,21 @@ export async function toggleFavoriteApi(
     await removeFavoriteApi(questionId);
     return false;
   } else {
-    await addFavoriteApi(questionId);
-    return true;
+    try {
+      await addFavoriteApi(questionId);
+      return true;
+    } catch (error) {
+      // 이미 찜한 질문인 경우 (409 에러), 이미 찜한 상태로 처리
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (
+        errorMessage.includes("이미 찜한 질문") ||
+        errorMessage.includes("409")
+      ) {
+        // 이미 찜한 상태이므로 true 반환 (중복 찜 방지)
+        return true;
+      }
+      throw error;
+    }
   }
 }
 
@@ -194,6 +359,12 @@ export interface ApiSession {
   is_completed: boolean;
   question_count: number;
   created_at: string;
+  user_id: string; // 소유자 ID 추가
+  shared_by?: {
+    id: string;
+    username: string;
+    nickname: string | null;
+  } | null;
 }
 
 export interface ApiSessionDetail {
@@ -232,9 +403,27 @@ interface SessionsResponse {
 
 export async function getSessionsApi(
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  options?: {
+    teamSpaceId?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  }
 ): Promise<SessionsResponse> {
-  return fetchApi<SessionsResponse>(`/api/sessions?page=${page}&limit=${limit}`);
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (options?.teamSpaceId) {
+    params.append("team_space_id", options.teamSpaceId);
+  }
+  if (options?.startDate) {
+    params.append("start_date", options.startDate);
+  }
+  if (options?.endDate) {
+    params.append("end_date", options.endDate);
+  }
+  return fetchApi<SessionsResponse>(`/api/sessions?${params.toString()}`);
 }
 
 export async function getSessionByIdApi(id: string): Promise<ApiSessionDetail> {
@@ -243,11 +432,29 @@ export async function getSessionByIdApi(id: string): Promise<ApiSessionDetail> {
 
 export async function createSessionApi(
   query: string,
-  questions: Array<{ content: string; hint: string; category: string }>
-): Promise<{ session: { id: string } }> {
+  questions: Array<{
+    content: string;
+    hint: string;
+    category: string;
+    questionId?: string; // 기존 질문 ID (있으면 사용)
+  }>
+): Promise<{ session: { id: string; created_at: string } }> {
+  // questionId가 있는 경우 question_ids로 전달
+  const questionIds = questions
+    .map((q) => q.questionId)
+    .filter((id): id is string => !!id);
+
   return fetchApi("/api/sessions", {
     method: "POST",
-    body: JSON.stringify({ query, questions }),
+    body: JSON.stringify({
+      query,
+      question_ids: questionIds.length > 0 ? questionIds : undefined,
+      questions: questions.map((q) => ({
+        content: q.content,
+        hint: q.hint,
+        category: q.category,
+      })),
+    }),
   });
 }
 
@@ -312,6 +519,7 @@ export interface GeneratedQuestion {
   hint: string;
   category: string;
   subcategory?: string;
+  isReferenceBased?: boolean;
 }
 
 export async function generateQuestionsApi(
@@ -396,4 +604,224 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
 
 export function isLoggedIn(): boolean {
   return !!getAccessToken();
+}
+
+// ============ Team Spaces API ============
+
+export interface ApiTeamSpace {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  invite_code: string;
+  role: "owner" | "member";
+  created_by: string;
+  created_at: string;
+  joined_at: string;
+}
+
+interface TeamSpacesResponse {
+  teamSpaces: ApiTeamSpace[];
+}
+
+export async function getTeamSpacesApi(): Promise<TeamSpacesResponse> {
+  return fetchApi<TeamSpacesResponse>("/api/team-spaces");
+}
+
+export interface CreateTeamSpaceRequest {
+  name: string;
+  avatar_url?: string;
+  password?: string;
+}
+
+export interface CreateTeamSpaceResponse {
+  teamSpace: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    invite_code: string;
+    created_at: string;
+  };
+}
+
+export async function createTeamSpaceApi(
+  data: CreateTeamSpaceRequest
+): Promise<CreateTeamSpaceResponse> {
+  return fetchApi<CreateTeamSpaceResponse>("/api/team-spaces", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export interface TeamSpaceDetail {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+  role: "owner" | "member";
+}
+
+export async function getTeamSpaceByIdApi(
+  id: string
+): Promise<{ teamSpace: TeamSpaceDetail }> {
+  return fetchApi<{ teamSpace: TeamSpaceDetail }>(`/api/team-spaces/${id}`);
+}
+
+export interface UpdateTeamSpaceRequest {
+  name?: string;
+  avatar_url?: string;
+  password?: string;
+}
+
+export async function updateTeamSpaceApi(
+  id: string,
+  data: UpdateTeamSpaceRequest
+): Promise<{ teamSpace: TeamSpaceDetail }> {
+  return fetchApi<{ teamSpace: TeamSpaceDetail }>(`/api/team-spaces/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export interface TeamSpaceInviteInfo {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  has_password: boolean;
+}
+
+export async function getTeamSpaceByInviteCodeApi(
+  code: string
+): Promise<{ teamSpace: TeamSpaceInviteInfo }> {
+  return fetchApi<{ teamSpace: TeamSpaceInviteInfo }>(
+    `/api/team-spaces/invite/${code}`
+  );
+}
+
+export interface JoinTeamSpaceRequest {
+  password?: string;
+}
+
+export async function joinTeamSpaceApi(
+  code: string,
+  data?: JoinTeamSpaceRequest
+): Promise<{ teamSpace: { id: string; name: string } }> {
+  return fetchApi<{ teamSpace: { id: string; name: string } }>(
+    `/api/team-spaces/invite/${code}/join`,
+    {
+      method: "POST",
+      body: JSON.stringify(data || {}),
+    }
+  );
+}
+
+export async function regenerateInviteCodeApi(
+  id: string
+): Promise<{ invite_code: string }> {
+  return fetchApi<{ invite_code: string }>(
+    `/api/team-spaces/${id}/regenerate-invite`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export interface TeamSpaceSession {
+  id: string;
+  query: string;
+  total_time: number;
+  is_completed: boolean;
+  created_at: string;
+  week_number: number | null;
+  shared_at: string;
+  shared_by: {
+    id: string;
+    username: string;
+    nickname: string | null;
+  };
+}
+
+export async function getTeamSpaceSessionsApi(
+  id: string,
+  weekNumber?: number,
+  startDate?: string,
+  endDate?: string
+): Promise<{ sessions: TeamSpaceSession[] }> {
+  const params = new URLSearchParams();
+  if (weekNumber) {
+    params.append("week", String(weekNumber));
+  }
+  if (startDate) {
+    params.append("start_date", startDate);
+  }
+  if (endDate) {
+    params.append("end_date", endDate);
+  }
+  const queryString = params.toString();
+  return fetchApi<{ sessions: TeamSpaceSession[] }>(
+    `/api/team-spaces/${id}/sessions${queryString ? `?${queryString}` : ""}`
+  );
+}
+
+export async function shareSessionToTeamSpaceApi(
+  teamSpaceId: string,
+  sessionId: string,
+  weekNumber?: number
+): Promise<{
+  id: string;
+  session_id: string;
+  week_number: number | null;
+  shared_at: string;
+}> {
+  return fetchApi(`/api/team-spaces/${teamSpaceId}/sessions`, {
+    method: "POST",
+    body: JSON.stringify({
+      session_id: sessionId,
+      week_number: weekNumber,
+    }),
+  });
+}
+
+export interface TeamSpaceFavorite {
+  id: string;
+  question_id: string;
+  content: string;
+  hint: string | null;
+  category: string;
+  subcategory: string | null;
+  created_at: string;
+  shared_at: string;
+  favorited_by: Array<{
+    id: string;
+    username: string;
+    nickname: string | null;
+    shared_at: string;
+    is_mine: boolean;
+  }>;
+  is_mine: boolean;
+}
+
+export async function getTeamSpaceFavoritesApi(
+  id: string
+): Promise<{ favorites: TeamSpaceFavorite[] }> {
+  return fetchApi<{ favorites: TeamSpaceFavorite[] }>(
+    `/api/team-spaces/${id}/favorites`
+  );
+}
+
+export async function shareFavoriteToTeamSpaceApi(
+  teamSpaceId: string,
+  favoriteId: string
+): Promise<{
+  id: string;
+  favorite_id: string;
+  shared_at: string;
+}> {
+  return fetchApi(`/api/team-spaces/${teamSpaceId}/favorites`, {
+    method: "POST",
+    body: JSON.stringify({
+      favorite_id: favoriteId,
+    }),
+  });
 }

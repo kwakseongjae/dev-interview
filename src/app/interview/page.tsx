@@ -20,19 +20,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import Image from "next/image";
+import logoImage from "@/assets/images/logo.png";
+import logoTextImage from "@/assets/images/logo-text.png";
 
 import type { InterviewSession } from "@/types/interview";
-import {
-  getCurrentSession,
-  setCurrentSession,
-  saveSession,
-  toggleFavorite,
-} from "@/lib/storage";
 import {
   isLoggedIn,
   submitAnswerApi,
   completeSessionApi,
   toggleFavoriteApi,
+  getSessionByIdApi,
+  type ApiSessionDetail,
 } from "@/lib/api";
 import { useTimer, formatSeconds } from "@/hooks/useTimer";
 
@@ -68,39 +67,78 @@ function InterviewContent() {
     },
   });
 
+  // API 데이터를 InterviewSession 형태로 변환
+  const convertApiSession = (
+    apiSession: ApiSessionDetail
+  ): InterviewSession => ({
+    id: apiSession.id,
+    query: apiSession.query,
+    createdAt: apiSession.created_at,
+    questions: apiSession.questions.map((q) => ({
+      id: q.id,
+      content: q.content,
+      hint: q.hint || "",
+      category: q.category.display_name,
+      subcategory: q.subcategory?.display_name || undefined,
+      answer: q.answer?.content || "",
+      timeSpent: q.answer?.time_spent || 0,
+      isAnswered: !!q.answer,
+      isFavorite: q.is_favorited,
+    })),
+    totalTime: apiSession.total_time,
+    isCompleted: apiSession.is_completed,
+  });
+
   // Load session
   useEffect(() => {
-    const loadedSession = getCurrentSession();
-    if (loadedSession && loadedSession.id === sessionId) {
-      setSession(loadedSession);
-
-      // Initialize answers from session
-      const initialAnswers: Record<string, string> = {};
-      const initialTimes: Record<string, number> = {};
-      const initialRemainingTimes: Record<string, number> = {};
-      loadedSession.questions.forEach((q) => {
-        initialAnswers[q.id] = q.answer || "";
-        initialTimes[q.id] = q.timeSpent || 0;
-        // 남은 시간 계산: 180초에서 사용한 시간을 뺀 값, 최소 0
-        const remaining = Math.max(0, 180 - (q.timeSpent || 0));
-        initialRemainingTimes[q.id] = remaining;
-      });
-      setAnswers(initialAnswers);
-      setQuestionTimes(initialTimes);
-      setQuestionRemainingTimes(initialRemainingTimes);
-
-      // 첫 번째 질문의 타이머 시작
-      const firstQuestion = loadedSession.questions[0];
-      if (firstQuestion) {
-        const remainingTime = initialRemainingTimes[firstQuestion.id] || 180;
-        timer.reset(remainingTime);
-        timer.start();
+    const loadSession = async () => {
+      if (!sessionId) {
+        router.push("/");
+        return;
       }
-    } else {
-      // Session not found, redirect to home
-      router.push("/");
-    }
-    setIsLoading(false);
+
+      if (!isLoggedIn()) {
+        router.push("/");
+        return;
+      }
+
+      try {
+        const apiSession = await getSessionByIdApi(sessionId);
+        const loadedSession = convertApiSession(apiSession);
+
+        setSession(loadedSession);
+
+        // Initialize answers from session
+        const initialAnswers: Record<string, string> = {};
+        const initialTimes: Record<string, number> = {};
+        const initialRemainingTimes: Record<string, number> = {};
+        loadedSession.questions.forEach((q) => {
+          initialAnswers[q.id] = q.answer || "";
+          initialTimes[q.id] = q.timeSpent || 0;
+          // 남은 시간 계산: 180초에서 사용한 시간을 뺀 값, 최소 0
+          const remaining = Math.max(0, 180 - (q.timeSpent || 0));
+          initialRemainingTimes[q.id] = remaining;
+        });
+        setAnswers(initialAnswers);
+        setQuestionTimes(initialTimes);
+        setQuestionRemainingTimes(initialRemainingTimes);
+
+        // 첫 번째 질문의 타이머 시작
+        const firstQuestion = loadedSession.questions[0];
+        if (firstQuestion) {
+          const remainingTime = initialRemainingTimes[firstQuestion.id] || 180;
+          timer.reset(remainingTime);
+          timer.start();
+        }
+      } catch (error) {
+        console.error("세션 로드 실패:", error);
+        router.push("/");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, router]);
 
@@ -168,7 +206,6 @@ function InterviewContent() {
     };
 
     setSession(updatedSession);
-    setCurrentSession(updatedSession);
   }, [
     session,
     currentQuestion,
@@ -270,40 +307,51 @@ function InterviewContent() {
   const handleToggleFavorite = async () => {
     if (!currentQuestion || !session) return;
 
-    let isFav: boolean;
+    // 로그인한 유저만 찜하기 가능
+    if (!isLoggedIn()) {
+      alert("찜하기 기능은 로그인이 필요합니다.");
+      return;
+    }
 
-    if (isLoggedIn()) {
-      // API로 찜하기 토글
-      try {
-        isFav = await toggleFavoriteApi(currentQuestion.id, {
-          content: currentQuestion.content,
-          hint: currentQuestion.hint,
-          category: currentQuestion.category,
-        });
-      } catch (error) {
-        console.error("찜하기 API 실패, 로컬 스토리지 폴백:", error);
-        isFav = toggleFavorite(currentQuestion.id, {
-          content: currentQuestion.content,
-          hint: currentQuestion.hint,
-          category: currentQuestion.category,
-        });
-      }
-    } else {
-      // 로컬 스토리지로 찜하기 토글
-      isFav = toggleFavorite(currentQuestion.id, {
+    try {
+      const isFav = await toggleFavoriteApi(currentQuestion.id, {
         content: currentQuestion.content,
         hint: currentQuestion.hint,
         category: currentQuestion.category,
       });
+
+      const updatedQuestions = session.questions.map((q) =>
+        q.id === currentQuestion.id ? { ...q, isFavorite: isFav } : q
+      );
+
+      const updatedSession = { ...session, questions: updatedQuestions };
+      setSession(updatedSession);
+    } catch (error) {
+      console.error("찜하기 실패:", error);
+      const errorMessage = error instanceof Error ? error.message : "";
+      // 이미 찜한 질문인 경우 실제 찜 상태를 확인하여 UI 업데이트
+      if (
+        errorMessage.includes("이미 찜한 질문") ||
+        errorMessage.includes("409")
+      ) {
+        // 실제 찜 상태를 확인하여 UI 업데이트
+        try {
+          const { checkFavoriteApi } = await import("@/lib/api");
+          const actualIsFavorited = await checkFavoriteApi(currentQuestion.id);
+          const updatedQuestions = session.questions.map((q) =>
+            q.id === currentQuestion.id
+              ? { ...q, isFavorite: actualIsFavorited }
+              : q
+          );
+          const updatedSession = { ...session, questions: updatedQuestions };
+          setSession(updatedSession);
+        } catch (checkError) {
+          console.error("찜 상태 확인 실패:", checkError);
+        }
+        return;
+      }
+      alert("찜하기에 실패했습니다.");
     }
-
-    const updatedQuestions = session.questions.map((q) =>
-      q.id === currentQuestion.id ? { ...q, isFavorite: isFav } : q
-    );
-
-    const updatedSession = { ...session, questions: updatedQuestions };
-    setSession(updatedSession);
-    setCurrentSession(updatedSession);
   };
 
   const handleSubmit = async () => {
@@ -326,7 +374,7 @@ function InterviewContent() {
       isCompleted: true,
     };
 
-    // 로그인 상태면 API로 답변 제출
+    // 로그인 상태면 API로 답변 제출 및 서버에 저장
     if (isLoggedIn()) {
       try {
         // 각 질문에 대한 답변을 API로 제출
@@ -343,14 +391,19 @@ function InterviewContent() {
 
         // 세션 완료 처리
         await completeSessionApi(session.id, totalElapsedTime);
-      } catch (error) {
-        console.error("API 제출 실패, 로컬 스토리지에만 저장:", error);
-      }
-    }
 
-    // 로컬 스토리지에도 저장 (백업 및 비로그인 유저용)
-    saveSession(completedSession);
-    setCurrentSession(null);
+        // Navigate to complete page
+        router.push(`/complete?session=${session.id}`);
+        return;
+      } catch (error) {
+        console.error("API 제출 실패:", error);
+        alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
+      }
+    } else {
+      // 로그인하지 않은 경우
+      alert("로그인이 필요합니다.");
+      router.push("/auth");
+    }
 
     // Navigate to complete page
     router.push(`/complete?session=${session.id}`);
@@ -386,13 +439,24 @@ function InterviewContent() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center justify-between px-6 py-3">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-navy flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-gold" />
+          <Link href="/" className="flex items-center gap-1">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image
+                src={logoImage}
+                alt="모카번 Logo"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="font-display text-lg font-semibold tracking-tight hidden sm:inline">
-              DevInterview
-            </span>
+            <Image
+              src={logoTextImage}
+              alt="모카번"
+              width={66}
+              height={28}
+              className="h-5 w-auto object-contain hidden sm:block"
+              priority
+            />
           </Link>
 
           {/* Timer */}

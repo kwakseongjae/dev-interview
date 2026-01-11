@@ -4,17 +4,17 @@ import { signIn } from "@/lib/auth";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { username, password } = body;
 
     // 입력 검증
-    if (!email || !password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: "이메일과 비밀번호는 필수입니다" },
+        { error: "아이디와 비밀번호는 필수입니다" },
         { status: 400 }
       );
     }
 
-    const result = await signIn(email, password);
+    const result = await signIn(username, password);
 
     return NextResponse.json(result);
   } catch (error) {
