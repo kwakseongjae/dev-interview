@@ -375,8 +375,15 @@ function SearchContent() {
     try {
       // 기존 질문들 제외하고 새로 생성 (레퍼런스 URL 포함)
       const excludeContents = questions.map((q) => q.content);
-      const generatedQuestions = await fetchQuestions(excludeContents);
-      const convertedQuestions = convertToQuestions(generatedQuestions);
+      const result = await fetchQuestions(excludeContents);
+      const convertedQuestions = convertToQuestions(result.questions);
+
+      // 레퍼런스 미사용 알림 업데이트
+      if (referenceUrls.length > 0 && !result.referenceUsed && result.referenceMessage) {
+        setReferenceNotice(result.referenceMessage);
+      } else {
+        setReferenceNotice(null);
+      }
 
       setQuestions(convertedQuestions);
       setSelectedForReplace(new Set());
