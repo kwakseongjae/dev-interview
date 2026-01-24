@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -12,7 +12,6 @@ import {
   Upload,
   X,
   FileText,
-  Image as ImageIcon,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +43,7 @@ export default function Home() {
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const [currentTeamSpaceId, setCurrentTeamSpaceId] = useState<string | null>(
     null,
   );
@@ -151,6 +151,8 @@ export default function Home() {
     }
   };
 
+  const MAX_FILES = 3;
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter((file) => {
@@ -163,11 +165,102 @@ export default function Home() {
       alert("PDF 또는 이미지 파일만 업로드 가능합니다.");
     }
 
-    setReferenceFiles((prev) => [...prev, ...validFiles]);
+    // 현재 파일 수 + 새 파일 수가 최대치를 초과하는지 확인
+    const currentCount = referenceFiles.length;
+    const availableSlots = MAX_FILES - currentCount;
+
+    if (validFiles.length > availableSlots) {
+      alert(`레퍼런스는 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
+    }
+
+    const filesToAdd = validFiles.slice(0, availableSlots);
+    if (filesToAdd.length > 0) {
+      setReferenceFiles((prev) => [...prev, ...filesToAdd]);
+    }
+
+    // input 초기화 (같은 파일 다시 선택 가능하게)
+    e.target.value = "";
   };
 
   const handleRemoveFile = (index: number) => {
     setReferenceFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // 파일 프리뷰 URL 생성 (이미지 파일용)
+  const filePreviews = useMemo(() => {
+    return referenceFiles.map((file) => {
+      if (file.type.startsWith("image/")) {
+        return URL.createObjectURL(file);
+      }
+      return null;
+    });
+  }, [referenceFiles]);
+
+  // 컴포넌트 언마운트 시 URL 정리
+  useEffect(() => {
+    return () => {
+      filePreviews.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [filePreviews]);
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // 자식 요소로 이동하는 경우 무시
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const validFiles = files.filter((file) => {
+      const isPdf = file.type === "application/pdf";
+      const isImage = file.type.startsWith("image/");
+      return isPdf || isImage;
+    });
+
+    if (validFiles.length === 0) {
+      alert("PDF 또는 이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    if (validFiles.length !== files.length) {
+      alert(
+        `${files.length - validFiles.length}개의 파일이 지원되지 않는 형식입니다. PDF 또는 이미지 파일만 업로드 가능합니다.`,
+      );
+    }
+
+    // 현재 파일 수 + 새 파일 수가 최대치를 초과하는지 확인
+    const currentCount = referenceFiles.length;
+    const availableSlots = MAX_FILES - currentCount;
+
+    if (validFiles.length > availableSlots) {
+      alert(`레퍼런스는 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
+    }
+
+    const filesToAdd = validFiles.slice(0, availableSlots);
+    if (filesToAdd.length > 0) {
+      setReferenceFiles((prev) => [...prev, ...filesToAdd]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -383,7 +476,29 @@ export default function Home() {
           className="w-full max-w-2xl"
         >
           <form onSubmit={handleSubmit}>
-            <div className="relative bg-card rounded-2xl shadow-elegant transition-all duration-300 hover:shadow-lg">
+            <div
+              className={`relative bg-card rounded-2xl shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md ${
+                isDragging
+                  ? "ring-2 ring-gold ring-offset-2 ring-offset-background"
+                  : ""
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              {/* Drag overlay */}
+              {isDragging && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-gold/10 rounded-2xl border-2 border-dashed border-gold pointer-events-none">
+                  <div className="flex flex-col items-center gap-2 text-gold">
+                    <Upload className="w-8 h-8" />
+                    <span className="font-medium">파일을 여기에 놓으세요</span>
+                    <span className="text-sm text-gold/70">
+                      PDF, 이미지 · 최대 {MAX_FILES}개
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-start px-5 py-4 gap-4">
                 <Search className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
                 <textarea
@@ -427,69 +542,136 @@ export default function Home() {
                 </Button>
               </div>
 
-              {/* Reference Files Upload */}
-              <div className="px-5 pb-3 border-t border-border/50">
-                <div className="flex items-center gap-2 pt-3">
-                  <label
-                    htmlFor="reference-upload"
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>레퍼런스 첨부 (PDF, 이미지)</span>
-                  </label>
-                  <input
-                    id="reference-upload"
-                    type="file"
-                    accept=".pdf,image/*"
-                    multiple
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </div>
-                {referenceFiles.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {referenceFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm"
-                      >
-                        {file.type === "application/pdf" ? (
-                          <FileText className="w-4 h-4" />
-                        ) : (
-                          <ImageIcon className="w-4 h-4" />
-                        )}
-                        <span className="max-w-[200px] truncate">
-                          {file.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(index)}
-                          className="ml-1 hover:text-destructive transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Reference Files Preview */}
+              {referenceFiles.length > 0 && (
+                <div className="px-5 pb-4 border-t border-border/50">
+                  <div className="flex items-center gap-3 pt-3">
+                    {/* Preview cards */}
+                    <div className="flex items-center gap-2">
+                      {referenceFiles.map((file, index) => (
+                        <div key={index} className="relative group">
+                          {/* Preview Card */}
+                          <div className="w-20 h-20 rounded-lg overflow-hidden border border-border bg-muted/30">
+                            {file.type === "application/pdf" ? (
+                              // PDF Preview with filename
+                              <div className="w-full h-full flex flex-col items-center justify-center p-1.5">
+                                <FileText className="w-7 h-7 text-red-400 mb-1.5 flex-shrink-0" />
+                                <span className="text-[10px] text-muted-foreground truncate w-full text-center px-1 leading-tight">
+                                  {file.name.replace(/\.pdf$/i, "")}
+                                </span>
+                              </div>
+                            ) : (
+                              // Image Preview
+                              filePreviews[index] && (
+                                <Image
+                                  src={filePreviews[index]}
+                                  alt={file.name}
+                                  width={80}
+                                  height={80}
+                                  className="w-full h-full object-cover"
+                                />
+                              )
+                            )}
+                          </div>
 
-              {/* Sample Prompts */}
-              <div className="px-5 pb-4 flex flex-wrap gap-2">
-                {SAMPLE_PROMPTS.map((sample, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => handleSampleClick(sample)}
-                    className="text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sample}
-                  </button>
-                ))}
-              </div>
+                          {/* Hover overlay with X button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(index)}
+                            className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-foreground/80 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground shadow-md"
+                            aria-label={`${file.name} 삭제`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Add more files button (only show if under limit) */}
+                      {referenceFiles.length < MAX_FILES && (
+                        <label
+                          htmlFor="reference-upload"
+                          className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-gold/50 bg-muted/30 hover:bg-gold/5 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                        >
+                          <Upload className="w-4 h-4 text-muted-foreground mb-1" />
+                          <span className="text-[10px] text-muted-foreground">
+                            추가
+                          </span>
+                        </label>
+                      )}
+                    </div>
+
+                    <input
+                      id="reference-upload"
+                      type="file"
+                      accept=".pdf,image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+
+                    {/* File count hint */}
+                    <div className="ml-auto flex items-center">
+                      <span className="text-sm text-muted-foreground">
+                        {referenceFiles.length}/{MAX_FILES}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reference Files Upload (when no files) */}
+              {referenceFiles.length === 0 && (
+                <div className="px-5 pb-3 border-t border-border/50">
+                  <div className="flex items-center gap-2 pt-3">
+                    <label
+                      htmlFor="reference-upload-empty"
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>
+                        레퍼런스 첨부{" "}
+                        <span className="text-muted-foreground/60">
+                          (PDF, 이미지 · 최대 {MAX_FILES}개)
+                        </span>
+                      </span>
+                    </label>
+                    <input
+                      id="reference-upload-empty"
+                      type="file"
+                      accept=".pdf,image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
           </form>
+
+          {/* Sample Prompts */}
+          <div className="mt-8">
+            <p className="text-sm text-muted-foreground mb-3 text-center">
+              클릭해서 바로 시작해보세요
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {SAMPLE_PROMPTS.map((sample, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => handleSampleClick(sample)}
+                  className="group text-left px-4 py-3 rounded-2xl bg-card border border-border/50 hover:border-gold/30 hover:bg-gold/5 text-sm text-foreground/70 hover:text-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gold/60 group-hover:bg-gold transition-colors" />
+                    {sample}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* Quick Links */}
@@ -497,7 +679,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-12 flex items-center gap-6 text-sm text-muted-foreground"
+          className="mt-8 flex items-center gap-6 text-sm text-muted-foreground"
         >
           <Link
             href="/archive"
