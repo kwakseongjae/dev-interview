@@ -199,7 +199,8 @@ export default function ArchivePage() {
           })
             .then((response) => {
               const converted = response.sessions.map(convertApiSession);
-              cache.set(cacheKey, converted);
+              // 캐시 TTL 5분으로 설정
+              cache.set(cacheKey, converted, 5 * 60 * 1000);
               setSessions(converted);
             })
             .catch((error) => {
@@ -214,8 +215,8 @@ export default function ArchivePage() {
           endDate,
         });
         const converted = response.sessions.map(convertApiSession);
-        // 캐시에 저장
-        cache.set(cacheKey, converted);
+        // 캐시에 저장 (5분 TTL)
+        cache.set(cacheKey, converted, 5 * 60 * 1000);
         setSessions(converted);
         setUseApi(true);
         setIsLoading(false);
@@ -261,16 +262,8 @@ export default function ArchivePage() {
       loadSessions();
     };
 
-    const handleFocus = () => {
-      // 페이지 포커스 시 로그인 상태 확인 후 데이터 다시 로드
-      loadSessions();
-    };
-
     // 커스텀 이벤트 리스너 (로그인/로그아웃 시)
     window.addEventListener("authStateChanged", handleAuthStateChange);
-
-    // 페이지 포커스 시 데이터 다시 로드
-    window.addEventListener("focus", handleFocus);
 
     // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
     const handleStorageChange = (e: StorageEvent) => {
@@ -285,7 +278,6 @@ export default function ArchivePage() {
 
     return () => {
       window.removeEventListener("authStateChanged", handleAuthStateChange);
-      window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [loadSessions]);
@@ -559,8 +551,8 @@ export default function ArchivePage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full px-6 py-4 border-b border-border/50">
-        <nav className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="relative z-10 w-full border-b border-border/50">
+        <nav className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -796,21 +788,11 @@ export default function ArchivePage() {
                       onMouseEnter={() => handlePrefetchQuestions(session.id)}
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                            <h2 className="font-display text-lg font-semibold">
+                            <h2 className="font-display text-lg font-semibold truncate flex-1 min-w-0">
                               {session.query}
                             </h2>
-                            {session.isCompleted ? (
-                              <Badge
-                                variant="secondary"
-                                className="bg-timer-safe/10 text-timer-safe"
-                              >
-                                완료
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">진행 중</Badge>
-                            )}
                           </div>
 
                           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">

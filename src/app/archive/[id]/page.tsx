@@ -281,8 +281,8 @@ export default function ArchiveDetailPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full px-6 py-4 border-b border-border/50">
-        <nav className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="relative z-10 w-full border-b border-border/50">
+        <nav className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/archive"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"

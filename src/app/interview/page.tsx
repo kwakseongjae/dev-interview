@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
+  CloudCheck,
   Heart,
   Lightbulb,
   Loader2,
   Send,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +32,18 @@ import {
   getSessionByIdApi,
   type ApiSessionDetail,
 } from "@/lib/api";
-import { useTimer, formatSeconds } from "@/hooks/useTimer";
+import { formatSeconds } from "@/hooks/useTimer";
+
+// 로컬 스토리지 키 생성
+const getStorageKey = (sessionId: string) => `interview_progress_${sessionId}`;
+
+// 로컬 스토리지에 저장할 데이터 타입
+interface LocalProgress {
+  answers: Record<string, string>;
+  currentQuestionIndex: number;
+  totalElapsedTime: number;
+  savedAt: number; // timestamp
+}
 
 function InterviewContent() {
   const searchParams = useSearchParams();
@@ -44,28 +54,70 @@ function InterviewContent() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [questionTimes, setQuestionTimes] = useState<Record<string, number>>(
-    {}
-  );
-  const [questionRemainingTimes, setQuestionRemainingTimes] = useState<
-    Record<string, number>
-  >({});
   const [totalElapsedTime, setTotalElapsedTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
 
-  // Timer hook
-  const timer = useTimer({
-    initialTime: 180, // 3 minutes
-    onTimeUp: () => {
-      // Auto move to next or show warning
-      if (currentQuestion) {
-        setQuestionRemainingTimes((prev) => ({
-          ...prev,
-          [currentQuestion.id]: 0,
-        }));
+  // 총 소요시간 트래킹용 ref
+  const totalTimeRef = useRef(0);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 로컬 스토리지에 진행상황 저장
+  const saveToLocal = useCallback(() => {
+    if (!sessionId) return;
+
+    const now = Date.now();
+    const progress: LocalProgress = {
+      answers,
+      currentQuestionIndex,
+      totalElapsedTime: totalTimeRef.current,
+      savedAt: now,
+    };
+
+    try {
+      localStorage.setItem(getStorageKey(sessionId), JSON.stringify(progress));
+      setLastSavedAt(new Date(now));
+    } catch (error) {
+      console.error("로컬 저장 실패:", error);
+    }
+  }, [sessionId, answers, currentQuestionIndex]);
+
+  // 로컬 스토리지에서 진행상황 복원
+  const loadFromLocal = useCallback((): LocalProgress | null => {
+    if (!sessionId) return null;
+
+    try {
+      const saved = localStorage.getItem(getStorageKey(sessionId));
+      if (!saved) return null;
+
+      const progress: LocalProgress = JSON.parse(saved);
+      
+      // 24시간 이상 지난 데이터는 무시
+      const hoursSinceSave = (Date.now() - progress.savedAt) / (1000 * 60 * 60);
+      if (hoursSinceSave > 24) {
+        localStorage.removeItem(getStorageKey(sessionId));
+        return null;
       }
-    },
-  });
+
+      return progress;
+    } catch (error) {
+      console.error("로컬 데이터 로드 실패:", error);
+      return null;
+    }
+  }, [sessionId]);
+
+  // 로컬 스토리지 클린업
+  const clearLocalProgress = useCallback(() => {
+    if (!sessionId) return;
+    
+    try {
+      localStorage.removeItem(getStorageKey(sessionId));
+    } catch (error) {
+      console.error("로컬 데이터 삭제 실패:", error);
+    }
+  }, [sessionId]);
 
   // API 데이터를 InterviewSession 형태로 변환
   const convertApiSession = (
@@ -108,27 +160,47 @@ function InterviewContent() {
 
         setSession(loadedSession);
 
-        // Initialize answers from session
-        const initialAnswers: Record<string, string> = {};
-        const initialTimes: Record<string, number> = {};
-        const initialRemainingTimes: Record<string, number> = {};
-        loadedSession.questions.forEach((q) => {
-          initialAnswers[q.id] = q.answer || "";
-          initialTimes[q.id] = q.timeSpent || 0;
-          // 남은 시간 계산: 180초에서 사용한 시간을 뺀 값, 최소 0
-          const remaining = Math.max(0, 180 - (q.timeSpent || 0));
-          initialRemainingTimes[q.id] = remaining;
-        });
-        setAnswers(initialAnswers);
-        setQuestionTimes(initialTimes);
-        setQuestionRemainingTimes(initialRemainingTimes);
+        // 로컬 스토리지에서 진행상황 복원 시도
+        const localProgress = loadFromLocal();
 
-        // 첫 번째 질문의 타이머 시작
-        const firstQuestion = loadedSession.questions[0];
-        if (firstQuestion) {
-          const remainingTime = initialRemainingTimes[firstQuestion.id] || 180;
-          timer.reset(remainingTime);
-          timer.start();
+        if (localProgress) {
+          // 로컬에 저장된 데이터가 있으면 복원
+          setIsRestoredFromLocal(true);
+          
+          // 로컬 답변과 서버 답변 병합 (로컬 우선, 단 비어있으면 서버 데이터 사용)
+          const mergedAnswers: Record<string, string> = {};
+          loadedSession.questions.forEach((q) => {
+            const localAnswer = localProgress.answers[q.id];
+            const serverAnswer = q.answer || "";
+            // 로컬에 답변이 있으면 로컬 사용, 없으면 서버 데이터 사용
+            mergedAnswers[q.id] = localAnswer !== undefined && localAnswer !== "" 
+              ? localAnswer 
+              : serverAnswer;
+          });
+          
+          setAnswers(mergedAnswers);
+          setCurrentQuestionIndex(localProgress.currentQuestionIndex);
+          
+          // 소요시간: 로컬 시간과 서버 시간 중 큰 값 사용
+          const restoredTime = Math.max(localProgress.totalElapsedTime, loadedSession.totalTime);
+          setTotalElapsedTime(restoredTime);
+          totalTimeRef.current = restoredTime;
+          
+          // 복원 알림을 3초 후에 숨김
+          setTimeout(() => setIsRestoredFromLocal(false), 3000);
+        } else {
+          // 로컬 데이터 없으면 서버 데이터로 초기화
+          const initialAnswers: Record<string, string> = {};
+          loadedSession.questions.forEach((q) => {
+            initialAnswers[q.id] = q.answer || "";
+          });
+          setAnswers(initialAnswers);
+
+          // 기존 세션의 총 소요시간이 있으면 이어서 카운트
+          if (loadedSession.totalTime > 0) {
+            setTotalElapsedTime(loadedSession.totalTime);
+            totalTimeRef.current = loadedSession.totalTime;
+          }
         }
       } catch (error) {
         console.error("세션 로드 실패:", error);
@@ -139,83 +211,70 @@ function InterviewContent() {
     };
 
     loadSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, router]);
+  }, [sessionId, router, loadFromLocal]);
 
-  // Track total time
+  // Track total time - 안정적인 타이머 로직
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTotalElapsedTime((prev) => prev + 1);
+    // 컴포넌트 마운트 시 타이머 시작
+    timerIntervalRef.current = setInterval(() => {
+      totalTimeRef.current += 1;
+      setTotalElapsedTime(totalTimeRef.current);
     }, 1000);
-    return () => clearInterval(interval);
+
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
   }, []);
 
-  const currentQuestion = session?.questions[currentQuestionIndex];
-
-  // 현재 질문의 남은 시간을 업데이트
+  // 10초마다 로컬 스토리지에 자동 저장
   useEffect(() => {
-    if (!currentQuestion) return;
+    if (!session || isLoading) return;
 
-    const interval = setInterval(() => {
-      if (timer.isRunning && timer.time > 0) {
-        setQuestionRemainingTimes((prev) => ({
-          ...prev,
-          [currentQuestion.id]: timer.time,
-        }));
+    // 10초마다 자동 저장
+    autoSaveIntervalRef.current = setInterval(() => {
+      saveToLocal();
+    }, 10000);
+
+    // 페이지 이탈 전 저장 (beforeunload)
+    const handleBeforeUnload = () => {
+      saveToLocal();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+        autoSaveIntervalRef.current = null;
       }
-    }, 1000);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [session, isLoading, saveToLocal]);
 
-    return () => clearInterval(interval);
-  }, [currentQuestion, timer.isRunning, timer.time]);
+  const currentQuestion = session?.questions[currentQuestionIndex];
 
   const saveCurrentProgress = useCallback(() => {
     if (!session || !currentQuestion) return;
 
-    // 현재 질문의 사용 시간 계산: 180초에서 남은 시간을 뺀 값
-    const remainingTime =
-      questionRemainingTimes[currentQuestion.id] ?? timer.time;
-    const timeSpent = 180 - remainingTime;
-
-    setQuestionTimes((prev) => ({
-      ...prev,
-      [currentQuestion.id]: timeSpent,
+    // Update session with current answers
+    const updatedQuestions = session.questions.map((q) => ({
+      ...q,
+      answer: answers[q.id] || "",
+      isAnswered: (answers[q.id] || "").trim().length > 0,
     }));
-
-    // Update session
-    const updatedQuestions = session.questions.map((q, idx) => {
-      if (idx === currentQuestionIndex) {
-        return {
-          ...q,
-          answer: answers[q.id] || "",
-          timeSpent: timeSpent,
-          isAnswered: (answers[q.id] || "").trim().length > 0,
-        };
-      }
-      return {
-        ...q,
-        answer: answers[q.id] || "",
-        timeSpent: questionTimes[q.id] || 0,
-        isAnswered: (answers[q.id] || "").trim().length > 0,
-      };
-    });
 
     const updatedSession: InterviewSession = {
       ...session,
       questions: updatedQuestions,
-      totalTime: totalElapsedTime,
+      totalTime: totalTimeRef.current,
     };
 
     setSession(updatedSession);
-  }, [
-    session,
-    currentQuestion,
-    currentQuestionIndex,
-    answers,
-    questionTimes,
-    questionRemainingTimes,
-    timer.time,
-    totalElapsedTime,
-  ]);
+  }, [session, currentQuestion, answers]);
 
   const handleAnswerChange = (value: string) => {
     if (!currentQuestion) return;
@@ -227,81 +286,29 @@ function InterviewContent() {
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0 && session) {
-      // 현재 질문의 남은 시간 저장
-      if (currentQuestion) {
-        setQuestionRemainingTimes((prev) => ({
-          ...prev,
-          [currentQuestion.id]: timer.time,
-        }));
-      }
-
       saveCurrentProgress();
-      timer.pause();
-
-      const newIndex = currentQuestionIndex - 1;
-      const newQuestion = session.questions[newIndex];
-
-      // 새 질문의 남은 시간 불러오기
-      const remainingTime = questionRemainingTimes[newQuestion.id] ?? 180;
-      timer.reset(remainingTime);
-
-      setCurrentQuestionIndex(newIndex);
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
       setShowHint(false);
-      timer.start();
     }
   };
 
   const handleNext = () => {
     if (!session) return;
 
-    // 현재 질문의 남은 시간 저장
-    if (currentQuestion) {
-      setQuestionRemainingTimes((prev) => ({
-        ...prev,
-        [currentQuestion.id]: timer.time,
-      }));
-    }
-
     saveCurrentProgress();
-    timer.pause();
 
     if (currentQuestionIndex < session.questions.length - 1) {
-      const newIndex = currentQuestionIndex + 1;
-      const newQuestion = session.questions[newIndex];
-
-      // 새 질문의 남은 시간 불러오기
-      const remainingTime = questionRemainingTimes[newQuestion.id] ?? 180;
-      timer.reset(remainingTime);
-
-      setCurrentQuestionIndex(newIndex);
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
       setShowHint(false);
-      timer.start();
     }
   };
 
   const handleGoToQuestion = (index: number) => {
     if (!session) return;
 
-    // 현재 질문의 남은 시간 저장
-    if (currentQuestion) {
-      setQuestionRemainingTimes((prev) => ({
-        ...prev,
-        [currentQuestion.id]: timer.time,
-      }));
-    }
-
     saveCurrentProgress();
-    timer.pause();
-
-    const newQuestion = session.questions[index];
-
-    // 새 질문의 남은 시간 불러오기
-    const remainingTime = questionRemainingTimes[newQuestion.id] ?? 180;
-    timer.reset(remainingTime);
-
     setCurrentQuestionIndex(index);
     setShowHint(false);
-    timer.start();
   };
 
   const handleToggleFavorite = async () => {
@@ -357,22 +364,24 @@ function InterviewContent() {
   const handleSubmit = async () => {
     if (!session) return;
 
-    saveCurrentProgress();
+    // 타이머 및 자동저장 정지
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (autoSaveIntervalRef.current) {
+      clearInterval(autoSaveIntervalRef.current);
+      autoSaveIntervalRef.current = null;
+    }
+
+    const finalTotalTime = totalTimeRef.current;
 
     // Final update
     const updatedQuestions = session.questions.map((q) => ({
       ...q,
       answer: answers[q.id] || "",
-      timeSpent: questionTimes[q.id] || 0,
       isAnswered: (answers[q.id] || "").trim().length > 0,
     }));
-
-    const completedSession: InterviewSession = {
-      ...session,
-      questions: updatedQuestions,
-      totalTime: totalElapsedTime,
-      isCompleted: true,
-    };
 
     // 로그인 상태면 API로 답변 제출 및 서버에 저장
     if (isLoggedIn()) {
@@ -384,13 +393,16 @@ function InterviewContent() {
               session.id,
               question.id,
               question.answer,
-              question.timeSpent || 0
+              0 // timeSpent는 더 이상 사용하지 않음
             );
           }
         }
 
-        // 세션 완료 처리
-        await completeSessionApi(session.id, totalElapsedTime);
+        // 세션 완료 처리 - 총 소요시간만 전달
+        await completeSessionApi(session.id, finalTotalTime);
+
+        // 제출 성공 시 로컬 스토리지 클린업
+        clearLocalProgress();
 
         // Navigate to complete page
         router.push(`/complete?session=${session.id}`);
@@ -398,21 +410,22 @@ function InterviewContent() {
       } catch (error) {
         console.error("API 제출 실패:", error);
         alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
+        
+        // 에러 발생 시 타이머 및 자동저장 다시 시작
+        timerIntervalRef.current = setInterval(() => {
+          totalTimeRef.current += 1;
+          setTotalElapsedTime(totalTimeRef.current);
+        }, 1000);
+        autoSaveIntervalRef.current = setInterval(() => {
+          saveToLocal();
+        }, 10000);
+        return;
       }
     } else {
       // 로그인하지 않은 경우
       alert("로그인이 필요합니다.");
       router.push("/auth");
     }
-
-    // Navigate to complete page
-    router.push(`/complete?session=${session.id}`);
-  };
-
-  const getTimerColor = () => {
-    if (timer.percentage > 50) return "text-timer-safe";
-    if (timer.percentage > 20) return "text-timer-warning";
-    return "text-timer-danger timer-pulse";
   };
 
   const isQuestionAnswered = (questionId: string) => {
@@ -459,17 +472,23 @@ function InterviewContent() {
             />
           </Link>
 
-          {/* Timer */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              각 질문은 3분의 시간이 주어집니다
-            </span>
-            <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-full bg-card border ${getTimerColor()}`}
-            >
-              <Clock className="w-4 h-4" />
-              <span className="font-mono text-lg font-semibold tabular-nums">
-                {timer.formatTime()}
+          {/* Total Time & Auto-save indicator */}
+          <div className="flex items-center gap-4">
+            {isRestoredFromLocal ? (
+              <div className="flex items-center gap-1.5 text-xs text-gold animate-pulse">
+                <CloudCheck className="w-3.5 h-3.5" />
+                <span>진행상황 복원됨</span>
+              </div>
+            ) : lastSavedAt ? (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CloudCheck className="w-3.5 h-3.5 text-timer-safe" />
+                <span className="hidden sm:inline">자동 저장됨</span>
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>소요 시간</span>
+              <span className="font-mono font-medium text-foreground tabular-nums">
+                {formatSeconds(totalElapsedTime)}
               </span>
             </div>
           </div>

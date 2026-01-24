@@ -28,6 +28,7 @@ import {
 } from "@/lib/api";
 import { TeamSpaceSelector } from "@/components/TeamSpaceSelector";
 import { TeamSpaceIntro } from "@/components/TeamSpaceIntro";
+import { validateInterviewInput } from "@/lib/validation";
 
 const SAMPLE_PROMPTS = [
   "프론트엔드 3년차 개발자를 위한 기술면접",
@@ -50,6 +51,7 @@ export default function Home() {
   const [currentTeamSpaceRole, setCurrentTeamSpaceRole] = useState<
     "owner" | "member" | null
   >(null);
+  const [inputWarning, setInputWarning] = useState<string | null>(null);
 
   useEffect(() => {
     // 로그인 상태 확인 후 마지막 선택한 팀스페이스 불러오기
@@ -270,6 +272,15 @@ export default function Home() {
     // 이미 진행 중이면 무시
     if (isUploading) return;
 
+    // 입력 유효성 검증
+    const validation = validateInterviewInput(query);
+    if (!validation.isValid) {
+      setInputWarning(validation.suggestion || "유효한 검색어를 입력해주세요.");
+      return;
+    }
+
+    // 유효한 입력이면 경고 제거
+    setInputWarning(null);
     setIsUploading(true);
 
     try {
@@ -360,6 +371,7 @@ export default function Home() {
     // 이미 진행 중이면 무시
     if (isUploading) return;
 
+    setInputWarning(null);
     setIsUploading(true);
     setQuery(sample);
     router.push(`/search?q=${encodeURIComponent(sample)}`);
@@ -402,26 +414,6 @@ export default function Home() {
                 onSelect={handleTeamSpaceSelect}
               />
             )}
-            <Link href="/archive">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground hover:bg-gold/10 group"
-              >
-                <Archive className="w-4 h-4 mr-2 group-hover:text-gold transition-colors" />
-                아카이브
-              </Button>
-            </Link>
-            <Link href="/favorites">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground hover:bg-red-50 group"
-              >
-                <Heart className="w-4 h-4 mr-2 group-hover:text-red-500 transition-colors" />
-                찜한 질문
-              </Button>
-            </Link>
             {!isLoadingUser && (
               <>
                 {user ? (
@@ -503,7 +495,10 @@ export default function Home() {
                 <Search className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
                 <textarea
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    if (inputWarning) setInputWarning(null);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -649,6 +644,17 @@ export default function Home() {
 
             </div>
           </form>
+
+          {/* Input Warning */}
+          {inputWarning && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            >
+              <p>{inputWarning}</p>
+            </motion.div>
+          )}
 
           {/* Sample Prompts */}
           <div className="mt-8">

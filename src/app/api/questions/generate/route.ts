@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
+import { validateInterviewInput } from "@/lib/validation";
 
 // POST /api/questions/generate - Claude로 질문 생성 (세션 저장 없이)
 export async function POST(request: NextRequest) {
@@ -17,11 +18,25 @@ export async function POST(request: NextRequest) {
       reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
     } = body;
 
-    // 입력 검증
+    // 입력 검증 - 빈 쿼리
     if (!query) {
       return NextResponse.json(
         { error: "검색 쿼리는 필수입니다" },
         { status: 400 }
+      );
+    }
+
+    // 입력 유효성 검증 (토큰 절약을 위한 사전 검증)
+    const validation = validateInterviewInput(query);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: "invalid_input",
+          validation_error: true,
+          category: validation.category,
+          suggestion: validation.suggestion,
+        },
+        { status: 422 } // Unprocessable Entity
       );
     }
 
@@ -40,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Claude로 질문 생성 (레퍼런스 URL 포함)
-    const generatedQuestions = await generateQuestions(
+    const result = await generateQuestions(
       query,
       excludeQuestions,
       questionCount,
@@ -48,14 +63,18 @@ export async function POST(request: NextRequest) {
     );
 
     console.log("생성된 질문:", {
-      count: generatedQuestions.length,
-      referenceBasedCount: generatedQuestions.filter((q) => q.isReferenceBased)
+      count: result.questions.length,
+      referenceBasedCount: result.questions.filter((q) => q.isReferenceBased)
         .length,
+      referenceUsed: result.referenceUsed,
+      referenceMessage: result.referenceMessage,
     });
 
     return NextResponse.json({
-      questions: generatedQuestions,
+      questions: result.questions,
       query,
+      referenceUsed: result.referenceUsed,
+      referenceMessage: result.referenceMessage,
     });
   } catch (error) {
     const message =

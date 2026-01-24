@@ -4,10 +4,12 @@ import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
   Heart,
+  Lightbulb,
   Loader2,
   Sparkles,
   RefreshCw,
@@ -60,6 +62,11 @@ function SearchContent() {
   const [referenceUrls, setReferenceUrls] = useState<
     Array<{ url: string; type: string }>
   >([]);
+  const [validationError, setValidationError] = useState<{
+    suggestion: string;
+    category: string;
+  } | null>(null);
+  const [referenceNotice, setReferenceNotice] = useState<string | null>(null);
 
   // 검색이 이미 시작되었는지 추적하는 ref
   const hasStartedSearch = useRef(false);
@@ -85,12 +92,19 @@ function SearchContent() {
     });
   }, [referenceUrlsParam]);
 
+  // API 응답 타입
+  interface FetchQuestionsResult {
+    questions: GeneratedQuestion[];
+    referenceUsed: boolean;
+    referenceMessage?: string;
+  }
+
   // API를 통해 질문 생성
   const fetchQuestions = useCallback(
     async (
       excludeQuestions: string[] = [],
       urls?: Array<{ url: string; type: string }>,
-    ) => {
+    ): Promise<FetchQuestionsResult> => {
       const refsToUse = urls ?? referenceUrls;
       try {
         const requestBody = {
@@ -112,12 +126,30 @@ function SearchContent() {
           body: JSON.stringify(requestBody),
         });
 
+        const data = await response.json();
+
+        // 유효성 검증 에러 처리
+        if (response.status === 422 && data.validation_error) {
+          const error = new Error("validation_error") as Error & {
+            validationError: true;
+            suggestion: string;
+            category: string;
+          };
+          error.validationError = true;
+          error.suggestion = data.suggestion;
+          error.category = data.category;
+          throw error;
+        }
+
         if (!response.ok) {
           throw new Error("질문 생성 실패");
         }
 
-        const data = await response.json();
-        return data.questions as GeneratedQuestion[];
+        return {
+          questions: data.questions as GeneratedQuestion[],
+          referenceUsed: data.referenceUsed ?? false,
+          referenceMessage: data.referenceMessage,
+        };
       } catch (error) {
         console.error("질문 생성 오류:", error);
         throw error;
@@ -176,11 +208,17 @@ function SearchContent() {
 
       try {
         // API 호출 (파싱된 레퍼런스 URL 전달)
-        const generatedQuestions = await fetchQuestions(
-          [],
-          parsedReferenceUrls,
-        );
-        const convertedQuestions = convertToQuestions(generatedQuestions);
+        const result = await fetchQuestions([], parsedReferenceUrls);
+        const convertedQuestions = convertToQuestions(result.questions);
+
+        // 레퍼런스 미사용 알림 설정
+        if (
+          parsedReferenceUrls.length > 0 &&
+          !result.referenceUsed &&
+          result.referenceMessage
+        ) {
+          setReferenceNotice(result.referenceMessage);
+        }
 
         // 진행 완료 대기
         await new Promise((resolve) => setTimeout(resolve, steps * 600 + 300));
@@ -207,12 +245,26 @@ function SearchContent() {
         setFavorites(favMap);
 
         setIsSearching(false);
-      } catch {
+      } catch (error) {
         // 에러 시에도 검색 완료 상태로 전환
         clearInterval(interval);
         setCurrentStep(steps);
         setIsSearching(false);
-        alert("질문 생성에 실패했습니다. 다시 시도해주세요.");
+
+        // 유효성 검증 에러인 경우
+        const err = error as Error & {
+          validationError?: boolean;
+          suggestion?: string;
+          category?: string;
+        };
+        if (err.validationError) {
+          setValidationError({
+            suggestion: err.suggestion || "유효한 검색어를 입력해주세요.",
+            category: err.category || "unknown",
+          });
+        } else {
+          alert("질문 생성에 실패했습니다. 다시 시도해주세요.");
+        }
       }
     };
 
@@ -397,8 +449,8 @@ function SearchContent() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full px-6 py-4 border-b border-border/50">
-        <nav className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="relative z-10 w-full border-b border-border/50">
+        <nav className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -506,6 +558,70 @@ function SearchContent() {
                 </div>
               </Card>
             </motion.div>
+          ) : validationError ? (
+            /* Validation Error - Invalid Input */
+            <motion.div
+              key="validation-error"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <Card className="p-8 bg-card/80 backdrop-blur border-amber-200/50">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                    <AlertCircle className="w-8 h-8 text-amber-600" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold mb-2">
+                    입력을 확인해주세요
+                  </h2>
+                  <p className="text-muted-foreground mb-6 max-w-md">
+                    {validationError.suggestion}
+                  </p>
+
+                  {/* 추천 예시 */}
+                  <div className="w-full max-w-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="w-4 h-4 text-gold" />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        이런 검색어는 어떠세요?
+                      </span>
+                    </div>
+                    <div className="grid gap-2">
+                      {[
+                        "프론트엔드 개발자 기술면접 준비",
+                        "React와 TypeScript 면접 질문",
+                        "백엔드 신입 개발자 면접 대비",
+                        "JavaScript 비동기 처리 질문",
+                      ].map((example, index) => (
+                        <Link
+                          key={index}
+                          href={`/search?q=${encodeURIComponent(example)}`}
+                          className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/50 hover:bg-gold/10 hover:border-gold/30 border border-transparent transition-all text-sm text-left"
+                          onClick={() => {
+                            // Reset search state for new query
+                            hasStartedSearch.current = false;
+                            setValidationError(null);
+                            setIsSearching(true);
+                          }}
+                        >
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                          <span>{example}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <Link href="/">
+                      <Button variant="outline" className="gap-2">
+                        <ArrowLeft className="w-4 h-4" />
+                        홈으로 돌아가기
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
           ) : (
             <motion.div
               key="results"
@@ -513,6 +629,18 @@ function SearchContent() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
+              {/* Reference Notice */}
+              {referenceNotice && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-2"
+                >
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p>{referenceNotice}</p>
+                </motion.div>
+              )}
+
               {/* Results Header */}
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-2">

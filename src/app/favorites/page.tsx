@@ -175,7 +175,7 @@ export default function FavoritesPage() {
                 const converted = response.favorites.map(
                   convertTeamSpaceFavorite,
                 );
-                cache.set(cacheKey, converted);
+                cache.set(cacheKey, converted, 5 * 60 * 1000);
                 setFavorites(converted);
               })
               .catch((error) => {
@@ -185,7 +185,7 @@ export default function FavoritesPage() {
             getFavoritesApi()
               .then((response) => {
                 const converted = response.favorites.map(convertApiFavorite);
-                cache.set(cacheKey, converted);
+                cache.set(cacheKey, converted, 5 * 60 * 1000);
                 setFavorites(converted);
               })
               .catch((error) => {
@@ -200,15 +200,15 @@ export default function FavoritesPage() {
           // 팀 스페이스 찜한 질문 조회
           const response = await getTeamSpaceFavoritesApi(actualTeamSpaceId);
           const converted = response.favorites.map(convertTeamSpaceFavorite);
-          // 캐시에 저장
-          cache.set(cacheKey, converted);
+          // 캐시에 저장 (5분 TTL)
+          cache.set(cacheKey, converted, 5 * 60 * 1000);
           setFavorites(converted);
         } else {
           // 개인 찜한 질문 조회
           const response = await getFavoritesApi();
           const converted = response.favorites.map(convertApiFavorite);
-          // 캐시에 저장
-          cache.set(cacheKey, converted);
+          // 캐시에 저장 (5분 TTL)
+          cache.set(cacheKey, converted, 5 * 60 * 1000);
           setFavorites(converted);
         }
         setUseApi(true);
@@ -255,16 +255,8 @@ export default function FavoritesPage() {
       loadFavorites();
     };
 
-    const handleFocus = () => {
-      // 페이지 포커스 시 로그인 상태 확인 후 데이터 다시 로드
-      loadFavorites();
-    };
-
     // 커스텀 이벤트 리스너 (로그인/로그아웃 시)
     window.addEventListener("authStateChanged", handleAuthStateChange);
-
-    // 페이지 포커스 시 데이터 다시 로드
-    window.addEventListener("focus", handleFocus);
 
     // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
     const handleStorageChange = (e: StorageEvent) => {
@@ -279,7 +271,6 @@ export default function FavoritesPage() {
 
     return () => {
       window.removeEventListener("authStateChanged", handleAuthStateChange);
-      window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [loadFavorites]);
@@ -496,8 +487,8 @@ export default function FavoritesPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full px-6 py-4 border-b border-border/50">
-        <nav className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="relative z-10 w-full border-b border-border/50">
+        <nav className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -650,7 +641,7 @@ export default function FavoritesPage() {
               transition={{ delay: 0.15 }}
               className="flex items-center justify-between mb-4"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 pl-2">
                 <div
                   onClick={handleSelectAll}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

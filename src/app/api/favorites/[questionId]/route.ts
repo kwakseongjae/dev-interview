@@ -72,6 +72,24 @@ export async function DELETE(
       );
     }
 
+    // 먼저 해당 찜의 ID를 가져옴 (team_space_favorites 삭제를 위해)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: favorite } = await (supabaseAdmin as any)
+      .from("favorites")
+      .select("id")
+      .eq("user_id", auth.sub)
+      .eq("question_id", questionId)
+      .maybeSingle();
+
+    if (favorite) {
+      // 팀스페이스 공유 기록 먼저 삭제
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin as any)
+        .from("team_space_favorites")
+        .delete()
+        .eq("favorite_id", favorite.id);
+    }
+
     // 찜 삭제
     const { error } = await supabaseAdmin
       .from("favorites")

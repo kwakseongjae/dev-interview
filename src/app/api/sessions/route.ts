@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { generateQuestions } from "@/lib/claude";
+import { generateQuestions, summarizeQueryToTitle } from "@/lib/claude";
 
 // GET /api/sessions - 내 면접 세션 목록
 export async function GET(request: NextRequest) {
@@ -91,6 +91,9 @@ export async function GET(request: NextRequest) {
       // 개인 세션 조회
       query = query.eq("user_id", auth.sub);
     }
+
+    // 완료된 세션만 조회
+    query = query.eq("is_completed", true);
 
     // 날짜 범위 필터
     if (startDate) {
@@ -237,6 +240,9 @@ export async function POST(request: NextRequest) {
 
     const questionIdsToUse: string[] = question_ids || [];
 
+    // 제목 요약을 미리 시작 (질문 처리와 병렬로 실행)
+    const titlePromise = summarizeQueryToTitle(query);
+
     // questions 데이터가 있으면 해당 질문들을 사용
     let questionsToProcess: Array<{
       content: string;
@@ -245,16 +251,21 @@ export async function POST(request: NextRequest) {
       subcategory?: string;
     }> = [];
 
-    if (
+    // question_ids가 있으면 기존 질문을 재사용하므로 새 질문 생성하지 않음
+    if (questionIdsToUse.length > 0) {
+      // 기존 질문 ID들을 그대로 사용
+      questionsToProcess = [];
+    } else if (
       questionsData &&
       Array.isArray(questionsData) &&
       questionsData.length > 0
     ) {
+      // question_ids가 없고 questionsData가 있으면 새 질문 생성
       questionsToProcess = questionsData;
-    } else if (questionIdsToUse.length === 0) {
+    } else {
       // question_ids도 없고 questions도 없으면 Claude로 질문 생성
-      const generatedQuestions = await generateQuestions(query);
-      questionsToProcess = generatedQuestions;
+      const result = await generateQuestions(query);
+      questionsToProcess = result.questions;
     }
 
     // 질문이 있으면 DB에 저장
@@ -337,13 +348,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 병렬로 시작한 제목 요약 결과 대기
+    const sessionTitle = await titlePromise;
+
     // 세션 생성
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from("interview_sessions")
       .insert({
         user_id: auth.sub,
-        query,
+        query: sessionTitle,
         total_time: 0,
         is_completed: false,
       })

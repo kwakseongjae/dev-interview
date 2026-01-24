@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const replaceCount = questions_to_replace.length;
 
     // Claude로 새 질문 생성 (기존 질문들과 중복 방지, 레퍼런스 URL 포함)
-    const newQuestions = await generateQuestions(
+    const result = await generateQuestions(
       query,
       keepQuestionContents,
       replaceCount,
@@ -53,9 +53,11 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      new_questions: newQuestions,
+      new_questions: result.questions,
       replaced_count: replaceCount,
       query,
+      referenceUsed: result.referenceUsed,
+      referenceMessage: result.referenceMessage,
     });
   } catch (error) {
     const message =

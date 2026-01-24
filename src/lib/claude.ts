@@ -70,6 +70,66 @@ export interface AnswerEvaluation {
   feedback: string;
 }
 
+// 레퍼런스 유효성 검증 결과
+export interface ReferenceValidationResult {
+  isValid: boolean;
+  reason?: string;
+}
+
+/**
+ * 레퍼런스 내용이 기술면접 질문 생성에 적합한지 검증
+ */
+async function validateReferenceContent(
+  referenceText: string
+): Promise<ReferenceValidationResult> {
+  // 텍스트가 너무 짧으면 유효하지 않음
+  if (referenceText.length < 100) {
+    return {
+      isValid: false,
+      reason: "레퍼런스 내용이 너무 짧습니다.",
+    };
+  }
+
+  // Claude를 사용해 레퍼런스 유효성 검증
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 256,
+    messages: [
+      {
+        role: "user",
+        content: `다음 텍스트가 기술면접 질문 생성에 활용할 수 있는 유효한 자료인지 판단해주세요.
+유효한 자료의 예: 이력서, 포트폴리오, 기술 문서, 프로젝트 설명, 기술 블로그 글 등
+유효하지 않은 자료의 예: 일반적인 텍스트, 광고, 무관한 문서, 읽을 수 없는 내용 등
+
+텍스트:
+${referenceText.substring(0, 2000)}
+
+다음 JSON 형식으로만 응답해주세요:
+{"isValid": true 또는 false, "reason": "판단 이유 (한 문장)"}`,
+      },
+    ],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") {
+    return { isValid: false, reason: "검증 응답 형식 오류" };
+  }
+
+  try {
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { isValid: true }; // 파싱 실패 시 기본적으로 유효하다고 판단
+    }
+    const result = JSON.parse(jsonMatch[0]);
+    return {
+      isValid: result.isValid === true,
+      reason: result.reason,
+    };
+  } catch {
+    return { isValid: true }; // 파싱 실패 시 기본적으로 유효하다고 판단
+  }
+}
+
 /**
  * 레퍼런스 파일에서 텍스트 추출 (Claude Vision API 사용)
  */
@@ -167,6 +227,13 @@ async function extractTextFromReference(
   }
 }
 
+// 질문 생성 결과 (레퍼런스 사용 여부 포함)
+export interface GenerateQuestionsResult {
+  questions: GeneratedQuestion[];
+  referenceUsed: boolean;
+  referenceMessage?: string; // 레퍼런스 미사용 시 사유
+}
+
 /**
  * Claude API를 통해 면접 질문 생성
  * @param userPrompt - 사용자 검색 쿼리
@@ -179,7 +246,7 @@ export async function generateQuestions(
   excludeQuestions: string[] = [],
   count: number = 5,
   referenceUrls?: Array<{ url: string; type: SupportedMediaType }>
-): Promise<GeneratedQuestion[]> {
+): Promise<GenerateQuestionsResult> {
   // 제외할 질문이 있으면 프롬프트에 추가
   let excludeInstruction = "";
   if (excludeQuestions.length > 0) {
@@ -193,12 +260,15 @@ ${excludeQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
   let referenceInstruction = "";
   let referenceTexts: string[] = [];
   let allReferenceBased = false;
+  let referenceUsed = false;
+  let referenceMessage: string | undefined;
 
   if (referenceUrls && referenceUrls.length > 0) {
     console.log("레퍼런스 처리 시작:", {
       count: referenceUrls.length,
       urls: referenceUrls.map((ref) => ({ url: ref.url, type: ref.type })),
     });
+
     // 레퍼런스 파일에서 텍스트 추출
     referenceTexts = await Promise.all(
       referenceUrls.map((ref) => extractTextFromReference(ref.url, ref.type))
@@ -208,50 +278,68 @@ ${excludeQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
       textLengths: referenceTexts.map((text) => text.length),
     });
 
-    // 사용자 요청에서 "전부", "모두", "모든", "100%" 등의 키워드로 전부 레퍼런스 기반 요청 확인
-    const userPromptLower = userPrompt.toLowerCase();
-    allReferenceBased =
-      userPromptLower.includes("전부") ||
-      userPromptLower.includes("모두") ||
-      userPromptLower.includes("모든") ||
-      userPromptLower.includes("100%") ||
-      userPromptLower.includes("모두 레퍼런스") ||
-      userPromptLower.includes("전부 레퍼런스");
+    // 레퍼런스 유효성 검증
+    const combinedReferenceText = referenceTexts.join("\n\n");
+    const validation = await validateReferenceContent(combinedReferenceText);
+    console.log("레퍼런스 유효성 검증 결과:", validation);
 
-    const referenceBasedCount = allReferenceBased
-      ? count
-      : Math.max(1, Math.floor(count * 0.4)); // 최소 1개, 기본적으로 40% 이상
+    if (!validation.isValid) {
+      // 레퍼런스가 유효하지 않으면 사용하지 않음
+      referenceUsed = false;
+      referenceMessage = `첨부하신 자료가 기술면접 질문 생성에 적합하지 않아 레퍼런스로 활용하지 않았습니다. (${validation.reason || "이력서, 포트폴리오, 기술 문서 등을 첨부해주세요."})`;
+      console.log("레퍼런스 미사용:", referenceMessage);
+    } else {
+      // 레퍼런스가 유효하면 사용
+      referenceUsed = true;
 
-    referenceInstruction = `
-⚠️ 중요: 레퍼런스 자료가 제공되었습니다. 반드시 다음 규칙을 준수해야 합니다.
+      // 사용자 요청에서 "전부", "모두", "모든", "100%" 등의 키워드로 전부 레퍼런스 기반 요청 확인
+      const userPromptLower = userPrompt.toLowerCase();
+      allReferenceBased =
+        userPromptLower.includes("전부") ||
+        userPromptLower.includes("모두") ||
+        userPromptLower.includes("모든") ||
+        userPromptLower.includes("100%") ||
+        userPromptLower.includes("모두 레퍼런스") ||
+        userPromptLower.includes("전부 레퍼런스");
+
+      // 최소 3개의 레퍼런스 기반 질문 생성 (5개 중 3개 = 60%)
+      const referenceBasedCount = allReferenceBased
+        ? count
+        : Math.max(3, Math.ceil(count * 0.6));
+
+      referenceInstruction = `
+⚠️ 매우 중요: 레퍼런스 자료가 제공되었습니다. 반드시 다음 규칙을 엄격히 준수해야 합니다.
 
 제공된 레퍼런스 자료(이력서, 포트폴리오, 기술 문서 등):
 ${referenceTexts.map((text, i) => `[레퍼런스 ${i + 1}]\n${text}`).join("\n\n")}
 
-필수 규칙:
+🔴 필수 규칙 (반드시 준수):
 1. ${
-      allReferenceBased
-        ? "모든 질문"
-        : `최소 ${referenceBasedCount}개 이상의 질문`
-    }은 반드시 레퍼런스 기반이어야 합니다 (isReferenceBased: true).
-2. 레퍼런스 기반 질문은 반드시 레퍼런스에 언급된 구체적인 프로젝트명, 회사명, 기술명, 경험을 질문 본문에 직접 포함해야 합니다.
-   올바른 예시: 
-   - "OO 프로젝트에서 배포 오류를 처리한 경험을 바탕으로, 배포 프로세스에서 발생할 수 있는 문제들을 어떻게 예방하고 해결할 수 있을까요?"
-   - "레퍼런스에 언급된 React 프로젝트에서 성능 최적화를 진행하셨다고 하는데, 구체적으로 어떤 방법들을 사용하셨나요?"
-   - "XX 회사에서 개발한 프로젝트에서 사용한 기술 스택을 바탕으로, 해당 기술들의 장단점을 설명해주세요."
-   잘못된 예시 (일반적인 질문):
-   - "React에서 useEffect의 의존성 배열에 대해 설명해주세요." (레퍼런스 내용을 포함하지 않음)
-   - "JavaScript의 이벤트 루프가 어떻게 동작하는지 설명해주세요." (레퍼런스 내용을 포함하지 않음)
-3. 레퍼런스에 언급된 구체적인 내용(프로젝트명, 기술 스택, 경험, 회사명 등)을 질문에 명시적으로 포함하여 레퍼런스와 강하게 결합된 질문을 생성해주세요.
-4. 레퍼런스 기반 질문은 단순히 일반적인 질문이 아니라, 레퍼런스의 구체적인 내용을 바탕으로 한 맞춤형 질문이어야 합니다.
-5. 레퍼런스 기반 질문이 아닌 경우에만 isReferenceBased를 false로 설정해주세요.
+        allReferenceBased
+          ? "모든 질문 (5개 모두)"
+          : `최소 ${referenceBasedCount}개의 질문`
+      }은 반드시 레퍼런스 기반이어야 합니다 (isReferenceBased: true).
+
+2. 레퍼런스 기반 질문의 조건:
+   - 반드시 레퍼런스에 언급된 구체적인 프로젝트명, 회사명, 기술명, 경험을 질문 본문에 직접 포함해야 합니다.
+   - 단순히 일반적인 기술 질문이 아니라, 레퍼런스의 구체적인 내용을 바탕으로 한 맞춤형 질문이어야 합니다.
+
+3. 올바른 레퍼런스 기반 질문 예시:
+   ✅ "이력서에 언급된 OO 프로젝트에서 React를 사용하셨는데, 해당 프로젝트에서 상태 관리는 어떻게 구현하셨나요?"
+   ✅ "포트폴리오의 XX 서비스에서 발생했던 성능 이슈를 어떻게 해결하셨나요?"
+   ✅ "경력 사항에 적힌 AWS 인프라 구축 경험에 대해 구체적으로 설명해주세요."
+
+4. 잘못된 예시 (일반 질문 - isReferenceBased: false):
+   ❌ "React의 생명주기에 대해 설명해주세요." (레퍼런스 내용 미포함)
+   ❌ "JavaScript의 클로저란 무엇인가요?" (레퍼런스 내용 미포함)
 
 ${
   allReferenceBased
-    ? "⚠️ 사용자가 모든 질문을 레퍼런스 기반으로 요청했으므로, 모든 질문에 isReferenceBased: true를 설정해야 합니다."
-    : ""
+    ? "⚠️ 사용자가 모든 질문을 레퍼런스 기반으로 요청했으므로, 5개 모든 질문에 isReferenceBased: true를 설정해야 합니다."
+    : `⚠️ 최소 ${referenceBasedCount}개의 질문은 반드시 레퍼런스 기반이어야 합니다!`
 }
 `;
+    }
   }
 
   const prompt = GENERATE_QUESTIONS_PROMPT.replace("{user_prompt}", userPrompt)
@@ -285,30 +373,90 @@ ${
     const parsed = JSON.parse(jsonMatch[0]);
     const questions = parsed.questions as GeneratedQuestion[];
 
-    // 레퍼런스가 제공된 경우 검증: 최소 1개 이상의 레퍼런스 기반 질문이 있는지 확인
-    if (referenceUrls && referenceUrls.length > 0) {
-      const referenceBasedCount = questions.filter(
+    // 레퍼런스가 제공되고 사용된 경우 검증
+    if (referenceUrls && referenceUrls.length > 0 && referenceUsed) {
+      const actualReferenceBasedCount = questions.filter(
         (q) => q.isReferenceBased === true
       ).length;
 
-      if (allReferenceBased && referenceBasedCount < count) {
+      const expectedMin = allReferenceBased ? count : Math.max(3, Math.ceil(count * 0.6));
+
+      if (actualReferenceBasedCount < expectedMin) {
         console.warn(
-          `경고: 모든 질문이 레퍼런스 기반이어야 하는데 ${referenceBasedCount}/${count}개만 레퍼런스 기반입니다.`
+          `경고: 레퍼런스 기반 질문이 ${actualReferenceBasedCount}개로 기대치(${expectedMin}개)보다 적습니다.`
         );
-      } else if (!allReferenceBased && referenceBasedCount === 0) {
-        console.warn(
-          "경고: 레퍼런스가 제공되었지만 레퍼런스 기반 질문이 생성되지 않았습니다."
-        );
-        // 첫 번째 질문을 강제로 레퍼런스 기반으로 변경 시도
-        if (questions.length > 0) {
-          questions[0].isReferenceBased = true;
+        // 레퍼런스 기반 질문이 부족하면 일반 질문을 레퍼런스 기반으로 표시
+        // (실제로 레퍼런스가 있으므로 관련성이 있을 수 있음)
+        let needMore = expectedMin - actualReferenceBasedCount;
+        for (let i = 0; i < questions.length && needMore > 0; i++) {
+          if (!questions[i].isReferenceBased) {
+            questions[i].isReferenceBased = true;
+            needMore--;
+          }
         }
       }
     }
 
-    return questions;
+    return {
+      questions,
+      referenceUsed,
+      referenceMessage,
+    };
   } catch {
     throw new Error("질문 생성 응답 파싱 실패");
+  }
+}
+
+/**
+ * 긴 쿼리를 짧은 제목으로 요약
+ * @param query - 원본 쿼리
+ * @returns 20자 내외의 짧은 제목
+ */
+export async function summarizeQueryToTitle(query: string): Promise<string> {
+  // 이미 짧은 쿼리는 그대로 반환
+  if (query.length <= 30) {
+    return query;
+  }
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 100,
+      messages: [
+        {
+          role: "user",
+          content: `다음 면접 준비 요청을 20자 내외의 짧고 명확한 제목으로 요약해주세요. 
+핵심 키워드만 포함하고, "면접", "준비", "질문" 같은 일반적인 단어는 생략해도 됩니다.
+제목만 출력하고 다른 설명은 하지 마세요.
+
+요청: ${query}
+
+제목:`,
+        },
+      ],
+    });
+
+    const content = response.content[0];
+    if (content.type !== "text") {
+      return query.slice(0, 30);
+    }
+
+    // 응답에서 제목 추출 (따옴표 제거)
+    const title = content.text.trim().replace(/^["']|["']$/g, "");
+    
+    // 제목이 너무 길면 잘라서 반환
+    if (title.length > 40) {
+      return title.slice(0, 37) + "...";
+    }
+    
+    return title;
+  } catch (error) {
+    console.error("제목 요약 실패:", error);
+    // 실패 시 원본 쿼리를 잘라서 반환
+    if (query.length > 30) {
+      return query.slice(0, 27) + "...";
+    }
+    return query;
   }
 }
 
