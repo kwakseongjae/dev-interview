@@ -13,6 +13,7 @@ export interface Database {
           password_hash: string;
           nickname: string | null;
           avatar_url: string | null;
+          has_seen_teamspace_intro: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -22,6 +23,7 @@ export interface Database {
           password_hash: string;
           nickname?: string | null;
           avatar_url?: string | null;
+          has_seen_teamspace_intro?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -31,6 +33,7 @@ export interface Database {
           password_hash?: string;
           nickname?: string | null;
           avatar_url?: string | null;
+          has_seen_teamspace_intro?: boolean;
           updated_at?: string;
         };
       };
@@ -269,26 +272,34 @@ export type User = Database["public"]["Tables"]["users"]["Row"];
 export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type PublicUser = Omit<User, "password_hash">;
 
-export type RefreshToken = Database["public"]["Tables"]["refresh_tokens"]["Row"];
-export type RefreshTokenInsert = Database["public"]["Tables"]["refresh_tokens"]["Insert"];
+export type RefreshToken =
+  Database["public"]["Tables"]["refresh_tokens"]["Row"];
+export type RefreshTokenInsert =
+  Database["public"]["Tables"]["refresh_tokens"]["Insert"];
 
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Subcategory = Database["public"]["Tables"]["subcategories"]["Row"];
 
 export type Question = Database["public"]["Tables"]["questions"]["Row"];
-export type QuestionInsert = Database["public"]["Tables"]["questions"]["Insert"];
+export type QuestionInsert =
+  Database["public"]["Tables"]["questions"]["Insert"];
 
-export type InterviewSession = Database["public"]["Tables"]["interview_sessions"]["Row"];
-export type InterviewSessionInsert = Database["public"]["Tables"]["interview_sessions"]["Insert"];
+export type InterviewSession =
+  Database["public"]["Tables"]["interview_sessions"]["Row"];
+export type InterviewSessionInsert =
+  Database["public"]["Tables"]["interview_sessions"]["Insert"];
 
-export type SessionQuestion = Database["public"]["Tables"]["session_questions"]["Row"];
-export type SessionQuestionInsert = Database["public"]["Tables"]["session_questions"]["Insert"];
+export type SessionQuestion =
+  Database["public"]["Tables"]["session_questions"]["Row"];
+export type SessionQuestionInsert =
+  Database["public"]["Tables"]["session_questions"]["Insert"];
 
 export type Answer = Database["public"]["Tables"]["answers"]["Row"];
 export type AnswerInsert = Database["public"]["Tables"]["answers"]["Insert"];
 
 export type Favorite = Database["public"]["Tables"]["favorites"]["Row"];
-export type FavoriteInsert = Database["public"]["Tables"]["favorites"]["Insert"];
+export type FavoriteInsert =
+  Database["public"]["Tables"]["favorites"]["Insert"];
 
 // JWT Payload Types
 export interface AccessTokenPayload {

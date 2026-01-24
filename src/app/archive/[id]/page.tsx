@@ -51,13 +51,13 @@ export default function ArchiveDetailPage() {
   const [showQuestionSelectDialog, setShowQuestionSelectDialog] =
     useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   // API 데이터를 InterviewSession 형태로 변환
   const convertApiSession = (
-    apiSession: ApiSessionDetail
+    apiSession: ApiSessionDetail,
   ): InterviewSession => ({
     id: apiSession.id,
     query: apiSession.query,
@@ -127,7 +127,7 @@ export default function ArchiveDetailPage() {
         return {
           ...prev,
           questions: prev.questions.map((q) =>
-            q.id === questionId ? { ...q, isFavorite: isFav } : q
+            q.id === questionId ? { ...q, isFavorite: isFav } : q,
           ),
         };
       });
@@ -150,7 +150,7 @@ export default function ArchiveDetailPage() {
               questions: prev.questions.map((q) =>
                 q.id === questionId
                   ? { ...q, isFavorite: actualIsFavorited }
-                  : q
+                  : q,
               ),
             };
           });
@@ -203,6 +203,9 @@ export default function ArchiveDetailPage() {
   };
 
   const handleStartInterview = async () => {
+    // 이미 시작 중이면 무시
+    if (isCreatingSession) return;
+
     if (!session || selectedQuestionIds.size === 0) {
       alert("최소 1개 이상의 질문을 선택해주세요.");
       return;
@@ -219,7 +222,7 @@ export default function ArchiveDetailPage() {
     try {
       // 선택한 질문들만 필터링
       const selectedQuestions = session.questions.filter((q) =>
-        selectedQuestionIds.has(q.id)
+        selectedQuestionIds.has(q.id),
       );
 
       // 세션 생성 (questionId 포함)
@@ -230,7 +233,7 @@ export default function ArchiveDetailPage() {
           hint: q.hint,
           category: q.category,
           questionId: q.id, // 기존 질문 ID 전달
-        }))
+        })),
       );
 
       // 면접 페이지로 이동

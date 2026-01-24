@@ -59,13 +59,13 @@ export default function FavoritesPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<string | null>(
-    null
+    null,
   );
   const [isMounted, setIsMounted] = useState(false);
   const [teamSpaces, setTeamSpaces] = useState<ApiTeamSpace[]>([]);
   // 실제 팀 스페이스 액세스 상태 (localStorage에서 읽어옴, 변경하지 않음)
   const [actualTeamSpaceId, setActualTeamSpaceId] = useState<string | null>(
-    null
+    null,
   );
   // 페이지 내부에서만 사용하는 뷰 모드 (localStorage와 무관)
   const [viewMode, setViewMode] = useState<"personal" | "team">("personal");
@@ -97,7 +97,7 @@ export default function FavoritesPage() {
           // 실제 팀 스페이스 액세스 상태 확인
           if (actualTeamSpaceId) {
             const exists = response.teamSpaces.some(
-              (ts) => ts.id === actualTeamSpaceId
+              (ts) => ts.id === actualTeamSpaceId,
             );
             if (!exists) {
               // 실제 팀 스페이스가 목록에 없으면 개인 공간으로 전환
@@ -128,7 +128,7 @@ export default function FavoritesPage() {
 
   // 팀 스페이스 찜한 질문을 FavoriteQuestion 형태로 변환
   const convertTeamSpaceFavorite = (
-    tsFav: TeamSpaceFavorite
+    tsFav: TeamSpaceFavorite,
   ): FavoriteQuestion & {
     favoritedBy?: Array<{
       id: string;
@@ -173,7 +173,7 @@ export default function FavoritesPage() {
             getTeamSpaceFavoritesApi(actualTeamSpaceId)
               .then((response) => {
                 const converted = response.favorites.map(
-                  convertTeamSpaceFavorite
+                  convertTeamSpaceFavorite,
                 );
                 cache.set(cacheKey, converted);
                 setFavorites(converted);
@@ -288,7 +288,7 @@ export default function FavoritesPage() {
   useEffect(() => {
     if (!isLoading && !isLoggedIn() && favorites.length === 0) {
       const dismissedUntil = localStorage.getItem(
-        "loginPrompt_archive_dismissedUntil"
+        "loginPrompt_archive_dismissedUntil",
       );
       if (dismissedUntil) {
         const dismissedDate = new Date(dismissedUntil);
@@ -305,7 +305,7 @@ export default function FavoritesPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     localStorage.setItem(
       "loginPrompt_archive_dismissedUntil",
-      tomorrow.toISOString()
+      tomorrow.toISOString(),
     );
     setShowLoginModal(false);
   };
@@ -333,7 +333,7 @@ export default function FavoritesPage() {
   const handleToggleFavorite = async (
     id: string,
     questionId: string,
-    currentIsMine?: boolean
+    currentIsMine?: boolean,
   ) => {
     if (!isLoggedIn()) {
       alert("로그인이 필요합니다.");
@@ -411,7 +411,7 @@ export default function FavoritesPage() {
     try {
       // 선택한 질문들 중 내가 찜한 것들만 찜 해제
       await Promise.all(
-        favoritesToUnfavorite.map((fav) => removeFavoriteApi(fav.questionId))
+        favoritesToUnfavorite.map((fav) => removeFavoriteApi(fav.questionId)),
       );
 
       // 목록 다시 로드
@@ -432,6 +432,9 @@ export default function FavoritesPage() {
 
   // 면접 시작
   const handleStartInterview = async () => {
+    // 이미 시작 중이면 무시
+    if (isCreatingSession) return;
+
     if (!isLoggedIn()) {
       alert("로그인이 필요합니다.");
       router.push("/auth");
@@ -462,7 +465,7 @@ export default function FavoritesPage() {
           hint: q.hint,
           category: q.category,
           questionId: q.questionId, // 기존 질문 ID 전달
-        }))
+        })),
       );
 
       // 면접 페이지로 이동
@@ -704,6 +707,7 @@ export default function FavoritesPage() {
                   <Button
                     size="sm"
                     className="bg-gold/50 hover:bg-gold/70 text-navy"
+                    disabled={isCreatingSession}
                     onClick={() => {
                       setInterviewTitle("");
                       setShowStartInterviewDialog(true);
@@ -827,7 +831,7 @@ export default function FavoritesPage() {
                               favorite.questionId,
                               viewMode === "personal"
                                 ? true
-                                : favoriteWithMine.isMine
+                                : favoriteWithMine.isMine,
                             );
                           }}
                           disabled={isRemoving === favorite.id}
@@ -844,7 +848,7 @@ export default function FavoritesPage() {
                               const isMine =
                                 viewMode === "personal"
                                   ? true
-                                  : favoriteWithMine.isMine ?? false;
+                                  : (favoriteWithMine.isMine ?? false);
                               return (
                                 <Heart
                                   className={`w-4 h-4 transition-colors ${

@@ -230,6 +230,7 @@ export async function signUp(
     email: newUser.email || newUser.username,
     nickname: newUser.nickname,
     avatar_url: newUser.avatar_url,
+    has_seen_teamspace_intro: newUser.has_seen_teamspace_intro ?? false,
     created_at: newUser.created_at,
     updated_at: newUser.updated_at,
   };
@@ -276,6 +277,7 @@ export async function signIn(
     email: user.email || user.username,
     nickname: user.nickname,
     avatar_url: user.avatar_url,
+    has_seen_teamspace_intro: user.has_seen_teamspace_intro ?? false,
     created_at: user.created_at,
     updated_at: user.updated_at,
   };

@@ -45,7 +45,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [currentTeamSpaceId, setCurrentTeamSpaceId] = useState<string | null>(
-    null
+    null,
   );
   const [currentTeamSpaceRole, setCurrentTeamSpaceRole] = useState<
     "owner" | "member" | null
@@ -174,6 +174,9 @@ export default function Home() {
     e.preventDefault();
     if (!query.trim()) return;
 
+    // 이미 진행 중이면 무시
+    if (isUploading) return;
+
     setIsUploading(true);
 
     try {
@@ -226,7 +229,7 @@ export default function Home() {
             alert(
               `파일 업로드 실패 (${file.name}): ${
                 errorData.error || "알 수 없는 오류"
-              }`
+              }`,
             );
             // 업로드 실패 시 중단하지 않고 계속 진행 (다른 파일은 업로드 시도)
           }
@@ -261,6 +264,10 @@ export default function Home() {
   };
 
   const handleSampleClick = (sample: string) => {
+    // 이미 진행 중이면 무시
+    if (isUploading) return;
+
+    setIsUploading(true);
     setQuery(sample);
     router.push(`/search?q=${encodeURIComponent(sample)}`);
   };
@@ -401,7 +408,7 @@ export default function Home() {
                     target.style.height = "auto";
                     target.style.height = `${Math.min(
                       target.scrollHeight,
-                      200
+                      200,
                     )}px`;
                   }}
                   aria-label="면접 유형 검색"
@@ -409,10 +416,14 @@ export default function Home() {
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={!query.trim()}
+                  disabled={!query.trim() || isUploading}
                   className="bg-navy hover:bg-navy-light text-primary-foreground rounded-xl px-4 disabled:opacity-50 flex-shrink-0 mt-1"
                 >
-                  <ArrowRight className="w-4 h-4" />
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
 
@@ -469,8 +480,9 @@ export default function Home() {
                   <button
                     key={index}
                     type="button"
+                    disabled={isUploading}
                     onClick={() => handleSampleClick(sample)}
-                    className="text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors"
+                    className="text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sample}
                   </button>

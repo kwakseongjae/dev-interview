@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Users, Share2, Lock } from "lucide-react";
+import { Users, Share2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -11,21 +11,57 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  isLoggedIn,
+  getTeamSpaceIntroStatusApi,
+  markTeamSpaceIntroSeenApi,
+} from "@/lib/api";
 
 export const TeamSpaceIntro = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 최초 로그인 시 인트로 표시 여부 확인
-    const hasSeenIntro = localStorage.getItem("teamSpace_intro_seen");
-    if (!hasSeenIntro) {
-      setIsOpen(true);
-    }
+    const checkIntroStatus = async () => {
+      // 로그인하지 않은 경우 인트로 표시하지 않음
+      if (!isLoggedIn()) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // API를 통해 인트로를 봤는지 확인
+        const { hasSeenIntro } = await getTeamSpaceIntroStatusApi();
+        if (!hasSeenIntro) {
+          setIsOpen(true);
+        }
+      } catch (error) {
+        console.error("팀스페이스 인트로 상태 확인 실패:", error);
+        // API 실패 시 localStorage로 폴백
+        const hasSeenIntro = localStorage.getItem("teamSpace_intro_seen");
+        if (!hasSeenIntro) {
+          setIsOpen(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkIntroStatus();
   }, []);
 
-  const handleClose = () => {
-    localStorage.setItem("teamSpace_intro_seen", "true");
+  const handleClose = async () => {
     setIsOpen(false);
+
+    // API를 통해 인트로를 봤음으로 표시
+    try {
+      await markTeamSpaceIntroSeenApi();
+    } catch (error) {
+      console.error("팀스페이스 인트로 상태 업데이트 실패:", error);
+    }
+
+    // localStorage에도 저장 (폴백용)
+    localStorage.setItem("teamSpace_intro_seen", "true");
   };
 
   return (
@@ -94,5 +130,3 @@ export const TeamSpaceIntro = () => {
     </Dialog>
   );
 };
-
-

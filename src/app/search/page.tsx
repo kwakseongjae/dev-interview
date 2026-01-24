@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,51 +52,57 @@ function SearchContent() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedForReplace, setSelectedForReplace] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
   const [referenceUrls, setReferenceUrls] = useState<
     Array<{ url: string; type: string }>
   >([]);
 
-  // 레퍼런스 URL 파싱
-  useEffect(() => {
-    if (referenceUrlsParam) {
-      const urls = referenceUrlsParam.split(",").map((param) => {
-        // URL과 타입이 함께 전달됨 (형식: url::type)
-        const [url, type] = param.split("::");
-        return {
-          url: decodeURIComponent(url),
-          type:
-            type ||
-            (url.toLowerCase().endsWith(".pdf")
-              ? "application/pdf"
-              : "image/png"),
-        };
-      });
-      console.log("레퍼런스 URL 파싱 완료:", urls);
-      setReferenceUrls(urls);
-    } else {
-      console.log("레퍼런스 URL 파라미터 없음");
-      setReferenceUrls([]);
+  // 검색이 이미 시작되었는지 추적하는 ref
+  const hasStartedSearch = useRef(false);
+
+  // 레퍼런스 URL 파싱 함수 (동기적으로 파싱)
+  const parseReferenceUrls = useCallback((): Array<{
+    url: string;
+    type: string;
+  }> => {
+    if (!referenceUrlsParam) {
+      return [];
     }
+    return referenceUrlsParam.split(",").map((param) => {
+      const [url, type] = param.split("::");
+      return {
+        url: decodeURIComponent(url),
+        type:
+          type ||
+          (url.toLowerCase().endsWith(".pdf")
+            ? "application/pdf"
+            : "image/png"),
+      };
+    });
   }, [referenceUrlsParam]);
 
   // API를 통해 질문 생성
   const fetchQuestions = useCallback(
-    async (excludeQuestions: string[] = []) => {
+    async (
+      excludeQuestions: string[] = [],
+      urls?: Array<{ url: string; type: string }>,
+    ) => {
+      const refsToUse = urls ?? referenceUrls;
       try {
         const requestBody = {
           query,
           exclude_questions: excludeQuestions,
           count: 5,
-          reference_urls: referenceUrls.length > 0 ? referenceUrls : undefined,
+          reference_urls: refsToUse.length > 0 ? refsToUse : undefined,
         };
         console.log("질문 생성 API 호출:", {
           query,
-          referenceUrlsCount: referenceUrls.length,
-          referenceUrls: referenceUrls,
+          referenceUrlsCount: refsToUse.length,
+          referenceUrls: refsToUse,
         });
         const response = await fetch("/api/questions/generate", {
           method: "POST",
@@ -117,12 +123,12 @@ function SearchContent() {
         throw error;
       }
     },
-    [query, referenceUrls]
+    [query, referenceUrls],
   );
 
   // GeneratedQuestion을 Question으로 변환
   const convertToQuestions = (
-    generatedQuestions: GeneratedQuestion[]
+    generatedQuestions: GeneratedQuestion[],
   ): Question[] => {
     return generatedQuestions.map((gq) => ({
       id: uuidv4(),
@@ -144,6 +150,16 @@ function SearchContent() {
       return;
     }
 
+    // 이미 검색이 시작되었으면 중복 실행 방지
+    if (hasStartedSearch.current) {
+      return;
+    }
+    hasStartedSearch.current = true;
+
+    // 레퍼런스 URL을 동기적으로 파싱
+    const parsedReferenceUrls = parseReferenceUrls();
+    setReferenceUrls(parsedReferenceUrls);
+
     const runSearch = async () => {
       const steps = SEARCH_STEPS.length;
       let step = 0;
@@ -159,8 +175,11 @@ function SearchContent() {
       }, 600);
 
       try {
-        // API 호출
-        const generatedQuestions = await fetchQuestions();
+        // API 호출 (파싱된 레퍼런스 URL 전달)
+        const generatedQuestions = await fetchQuestions(
+          [],
+          parsedReferenceUrls,
+        );
         const convertedQuestions = convertToQuestions(generatedQuestions);
 
         // 진행 완료 대기
@@ -179,7 +198,7 @@ function SearchContent() {
                 } catch {
                   favMap[q.id] = false;
                 }
-              })
+              }),
             );
           } catch (error) {
             console.error("찜 상태 확인 실패:", error);
@@ -198,7 +217,8 @@ function SearchContent() {
     };
 
     runSearch();
-  }, [query, router, fetchQuestions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, router]);
 
   // 찜하기 토글
   const handleToggleFavorite = async (question: Question) => {
@@ -246,7 +266,7 @@ function SearchContent() {
     try {
       // 유지할 질문들
       const keepQuestions = questions.filter(
-        (q) => !selectedForReplace.has(q.id)
+        (q) => !selectedForReplace.has(q.id),
       );
 
       // 새 질문 생성 (유지할 질문들 제외, 레퍼런스 URL 포함)
@@ -320,7 +340,7 @@ function SearchContent() {
               } catch {
                 favMap[q.id] = false;
               }
-            })
+            }),
           );
         } catch (error) {
           console.error("찜 상태 확인 실패:", error);
@@ -337,12 +357,17 @@ function SearchContent() {
 
   // 인터뷰 시작
   const handleStartInterview = async () => {
+    // 이미 시작 중이면 무시
+    if (isStartingInterview) return;
+
     // 로그인 상태 확인
     if (!isLoggedIn()) {
       alert("로그인이 필요합니다.");
       router.push("/auth");
       return;
     }
+
+    setIsStartingInterview(true);
 
     try {
       // API를 통해 세션 생성
@@ -352,13 +377,14 @@ function SearchContent() {
           content: q.content,
           hint: q.hint,
           category: q.category,
-        }))
+        })),
       );
 
       router.push(`/interview?session=${sessionData.session.id}`);
     } catch (error) {
       console.error("세션 생성 오류:", error);
       alert("세션 생성에 실패했습니다. 다시 시도해주세요.");
+      setIsStartingInterview(false);
     }
   };
 
@@ -453,8 +479,8 @@ function SearchContent() {
                             currentStep > index
                               ? "bg-timer-safe text-white"
                               : currentStep === index
-                              ? "bg-gold text-white"
-                              : "bg-muted text-muted-foreground"
+                                ? "bg-gold text-white"
+                                : "bg-muted text-muted-foreground"
                           }
                         `}
                       >
@@ -630,8 +656,14 @@ function SearchContent() {
                 transition={{ delay: 0.5 }}
               >
                 <Card
-                  className="p-6 bg-navy text-primary-foreground cursor-pointer hover:bg-navy-light transition-colors group"
-                  onClick={handleStartInterview}
+                  className={`p-6 bg-navy text-primary-foreground transition-colors group ${
+                    isStartingInterview
+                      ? "opacity-70 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-navy-light"
+                  }`}
+                  onClick={
+                    isStartingInterview ? undefined : handleStartInterview
+                  }
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -644,10 +676,20 @@ function SearchContent() {
                     </div>
                     <Button
                       size="lg"
-                      className="bg-gold hover:bg-gold-light text-navy font-semibold rounded-xl group-hover:translate-x-1 transition-transform"
+                      disabled={isStartingInterview}
+                      className="bg-gold hover:bg-gold-light text-navy font-semibold rounded-xl group-hover:translate-x-1 transition-transform disabled:opacity-100"
                     >
-                      시작하기
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      {isStartingInterview ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          시작 중...
+                        </>
+                      ) : (
+                        <>
+                          시작하기
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </Card>
