@@ -64,8 +64,14 @@ export const TeamSpaceIntro = () => {
     localStorage.setItem("teamSpace_intro_seen", "true");
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      handleClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-2xl">팀스페이스 기능 소개</DialogTitle>
