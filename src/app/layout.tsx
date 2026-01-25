@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Agentation } from "agentation";
 
 export const metadata: Metadata = {
   title: "모카번 - AI 기술면접 준비",
@@ -42,7 +43,10 @@ export default function RootLayout({
         {/* Security: Referrer policy */}
         <meta name="referrer" content="strict-origin-when-cross-origin" />
       </head>
-      <body className="min-h-screen font-body antialiased">{children}</body>
+      <body className="min-h-screen font-body antialiased">
+        {children}
+        {process.env.NODE_ENV === "development" && <Agentation />}
+      </body>
     </html>
   );
 }
