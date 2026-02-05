@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 import { validateInterviewInput } from "@/lib/validation";
+import type { InterviewTypeCode } from "@/types/interview";
 
 // POST /api/questions/generate - Claude로 질문 생성 (세션 저장 없이)
 export async function POST(request: NextRequest) {
@@ -11,11 +12,13 @@ export async function POST(request: NextRequest) {
       exclude_questions,
       count,
       reference_urls,
+      interview_type,
     }: {
       query: string;
       exclude_questions?: string[];
       count?: number;
       reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
+      interview_type?: InterviewTypeCode;
     } = body;
 
     // 입력 검증 - 빈 쿼리
@@ -52,14 +55,16 @@ export async function POST(request: NextRequest) {
       count: questionCount,
       referenceUrlsCount: reference_urls?.length || 0,
       referenceUrls: reference_urls,
+      interviewType: interview_type,
     });
 
-    // Claude로 질문 생성 (레퍼런스 URL 포함)
+    // Claude로 질문 생성 (레퍼런스 URL 및 면접 범주 포함)
     const result = await generateQuestions(
       query,
       excludeQuestions,
       questionCount,
       reference_urls,
+      interview_type,
     );
 
     console.log("생성된 질문:", {

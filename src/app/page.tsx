@@ -25,10 +25,13 @@ import {
   signOut,
   getLastSelectedTeamSpaceApi,
   getAccessToken,
+  getInterviewTypesApi,
+  type ApiInterviewType,
 } from "@/lib/api";
 import { TeamSpaceSelector } from "@/components/TeamSpaceSelector";
 import { TeamSpaceIntro } from "@/components/TeamSpaceIntro";
 import { validateInterviewInput } from "@/lib/validation";
+import { InterviewTypeSelector } from "@/components/InterviewTypeSelector";
 
 const SAMPLE_PROMPTS = [
   "프론트엔드 3년차 개발자를 위한 기술면접",
@@ -52,6 +55,26 @@ export default function Home() {
     "owner" | "member" | null
   >(null);
   const [inputWarning, setInputWarning] = useState<string | null>(null);
+  const [interviewTypes, setInterviewTypes] = useState<ApiInterviewType[]>([]);
+  const [selectedInterviewTypeId, setSelectedInterviewTypeId] = useState<
+    string | null
+  >(null);
+  const [isLoadingInterviewTypes, setIsLoadingInterviewTypes] = useState(true);
+
+  // 면접 범주 로드
+  useEffect(() => {
+    const loadInterviewTypes = async () => {
+      try {
+        const response = await getInterviewTypesApi();
+        setInterviewTypes(response.interviewTypes);
+      } catch (error) {
+        console.error("면접 범주 로드 실패:", error);
+      } finally {
+        setIsLoadingInterviewTypes(false);
+      }
+    };
+    loadInterviewTypes();
+  }, []);
 
   useEffect(() => {
     // 로그인 상태 확인 후 마지막 선택한 팀스페이스 불러오기
@@ -340,7 +363,7 @@ export default function Home() {
         }
       }
 
-      // 검색 페이지로 이동 (레퍼런스 URL 전달)
+      // 검색 페이지로 이동 (레퍼런스 URL 및 면접 범주 전달)
       const params = new URLSearchParams({
         q: query.trim(),
       });
@@ -358,6 +381,18 @@ export default function Home() {
       } else {
         console.log("레퍼런스 없이 검색 페이지로 이동:", query.trim());
       }
+
+      // 면접 범주가 선택되어 있으면 전달
+      if (selectedInterviewTypeId) {
+        const selectedType = interviewTypes.find(
+          (t) => t.id === selectedInterviewTypeId,
+        );
+        if (selectedType) {
+          params.append("interview_type", selectedType.code);
+          params.append("interview_type_id", selectedInterviewTypeId);
+        }
+      }
+
       router.push(`/search?${params.toString()}`);
     } catch (error) {
       console.error("제출 실패:", error);
@@ -374,7 +409,20 @@ export default function Home() {
     setInputWarning(null);
     setIsUploading(true);
     setQuery(sample);
-    router.push(`/search?q=${encodeURIComponent(sample)}`);
+
+    // 면접 범주가 선택되어 있으면 전달
+    const params = new URLSearchParams({ q: sample });
+    if (selectedInterviewTypeId) {
+      const selectedType = interviewTypes.find(
+        (t) => t.id === selectedInterviewTypeId,
+      );
+      if (selectedType) {
+        params.append("interview_type", selectedType.code);
+        params.append("interview_type_id", selectedInterviewTypeId);
+      }
+    }
+
+    router.push(`/search?${params.toString()}`);
   };
 
   return (
@@ -467,6 +515,30 @@ export default function Home() {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="w-full max-w-2xl"
         >
+          {/* Interview Type Selector */}
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground mb-3 text-center">
+              면접 범주 선택 (선택사항)
+            </p>
+            {isLoadingInterviewTypes ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-[160px] rounded-xl bg-muted/50 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <InterviewTypeSelector
+                interviewTypes={interviewTypes}
+                selectedTypeId={selectedInterviewTypeId}
+                onSelect={setSelectedInterviewTypeId}
+                disabled={isUploading}
+              />
+            )}
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div
               className={`relative bg-card rounded-2xl shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md ${

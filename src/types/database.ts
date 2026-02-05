@@ -160,6 +160,7 @@ export interface Database {
           query: string;
           total_time: number;
           is_completed: boolean;
+          interview_type_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -168,12 +169,14 @@ export interface Database {
           query: string;
           total_time?: number;
           is_completed?: boolean;
+          interview_type_id?: string | null;
           created_at?: string;
         };
         Update: {
           query?: string;
           total_time?: number;
           is_completed?: boolean;
+          interview_type_id?: string | null;
         };
       };
       session_questions: {
@@ -245,6 +248,39 @@ export interface Database {
           created_at?: string;
         };
         Update: Record<string, never>; // favorites는 업데이트하지 않음
+      };
+      interview_types: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          display_name: string;
+          description: string | null;
+          icon: string | null;
+          color: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          display_name: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          display_name?: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          sort_order?: number;
+        };
       };
       answer_feedback: {
         Row: {
@@ -388,6 +424,11 @@ export type AnswerFeedbackInsert =
   Database["public"]["Tables"]["answer_feedback"]["Insert"];
 export type AnswerFeedbackUpdate =
   Database["public"]["Tables"]["answer_feedback"]["Update"];
+
+export type InterviewType =
+  Database["public"]["Tables"]["interview_types"]["Row"];
+export type InterviewTypeInsert =
+  Database["public"]["Tables"]["interview_types"]["Insert"];
 
 // JWT Payload Types
 export interface AccessTokenPayload {
