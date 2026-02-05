@@ -108,3 +108,15 @@ export interface FullFeedbackData {
 export interface QuestionWithFeedback extends Question {
   feedback?: FeedbackData | null;
 }
+
+// Model Answer Types
+export interface ModelAnswerData {
+  modelAnswer: string;
+  keyPoints: string[];
+  codeExample?: string | null;
+}
+
+export interface FeedbackWithModelAnswer extends FeedbackData {
+  modelAnswer?: ModelAnswerData | null;
+  hasModelAnswer: boolean;
+}

@@ -90,6 +90,15 @@ export async function GET(
           mentioned: feedback.mentioned_keywords || [],
           missing: feedback.missing_keywords || [],
         },
+        // Model answer fields
+        modelAnswer: feedback.model_answer
+          ? {
+              modelAnswer: feedback.model_answer,
+              keyPoints: feedback.model_answer_key_points || [],
+              codeExample: feedback.model_answer_code_example,
+            }
+          : null,
+        hasModelAnswer: !!feedback.model_answer,
         createdAt: feedback.created_at,
         detailGeneratedAt: feedback.detail_generated_at,
       },

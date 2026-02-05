@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { FormattedText } from "./FormattedText";
 
 interface StrengthsImprovementsProps {
   strengths: string[];
@@ -39,7 +40,11 @@ export function StrengthsImprovements({
                 className="flex items-start gap-2 text-sm text-muted-foreground"
               >
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-green-500" />
-                <span className="leading-relaxed">{strength}</span>
+                <FormattedText
+                  text={strength}
+                  className="leading-relaxed"
+                  highlightClassName="font-semibold text-green-700 dark:text-green-300 bg-green-100/50 dark:bg-green-900/30 px-1 rounded"
+                />
               </li>
             ))}
           </ul>
@@ -60,7 +65,11 @@ export function StrengthsImprovements({
                 className="flex items-start gap-2 text-sm text-muted-foreground"
               >
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
-                <span className="leading-relaxed">{improvement}</span>
+                <FormattedText
+                  text={improvement}
+                  className="leading-relaxed"
+                  highlightClassName="font-semibold text-amber-700 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-900/30 px-1 rounded"
+                />
               </li>
             ))}
           </ul>

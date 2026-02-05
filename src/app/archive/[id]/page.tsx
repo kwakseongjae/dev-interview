@@ -11,7 +11,6 @@ import {
   Heart,
   Loader2,
   RefreshCw,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,7 +38,7 @@ import {
   createSessionApi,
   type ApiSessionDetail,
 } from "@/lib/api";
-import { FeedbackSection } from "@/components/feedback/FeedbackSection";
+import { AIAnalysisSection } from "@/components/feedback/AIAnalysisSection";
 
 // Extended Question type with answerId
 interface QuestionWithAnswerId extends Question {
@@ -420,9 +419,9 @@ export default function ArchiveDetailPage() {
                       </p>
                     )}
 
-                    {/* AI Feedback Section */}
+                    {/* AI Analysis Section - 피드백과 모범답변 버튼 나란히 배치 */}
                     {question.answerId && (
-                      <FeedbackSection
+                      <AIAnalysisSection
                         answerId={question.answerId}
                         hasAnswer={question.isAnswered}
                         className="mt-4"

@@ -34,14 +34,9 @@ export default function RootLayout({
         {/* Security: Content Security Policy */}
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co;"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net;"
         />
-        {/* Security: Prevent clickjacking */}
-        <meta httpEquiv="X-Frame-Options" content="DENY" />
-        {/* Security: Prevent MIME type sniffing */}
-        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        {/* Security: Referrer policy */}
-        <meta name="referrer" content="strict-origin-when-cross-origin" />
+        {/* Note: X-Frame-Options, X-Content-Type-Options, Referrer-Policy are set via HTTP headers in next.config.ts */}
       </head>
       <body className="min-h-screen font-body antialiased">
         {children}

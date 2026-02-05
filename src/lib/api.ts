@@ -844,6 +844,12 @@ export async function markTeamSpaceIntroSeenApi(): Promise<{
 
 // ============ Answer Feedback API ============
 
+export interface ApiModelAnswerData {
+  modelAnswer: string;
+  keyPoints: string[];
+  codeExample?: string | null;
+}
+
 export interface ApiFeedbackData {
   id: string;
   answerId: string;
@@ -860,6 +866,9 @@ export interface ApiFeedbackData {
     mentioned: string[];
     missing: string[];
   };
+  // Model answer fields
+  modelAnswer?: ApiModelAnswerData | null;
+  hasModelAnswer?: boolean;
   createdAt: string;
   detailGeneratedAt: string | null;
 }
@@ -912,6 +921,34 @@ export async function generateFullFeedbackApi(
 ): Promise<{ feedback: ApiFeedbackData }> {
   return fetchApi<{ feedback: ApiFeedbackData }>(
     `/api/answers/${answerId}/feedback/full`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+// ============ Model Answer API ============
+
+/**
+ * Get cached model answer for a question
+ */
+export async function getModelAnswerApi(
+  answerId: string,
+): Promise<{ modelAnswer: ApiModelAnswerData | null }> {
+  return fetchApi<{ modelAnswer: ApiModelAnswerData | null }>(
+    `/api/answers/${answerId}/model-answer`,
+  );
+}
+
+/**
+ * Generate model answer for a question using Sonnet
+ * Returns: exemplary answer, key points, optional code example
+ */
+export async function generateModelAnswerApi(
+  answerId: string,
+): Promise<{ modelAnswer: ApiModelAnswerData; cached: boolean }> {
+  return fetchApi<{ modelAnswer: ApiModelAnswerData; cached: boolean }>(
+    `/api/answers/${answerId}/model-answer`,
     {
       method: "POST",
     },
