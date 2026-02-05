@@ -1,8 +1,60 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { InterviewTypeCode } from "@/types/interview";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// 면접 범주별 특화 프롬프트
+const INTERVIEW_TYPE_PROMPTS: Record<InterviewTypeCode, string> = {
+  CS: `
+🎯 면접 범주: CS 기초 (Computer Science Fundamentals)
+
+이 범주의 질문은 다음 CS 기초 주제에 집중해야 합니다:
+- 운영체제: 프로세스/스레드, 메모리 관리, 동기화, 데드락, 스케줄링
+- 네트워크: TCP/IP, HTTP/HTTPS, REST, WebSocket, DNS, 로드밸런싱
+- 알고리즘: 정렬, 탐색, 그래프 알고리즘, 동적 프로그래밍, 시간/공간 복잡도
+- 자료구조: 배열, 연결 리스트, 스택, 큐, 트리, 해시 테이블, 그래프
+- 데이터베이스: SQL, 인덱스, 정규화, 트랜잭션, ACID, 쿼리 최적화
+
+질문 스타일:
+- 이론적 개념을 명확히 설명할 수 있는지 확인하는 질문
+- 개념의 장단점과 적용 상황을 이해하는지 묻는 질문
+- 실제 예시와 연결하여 설명할 수 있는 질문
+`,
+
+  PROJECT: `
+🎯 면접 범주: 프로젝트 기반 (Project-Based)
+
+이 범주의 질문은 다음 프로젝트 경험 주제에 집중해야 합니다:
+- 프로젝트 경험: 본인이 맡은 역할, 기여도, 결과물
+- 기술 선택 이유: 왜 해당 기술 스택을 선택했는지, 대안은 무엇이었는지
+- 트러블슈팅: 개발 중 겪은 문제와 해결 과정, 디버깅 방법
+- 협업 경험: 팀원과의 커뮤니케이션, 코드 리뷰, 컨플릭트 해결
+- 성과 및 개선: 성능 개선, 코드 품질 향상, 사용자 피드백 반영
+
+질문 스타일:
+- "~한 경험을 설명해주세요" 형태의 행동 기반 질문
+- 구체적인 상황과 대처 방법을 물어보는 STAR 기법 질문
+- 기술적 결정의 트레이드오프를 이해하는지 묻는 질문
+`,
+
+  SYSTEM_DESIGN: `
+🎯 면접 범주: 시스템 설계 (System Design)
+
+이 범주의 질문은 다음 시스템 설계 주제에 집중해야 합니다:
+- 대용량 트래픽: 초당 수만~수백만 요청 처리, 트래픽 급증 대응
+- 아키텍처 설계: 마이크로서비스, 이벤트 드리븐, CQRS, 서버리스
+- 확장성: 수평/수직 확장, 샤딩, 파티셔닝, 캐싱 전략
+- 가용성 및 안정성: 장애 대응, Circuit Breaker, 백업, 재해 복구
+- 데이터 일관성: 분산 시스템에서의 일관성, CAP 이론, 최종 일관성
+
+질문 스타일:
+- "~서비스를 설계하세요" 형태의 시스템 설계 질문
+- 규모와 제약 조건을 고려한 아키텍처 질문
+- 트레이드오프와 병목점을 분석하는 질문
+`,
+};
 
 // 질문 생성 프롬프트
 const GENERATE_QUESTIONS_PROMPT = `
@@ -249,12 +301,14 @@ export interface GenerateQuestionsResult {
  * @param excludeQuestions - 제외할 질문 내용 목록 (이미 추천된 질문들)
  * @param count - 생성할 질문 수 (기본값: 5)
  * @param referenceUrls - 레퍼런스 파일 URL 목록 (선택사항)
+ * @param interviewType - 면접 범주 (선택사항)
  */
 export async function generateQuestions(
   userPrompt: string,
   excludeQuestions: string[] = [],
   count: number = 5,
   referenceUrls?: Array<{ url: string; type: SupportedMediaType }>,
+  interviewType?: InterviewTypeCode,
 ): Promise<GenerateQuestionsResult> {
   // 제외할 질문이 있으면 프롬프트에 추가
   let excludeInstruction = "";
@@ -351,9 +405,18 @@ ${
     }
   }
 
+  // 면접 범주별 특화 프롬프트 추가
+  let interviewTypeInstruction = "";
+  if (interviewType && INTERVIEW_TYPE_PROMPTS[interviewType]) {
+    interviewTypeInstruction = INTERVIEW_TYPE_PROMPTS[interviewType];
+  }
+
   const prompt = GENERATE_QUESTIONS_PROMPT.replace("{user_prompt}", userPrompt)
     .replace("{exclude_instruction}", excludeInstruction)
-    .replace("{reference_instruction}", referenceInstruction)
+    .replace(
+      "{reference_instruction}",
+      interviewTypeInstruction + referenceInstruction,
+    )
     .replace("{question_count}", count.toString());
 
   const response = await anthropic.messages.create({

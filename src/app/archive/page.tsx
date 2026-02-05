@@ -44,10 +44,13 @@ import {
   isLoggedIn,
   getTeamSpacesApi,
   getCurrentUser,
+  getInterviewTypesApi,
   type ApiSession,
   type ApiSessionDetail,
   type ApiTeamSpace,
+  type ApiInterviewType,
 } from "@/lib/api";
+import { InterviewTypeBadge } from "@/components/InterviewTypeSelector";
 import { cache, createCacheKey } from "@/lib/cache";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 import { LoginPromptModal } from "@/components/LoginPromptModal";
@@ -85,6 +88,10 @@ export default function ArchivePage() {
   const [teamSpaceRole, setTeamSpaceRole] = useState<"owner" | "member" | null>(
     null,
   );
+  const [interviewTypes, setInterviewTypes] = useState<ApiInterviewType[]>([]);
+  const [selectedInterviewTypeId, setSelectedInterviewTypeId] = useState<
+    string | null
+  >(null);
 
   // 실제 팀 스페이스 액세스 상태 로드
   useEffect(() => {
@@ -95,6 +102,19 @@ export default function ArchivePage() {
       // localStorage에 팀 스페이스가 있으면 팀 스페이스 뷰로 시작
       setViewMode(storedTeamSpaceId ? "team" : "personal");
     }
+  }, []);
+
+  // 면접 범주 로드
+  useEffect(() => {
+    const loadInterviewTypes = async () => {
+      try {
+        const response = await getInterviewTypesApi();
+        setInterviewTypes(response.interviewTypes);
+      } catch (error) {
+        console.error("면접 범주 로드 실패:", error);
+      }
+    };
+    loadInterviewTypes();
   }, []);
 
   // 현재 사용자 ID 로드
@@ -148,7 +168,9 @@ export default function ArchivePage() {
   }, [isMounted, actualTeamSpaceId]);
 
   // API 데이터를 InterviewSession 형태로 변환
-  const convertApiSession = (apiSession: ApiSession): InterviewSession => ({
+  const convertApiSession = (
+    apiSession: ApiSession,
+  ): InterviewSession & { interviewType?: ApiInterviewType | null } => ({
     id: apiSession.id,
     createdAt: apiSession.created_at,
     query: apiSession.query,
@@ -157,6 +179,7 @@ export default function ArchivePage() {
     isCompleted: apiSession.is_completed,
     user_id: apiSession.user_id, // 소유자 ID 추가
     sharedBy: apiSession.shared_by || undefined,
+    interviewType: apiSession.interview_type || null,
   });
 
   // 데이터 로드
@@ -183,6 +206,7 @@ export default function ArchivePage() {
           teamSpaceId: teamSpaceIdForApi || "null",
           startDate: startDate || "null",
           endDate: endDate || "null",
+          interviewTypeId: selectedInterviewTypeId || "null",
         });
 
         // 캐시 확인
@@ -196,6 +220,7 @@ export default function ArchivePage() {
             teamSpaceId: teamSpaceIdForApi,
             startDate,
             endDate,
+            interviewTypeId: selectedInterviewTypeId,
           })
             .then((response) => {
               const converted = response.sessions.map(convertApiSession);
@@ -213,6 +238,7 @@ export default function ArchivePage() {
           teamSpaceId: teamSpaceIdForApi,
           startDate,
           endDate,
+          interviewTypeId: selectedInterviewTypeId,
         });
         const converted = response.sessions.map(convertApiSession);
         // 캐시에 저장 (5분 TTL)
@@ -246,7 +272,7 @@ export default function ArchivePage() {
     setSessions([]);
     setUseApi(false);
     setIsLoading(false);
-  }, [viewMode, actualTeamSpaceId, dateRange]);
+  }, [viewMode, actualTeamSpaceId, dateRange, selectedInterviewTypeId]);
 
   useEffect(() => {
     // 마운트된 후에만 데이터 로드
@@ -738,6 +764,46 @@ export default function ArchivePage() {
             </motion.div>
           )}
 
+        {/* 면접 범주 필터 */}
+        {interviewTypes.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-2 mb-6 flex-wrap"
+          >
+            <span className="text-sm text-muted-foreground mr-2">범주:</span>
+            <Button
+              variant={selectedInterviewTypeId === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedInterviewTypeId(null)}
+            >
+              전체
+            </Button>
+            {interviewTypes.map((type) => (
+              <Button
+                key={type.id}
+                variant={
+                  selectedInterviewTypeId === type.id ? "default" : "outline"
+                }
+                size="sm"
+                onClick={() => setSelectedInterviewTypeId(type.id)}
+                className={
+                  selectedInterviewTypeId === type.id
+                    ? type.color === "blue"
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : type.color === "green"
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : "bg-purple-600 hover:bg-purple-700"
+                    : ""
+                }
+              >
+                {type.displayName}
+              </Button>
+            ))}
+          </motion.div>
+        )}
+
         {/* Sessions List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -793,6 +859,22 @@ export default function ArchivePage() {
                             <h2 className="font-display text-lg font-semibold truncate flex-1 min-w-0">
                               {session.query}
                             </h2>
+                            {/* 면접 범주 배지 */}
+                            {(
+                              session as InterviewSession & {
+                                interviewType?: ApiInterviewType | null;
+                              }
+                            ).interviewType && (
+                              <InterviewTypeBadge
+                                type={
+                                  (
+                                    session as InterviewSession & {
+                                      interviewType?: ApiInterviewType | null;
+                                    }
+                                  ).interviewType!
+                                }
+                              />
+                            )}
                           </div>
 
                           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">

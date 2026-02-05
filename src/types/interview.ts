@@ -3,6 +3,20 @@
  * Based on PRD.md data structure specification
  */
 
+// Interview Type (면접 범주) types
+export type InterviewTypeCode = "CS" | "PROJECT" | "SYSTEM_DESIGN";
+
+export interface InterviewTypeInfo {
+  id: string;
+  code: string; // 'CS' | 'PROJECT' | 'SYSTEM_DESIGN' but stored as string from API
+  name: string;
+  displayName: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  sortOrder: number;
+}
+
 export interface Question {
   id: string;
   content: string;
@@ -23,6 +37,7 @@ export interface InterviewSession {
   totalTime: number;
   isCompleted: boolean;
   user_id?: string; // 소유자 ID (삭제 권한 확인용)
+  interviewType?: InterviewTypeInfo | null; // 면접 범주
   sharedBy?: {
     id: string;
     username: string;

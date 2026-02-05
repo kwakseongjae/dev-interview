@@ -19,16 +19,28 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("start_date");
     const endDate = searchParams.get("end_date");
     const teamSpaceId = searchParams.get("team_space_id");
+    const interviewTypeId = searchParams.get("interview_type_id");
 
-    // 세션 목록 조회
+    // 세션 목록 조회 (interview_type 포함)
     let query = (supabaseAdmin as any).from("interview_sessions").select(
       `
         id,
         query,
         total_time,
         is_completed,
+        interview_type_id,
         created_at,
-        session_questions(count)
+        session_questions(count),
+        interview_types(
+          id,
+          code,
+          name,
+          display_name,
+          description,
+          icon,
+          color,
+          sort_order
+        )
       `,
       { count: "exact" },
     );
@@ -106,6 +118,11 @@ export async function GET(request: NextRequest) {
       query = query.lt("created_at", endDateObj.toISOString());
     }
 
+    // 면접 범주 필터
+    if (interviewTypeId) {
+      query = query.eq("interview_type_id", interviewTypeId);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const {
       data: sessions,
@@ -158,11 +175,27 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // interview_type 정보 포맷팅
+        const interviewType = session.interview_types
+          ? {
+              id: session.interview_types.id,
+              code: session.interview_types.code,
+              name: session.interview_types.name,
+              displayName: session.interview_types.display_name,
+              description: session.interview_types.description,
+              icon: session.interview_types.icon,
+              color: session.interview_types.color,
+              sortOrder: session.interview_types.sort_order,
+            }
+          : null;
+
         return {
           id: session.id,
           query: session.query,
           total_time: session.total_time,
           is_completed: session.is_completed,
+          interview_type_id: session.interview_type_id,
+          interview_type: interviewType,
           question_count:
             (session.session_questions as { count: number }[])?.[0]?.count || 0,
           answered_count: answeredCount || 0,
@@ -203,6 +236,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     let { query, question_ids, questions: questionsData } = body;
+    const { interview_type_id } = body;
 
     // 입력 검증 및 길이 제한
     query = query?.slice(0, 500)?.trim() || null; // 최대 500자
@@ -351,7 +385,7 @@ export async function POST(request: NextRequest) {
     // 병렬로 시작한 제목 요약 결과 대기
     const sessionTitle = await titlePromise;
 
-    // 세션 생성
+    // 세션 생성 (interview_type_id 포함)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from("interview_sessions")
@@ -360,6 +394,7 @@ export async function POST(request: NextRequest) {
         query: sessionTitle,
         total_time: 0,
         is_completed: false,
+        interview_type_id: interview_type_id || null,
       })
       .select()
       .single();

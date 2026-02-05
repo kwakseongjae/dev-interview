@@ -32,7 +32,9 @@ import {
   isLoggedIn,
   checkFavoriteApi,
   createSessionApi,
+  type ApiInterviewType,
 } from "@/lib/api";
+import { InterviewTypeBadge } from "@/components/InterviewTypeSelector";
 
 // API 응답 타입
 interface GeneratedQuestion {
@@ -48,6 +50,8 @@ function SearchContent() {
   const router = useRouter();
   const query = searchParams.get("q") || "";
   const referenceUrlsParam = searchParams.get("references") || "";
+  const interviewTypeCode = searchParams.get("interview_type") || null;
+  const interviewTypeId = searchParams.get("interview_type_id") || null;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSearching, setIsSearching] = useState(true);
@@ -67,9 +71,47 @@ function SearchContent() {
     category: string;
   } | null>(null);
   const [referenceNotice, setReferenceNotice] = useState<string | null>(null);
+  const [interviewType, setInterviewType] = useState<ApiInterviewType | null>(
+    null,
+  );
 
   // 검색이 이미 시작되었는지 추적하는 ref
   const hasStartedSearch = useRef(false);
+
+  // 면접 범주 정보 구성
+  useEffect(() => {
+    if (interviewTypeCode && interviewTypeId) {
+      // URL 파라미터에서 면접 범주 정보 구성
+      const typeInfo: ApiInterviewType = {
+        id: interviewTypeId,
+        code: interviewTypeCode,
+        name: interviewTypeCode,
+        displayName:
+          interviewTypeCode === "CS"
+            ? "CS 기초"
+            : interviewTypeCode === "PROJECT"
+              ? "프로젝트 기반"
+              : interviewTypeCode === "SYSTEM_DESIGN"
+                ? "시스템 설계"
+                : interviewTypeCode,
+        description: null,
+        icon:
+          interviewTypeCode === "CS"
+            ? "Brain"
+            : interviewTypeCode === "PROJECT"
+              ? "FolderKanban"
+              : "Network",
+        color:
+          interviewTypeCode === "CS"
+            ? "blue"
+            : interviewTypeCode === "PROJECT"
+              ? "green"
+              : "purple",
+        sortOrder: 0,
+      };
+      setInterviewType(typeInfo);
+    }
+  }, [interviewTypeCode, interviewTypeId]);
 
   // 레퍼런스 URL 파싱 함수 (동기적으로 파싱)
   const parseReferenceUrls = useCallback((): Array<{
@@ -112,11 +154,13 @@ function SearchContent() {
           exclude_questions: excludeQuestions,
           count: 5,
           reference_urls: refsToUse.length > 0 ? refsToUse : undefined,
+          interview_type: interviewTypeCode || undefined,
         };
         console.log("질문 생성 API 호출:", {
           query,
           referenceUrlsCount: refsToUse.length,
           referenceUrls: refsToUse,
+          interviewType: interviewTypeCode,
         });
         const response = await fetch("/api/questions/generate", {
           method: "POST",
@@ -155,7 +199,7 @@ function SearchContent() {
         throw error;
       }
     },
-    [query, referenceUrls],
+    [query, referenceUrls, interviewTypeCode],
   );
 
   // GeneratedQuestion을 Question으로 변환
@@ -433,7 +477,7 @@ function SearchContent() {
     setIsStartingInterview(true);
 
     try {
-      // API를 통해 세션 생성
+      // API를 통해 세션 생성 (면접 범주 ID 포함)
       const sessionData = await createSessionApi(
         query,
         questions.map((q) => ({
@@ -441,6 +485,7 @@ function SearchContent() {
           hint: q.hint,
           category: q.category,
         })),
+        interviewTypeId,
       );
 
       router.push(`/interview?session=${sessionData.session.id}`);
@@ -499,7 +544,10 @@ function SearchContent() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <p className="text-muted-foreground text-sm mb-2">검색어</p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-muted-foreground text-sm">검색어</p>
+            {interviewType && <InterviewTypeBadge type={interviewType} />}
+          </div>
           <h1 className="font-display text-2xl md:text-3xl font-semibold">
             &ldquo;{query}&rdquo;
           </h1>

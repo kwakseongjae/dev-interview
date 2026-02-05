@@ -276,6 +276,27 @@ export async function setLastSelectedTeamSpaceApi(
   );
 }
 
+// ============ Interview Types API ============
+
+export interface ApiInterviewType {
+  id: string;
+  code: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  sortOrder: number;
+}
+
+interface InterviewTypesResponse {
+  interviewTypes: ApiInterviewType[];
+}
+
+export async function getInterviewTypesApi(): Promise<InterviewTypesResponse> {
+  return fetchApi<InterviewTypesResponse>("/api/interview-types");
+}
+
 // ============ Favorites API ============
 
 export interface ApiFavorite {
@@ -358,6 +379,8 @@ export interface ApiSession {
   total_time: number;
   is_completed: boolean;
   question_count: number;
+  interview_type_id?: string | null;
+  interview_type?: ApiInterviewType | null;
   created_at: string;
   user_id: string; // 소유자 ID 추가
   shared_by?: {
@@ -408,6 +431,7 @@ export async function getSessionsApi(
     teamSpaceId?: string | null;
     startDate?: string | null;
     endDate?: string | null;
+    interviewTypeId?: string | null;
   },
 ): Promise<SessionsResponse> {
   const params = new URLSearchParams({
@@ -422,6 +446,9 @@ export async function getSessionsApi(
   }
   if (options?.endDate) {
     params.append("end_date", options.endDate);
+  }
+  if (options?.interviewTypeId) {
+    params.append("interview_type_id", options.interviewTypeId);
   }
   return fetchApi<SessionsResponse>(`/api/sessions?${params.toString()}`);
 }
@@ -438,6 +465,7 @@ export async function createSessionApi(
     category: string;
     questionId?: string; // 기존 질문 ID (있으면 사용)
   }>,
+  interviewTypeId?: string | null,
 ): Promise<{ session: { id: string; created_at: string } }> {
   // questionId가 있는 경우 question_ids로 전달
   const questionIds = questions
@@ -454,6 +482,7 @@ export async function createSessionApi(
         hint: q.hint,
         category: q.category,
       })),
+      interview_type_id: interviewTypeId || undefined,
     }),
   });
 }
@@ -526,6 +555,7 @@ export async function generateQuestionsApi(
   query: string,
   excludeQuestions: string[] = [],
   count: number = 5,
+  interviewType?: string | null,
 ): Promise<GeneratedQuestion[]> {
   const data = await fetchApi<{ questions: GeneratedQuestion[] }>(
     "/api/questions/generate",
@@ -535,6 +565,7 @@ export async function generateQuestionsApi(
         query,
         exclude_questions: excludeQuestions,
         count,
+        interview_type: interviewType || undefined,
       }),
     },
   );
