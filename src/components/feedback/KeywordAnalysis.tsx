@@ -52,8 +52,8 @@ export function KeywordAnalysis({ analysis, className }: KeywordAnalysisProps) {
                     className={cn(
                       "text-xs font-normal transition-colors",
                       isMentioned
-                        ? "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-300"
-                        : "border-muted-foreground/30 text-muted-foreground",
+                        ? "border-green-400 bg-green-100 text-green-900 dark:border-green-600 dark:bg-green-900/40 dark:text-green-100"
+                        : "border-muted-foreground/40 bg-muted/50 text-muted-foreground",
                     )}
                   >
                     {isMentioned && <CheckIcon className="mr-1 h-3 w-3" />}
@@ -80,7 +80,7 @@ export function KeywordAnalysis({ analysis, className }: KeywordAnalysisProps) {
                   <Badge
                     key={index}
                     variant="secondary"
-                    className="text-xs font-normal bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                    className="text-xs font-normal bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-100"
                   >
                     <PlusIcon className="mr-1 h-3 w-3" />
                     {keyword}
@@ -106,7 +106,7 @@ export function KeywordAnalysis({ analysis, className }: KeywordAnalysisProps) {
                 <Badge
                   key={index}
                   variant="outline"
-                  className="text-xs font-normal border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                  className="text-xs font-normal border-amber-400 bg-amber-100 text-amber-900 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-100"
                 >
                   <MissingIcon className="mr-1 h-3 w-3" />
                   {keyword}

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { FormattedText } from "./FormattedText";
 
 interface FollowUpQuestionsProps {
   questions: string[];
@@ -31,7 +32,11 @@ export function FollowUpQuestions({
             <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
               {index + 1}
             </span>
-            <span className="leading-relaxed">{question}</span>
+            <FormattedText
+              text={question}
+              className="leading-relaxed"
+              highlightClassName="font-semibold text-foreground bg-primary/10 px-1 rounded"
+            />
           </li>
         ))}
       </ul>

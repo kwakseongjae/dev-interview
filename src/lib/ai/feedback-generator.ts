@@ -8,6 +8,7 @@ import {
   QUICK_FEEDBACK_PROMPT,
   DETAILED_FEEDBACK_PROMPT,
   FULL_FEEDBACK_PROMPT,
+  MODEL_ANSWER_PROMPT,
   fillPromptTemplate,
 } from "./feedback-prompts";
 import type {
@@ -15,6 +16,7 @@ import type {
   DetailedFeedbackData,
   KeywordAnalysis,
   FullFeedbackData,
+  ModelAnswerData,
 } from "@/types/interview";
 
 const anthropic = new Anthropic({
@@ -297,6 +299,77 @@ export async function generateFullFeedback(
       improvements: ["답변을 더 구체적으로 작성해보세요"],
       followUpQuestions: [],
       detailedFeedback: "상세 피드백 생성 중 오류가 발생했습니다.",
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    };
+  }
+}
+
+/**
+ * Generate model answer using Sonnet model
+ * Returns: exemplary answer, key points, optional code example
+ * Cost: ~$0.003-0.006 per request
+ */
+export async function generateModelAnswer(
+  question: string,
+  hint: string | null,
+  category: string,
+): Promise<ModelAnswerData & { inputTokens: number; outputTokens: number }> {
+  const prompt = fillPromptTemplate(MODEL_ANSWER_PROMPT, {
+    question,
+    hint: hint || "힌트 없음",
+    category: category || "일반",
+  });
+
+  const response = await anthropic.messages.create({
+    model: SONNET_MODEL,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") {
+    throw new Error("예상치 못한 응답 형식");
+  }
+
+  try {
+    const parsed = parseJsonResponse<{
+      modelAnswer: string;
+      keyPoints: string[];
+      codeExample: string | null;
+    }>(content.text);
+
+    // Validate and normalize
+    const modelAnswer =
+      typeof parsed.modelAnswer === "string"
+        ? parsed.modelAnswer.slice(0, 2000)
+        : "모범 답변을 생성할 수 없습니다.";
+    const keyPoints = Array.isArray(parsed.keyPoints)
+      ? parsed.keyPoints.slice(0, 5)
+      : [];
+    const codeExample =
+      typeof parsed.codeExample === "string" && parsed.codeExample.length > 0
+        ? parsed.codeExample.slice(0, 1000)
+        : null;
+
+    return {
+      modelAnswer,
+      keyPoints,
+      codeExample,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    };
+  } catch {
+    // Fallback on parse error
+    return {
+      modelAnswer: "모범 답변 생성 중 오류가 발생했습니다.",
+      keyPoints: [],
+      codeExample: null,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
     };

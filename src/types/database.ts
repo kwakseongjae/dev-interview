@@ -267,6 +267,13 @@ export interface Database {
           expected_keywords: string[];
           mentioned_keywords: string[];
           missing_keywords: string[];
+          // Model answer columns
+          model_answer: string | null;
+          model_answer_key_points: string[];
+          model_answer_code_example: string | null;
+          model_answer_model: string | null;
+          model_answer_tokens: number | null;
+          model_answer_generated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -288,6 +295,13 @@ export interface Database {
           expected_keywords?: string[];
           mentioned_keywords?: string[];
           missing_keywords?: string[];
+          // Model answer columns
+          model_answer?: string | null;
+          model_answer_key_points?: string[];
+          model_answer_code_example?: string | null;
+          model_answer_model?: string | null;
+          model_answer_tokens?: number | null;
+          model_answer_generated_at?: string | null;
         };
         Update: {
           keywords?: string[];
@@ -304,6 +318,13 @@ export interface Database {
           expected_keywords?: string[];
           mentioned_keywords?: string[];
           missing_keywords?: string[];
+          // Model answer columns
+          model_answer?: string | null;
+          model_answer_key_points?: string[];
+          model_answer_code_example?: string | null;
+          model_answer_model?: string | null;
+          model_answer_tokens?: number | null;
+          model_answer_generated_at?: string | null;
         };
       };
     };

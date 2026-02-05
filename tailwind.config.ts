@@ -69,7 +69,20 @@ const config: Config = {
       },
       fontFamily: {
         display: ["Cormorant Garamond", "Georgia", "serif"],
-        body: ["DM Sans", "system-ui", "sans-serif"],
+        body: [
+          "Pretendard Variable",
+          "Pretendard",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "system-ui",
+          "Roboto",
+          "Helvetica Neue",
+          "Segoe UI",
+          "Apple SD Gothic Neo",
+          "Noto Sans KR",
+          "Malgun Gothic",
+          "sans-serif",
+        ],
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out forwards",
