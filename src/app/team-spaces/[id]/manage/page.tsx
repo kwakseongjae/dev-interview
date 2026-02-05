@@ -55,7 +55,7 @@ function ManageContent() {
         setError(
           error instanceof Error
             ? error.message
-            : "팀스페이스를 불러올 수 없습니다"
+            : "팀스페이스를 불러올 수 없습니다",
         );
       } finally {
         setIsLoading(false);
@@ -125,7 +125,10 @@ function ManageContent() {
 
       await updateTeamSpaceApi(teamSpaceId, {
         name: name.trim(),
-        avatar_url: avatarUrl !== undefined ? avatarUrl : teamSpace?.avatar_url ?? undefined,
+        avatar_url:
+          avatarUrl !== undefined
+            ? avatarUrl
+            : (teamSpace?.avatar_url ?? undefined),
         password: password.trim() || undefined,
       });
 
@@ -140,7 +143,7 @@ function ManageContent() {
       setError(
         error instanceof Error
           ? error.message
-          : "팀스페이스 수정에 실패했습니다"
+          : "팀스페이스 수정에 실패했습니다",
       );
     } finally {
       setIsSaving(false);
@@ -150,7 +153,7 @@ function ManageContent() {
   const handleRegenerateInvite = async () => {
     if (
       !confirm(
-        "초대 링크를 재생성하시겠습니까? 기존 링크는 더 이상 사용할 수 없습니다."
+        "초대 링크를 재생성하시겠습니까? 기존 링크는 더 이상 사용할 수 없습니다.",
       )
     ) {
       return;
@@ -170,7 +173,7 @@ function ManageContent() {
       setError(
         error instanceof Error
           ? error.message
-          : "초대 링크 재생성에 실패했습니다"
+          : "초대 링크 재생성에 실패했습니다",
       );
     } finally {
       setIsRegenerating(false);
@@ -416,4 +419,3 @@ export default function ManagePage() {
     </Suspense>
   );
 }
-

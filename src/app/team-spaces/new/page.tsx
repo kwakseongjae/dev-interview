@@ -83,13 +83,13 @@ export default function NewTeamSpacePage() {
 
       // 생성 완료 페이지로 이동
       router.push(
-        `/team-spaces/${response.teamSpace.id}/created?invite_code=${response.teamSpace.invite_code}`
+        `/team-spaces/${response.teamSpace.id}/created?invite_code=${response.teamSpace.invite_code}`,
       );
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "팀스페이스 생성에 실패했습니다"
+          : "팀스페이스 생성에 실패했습니다",
       );
     } finally {
       setIsLoading(false);
@@ -236,4 +236,3 @@ export default function NewTeamSpacePage() {
     </main>
   );
 }
-

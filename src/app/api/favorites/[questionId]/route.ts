@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/favorites/:questionId - 찜 여부 확인
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ questionId: string }> }
+  { params }: { params: Promise<{ questionId: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function GET(
     if (!uuidRegex.test(questionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "찜 여부를 확인할 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -54,7 +54,7 @@ export async function GET(
 // DELETE /api/favorites/:questionId - 찜 취소
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ questionId: string }> }
+  { params }: { params: Promise<{ questionId: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -68,7 +68,7 @@ export async function DELETE(
     if (!uuidRegex.test(questionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -101,7 +101,7 @@ export async function DELETE(
       console.error("찜 취소 실패:", error);
       return NextResponse.json(
         { error: "찜 취소에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -117,7 +117,7 @@ export async function DELETE(
 
     return NextResponse.json(
       { error: "찜 취소에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

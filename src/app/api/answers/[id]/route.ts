@@ -8,7 +8,7 @@ type AnswerUpdate = Database["public"]["Tables"]["answers"]["Update"];
 // GET /api/answers/:id - 답변 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -22,7 +22,7 @@ export async function GET(
     if (!uuidRegex.test(answerId)) {
       return NextResponse.json(
         { error: "유효하지 않은 답변 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function GET(
         created_at,
         updated_at,
         questions!inner(id, content, hint)
-      `
+      `,
       )
       .eq("id", answerId)
       .eq("user_id", auth.sub)
@@ -48,7 +48,7 @@ export async function GET(
     if (error || !answer) {
       return NextResponse.json(
         { error: "답변을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -64,7 +64,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "답변을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -72,7 +72,7 @@ export async function GET(
 // PATCH /api/answers/:id - 답변 수정
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -86,7 +86,7 @@ export async function PATCH(
     if (!uuidRegex.test(answerId)) {
       return NextResponse.json(
         { error: "유효하지 않은 답변 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const body = await request.json();
@@ -98,7 +98,7 @@ export async function PATCH(
       if (!content || content.trim().length === 0) {
         return NextResponse.json(
           { error: "답변 내용은 필수입니다" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -117,7 +117,7 @@ export async function PATCH(
     if (!existingAnswer) {
       return NextResponse.json(
         { error: "답변을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -141,7 +141,7 @@ export async function PATCH(
       console.error("답변 수정 실패:", error);
       return NextResponse.json(
         { error: "답변 수정에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -162,7 +162,7 @@ export async function PATCH(
 
     return NextResponse.json(
       { error: "답변 수정에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

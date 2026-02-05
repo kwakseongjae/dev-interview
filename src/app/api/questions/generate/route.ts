@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!query) {
       return NextResponse.json(
         { error: "검색 쿼리는 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
           category: validation.category,
           suggestion: validation.suggestion,
         },
-        { status: 422 } // Unprocessable Entity
+        { status: 422 }, // Unprocessable Entity
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       query,
       excludeQuestions,
       questionCount,
-      reference_urls
+      reference_urls,
     );
 
     console.log("생성된 질문:", {

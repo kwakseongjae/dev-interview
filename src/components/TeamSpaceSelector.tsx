@@ -73,7 +73,7 @@ export const TeamSpaceSelector = ({
   }, [isOpen]);
 
   const currentTeamSpace = teamSpaces.find(
-    (ts) => ts.id === currentTeamSpaceId
+    (ts) => ts.id === currentTeamSpaceId,
   );
 
   const handleCreateNew = () => {
@@ -223,4 +223,3 @@ export const TeamSpaceSelector = ({
     </>
   );
 };
-

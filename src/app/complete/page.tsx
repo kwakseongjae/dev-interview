@@ -42,7 +42,7 @@ function CompleteContent() {
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingSession, setPendingSession] = useState<InterviewSession | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -65,7 +65,7 @@ function CompleteContent() {
 
   // API 데이터를 InterviewSession 형태로 변환
   const convertApiSession = (
-    apiSession: ApiSessionDetail
+    apiSession: ApiSessionDetail,
   ): InterviewSession => ({
     id: apiSession.id,
     query: apiSession.query,
@@ -110,7 +110,7 @@ function CompleteContent() {
 
       // 로그인 유도 모달 표시
       const dismissedUntil = localStorage.getItem(
-        "loginPrompt_complete_dismissedUntil"
+        "loginPrompt_complete_dismissedUntil",
       );
       if (dismissedUntil) {
         const dismissedDate = new Date(dismissedUntil);
@@ -151,7 +151,7 @@ function CompleteContent() {
           content: q.content,
           hint: q.hint,
           category: q.category,
-        }))
+        })),
       );
 
       // 세션의 질문 목록 조회하여 질문 ID 매칭
@@ -162,7 +162,7 @@ function CompleteContent() {
         if (question.answer && question.answer.trim().length > 0) {
           // 세션의 질문 중 내용이 일치하는 질문 찾기
           const matchedQuestion = sessionDetail.questions.find(
-            (sq) => sq.content === question.content
+            (sq) => sq.content === question.content,
           );
 
           if (matchedQuestion) {
@@ -171,12 +171,12 @@ function CompleteContent() {
                 sessionData.session.id,
                 matchedQuestion.id,
                 question.answer,
-                question.timeSpent || 0
+                question.timeSpent || 0,
               );
             } catch (error) {
               console.error(
                 `답변 제출 실패 (question ${matchedQuestion.id}):`,
-                error
+                error,
               );
             }
           }
@@ -186,7 +186,7 @@ function CompleteContent() {
       // 세션 완료 처리
       await completeSessionApi(
         sessionData.session.id,
-        pendingSession.totalTime
+        pendingSession.totalTime,
       );
 
       // 페이지 새로고침하여 저장된 세션 표시
@@ -203,7 +203,7 @@ function CompleteContent() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     localStorage.setItem(
       "loginPrompt_complete_dismissedUntil",
-      tomorrow.toISOString()
+      tomorrow.toISOString(),
     );
     setShowLoginModal(false);
   };

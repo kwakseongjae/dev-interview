@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(
       100,
-      Math.max(1, parseInt(searchParams.get("limit") || "20"))
+      Math.max(1, parseInt(searchParams.get("limit") || "20")),
     ); // 최대 100개로 제한
     const category = searchParams.get("category")?.slice(0, 50) || null; // 최대 50자
     const subcategory = searchParams.get("subcategory")?.slice(0, 50) || null; // 최대 50자
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         categories!inner(id, name, display_name),
         subcategories(id, name, display_name)
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       console.error("질문 목록 조회 실패:", error);
       return NextResponse.json(
         { error: "질문 목록을 불러올 수 없습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     console.error("질문 목록 조회 실패:", error);
     return NextResponse.json(
       { error: "질문 목록을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -107,19 +107,19 @@ export async function POST(request: NextRequest) {
     if (!content || content.length === 0) {
       return NextResponse.json(
         { error: "질문 내용은 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!category_id || !uuidRegex.test(category_id)) {
       return NextResponse.json(
         { error: "유효하지 않은 카테고리 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (subcategory_id && !uuidRegex.test(subcategory_id)) {
       return NextResponse.json(
         { error: "유효하지 않은 서브카테고리 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         created_at,
         categories!inner(id, name, display_name),
         subcategories(id, name, display_name)
-      `
+      `,
       )
       .single();
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       console.error("질문 생성 실패:", error);
       return NextResponse.json(
         { error: "질문 생성에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     console.error("질문 생성 실패:", error);
     return NextResponse.json(
       { error: "질문 생성에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json(
         { error: "파일 크기는 5MB 이하여야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
         { error: "이미지 파일만 업로드 가능합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!allowedExts.includes(fileExt)) {
       return NextResponse.json(
         { error: "지원하지 않는 파일 형식입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const fileName = `${auth.sub}/${Date.now()}.${fileExt}`;
@@ -76,8 +76,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "파일 업로드에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

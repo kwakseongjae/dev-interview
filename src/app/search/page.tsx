@@ -379,7 +379,11 @@ function SearchContent() {
       const convertedQuestions = convertToQuestions(result.questions);
 
       // 레퍼런스 미사용 알림 업데이트
-      if (referenceUrls.length > 0 && !result.referenceUsed && result.referenceMessage) {
+      if (
+        referenceUrls.length > 0 &&
+        !result.referenceUsed &&
+        result.referenceMessage
+      ) {
         setReferenceNotice(result.referenceMessage);
       } else {
         setReferenceNotice(null);

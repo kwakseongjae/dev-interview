@@ -47,7 +47,7 @@ export async function getOrGenerateHint(questionId: string): Promise<string> {
       subcategory_id,
       categories!inner(name),
       subcategories(name)
-    `
+    `,
     )
     .eq("id", questionId)
     .single();
@@ -62,14 +62,15 @@ export async function getOrGenerateHint(questionId: string): Promise<string> {
   }
 
   // 3. 힌트가 없으면 Claude API로 생성
-  const categoryName = (question.categories as { name: string })?.name || "기타";
+  const categoryName =
+    (question.categories as { name: string })?.name || "기타";
   const subcategoryName =
     (question.subcategories as { name: string } | null)?.name || "일반";
 
   const hint = await generateHintWithClaude(
     question.content,
     categoryName,
-    subcategoryName
+    subcategoryName,
   );
 
   // 4. 생성된 힌트를 DB에 저장
@@ -93,7 +94,7 @@ export async function getOrGenerateHint(questionId: string): Promise<string> {
 export async function generateHintWithClaude(
   questionContent: string,
   category: string,
-  subcategory: string
+  subcategory: string,
 ): Promise<string> {
   const prompt = GENERATE_HINT_PROMPT.replace("{question}", questionContent)
     .replace("{category}", category)

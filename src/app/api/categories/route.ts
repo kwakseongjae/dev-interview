@@ -10,10 +10,13 @@ export async function GET() {
   try {
     // 대분류 조회
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: categories, error: catError } = await (supabaseAdmin as any)
+    const { data: categories, error: catError } = (await (supabaseAdmin as any)
       .from("categories")
       .select("*")
-      .order("sort_order", { ascending: true }) as { data: Category[] | null; error: Error | null };
+      .order("sort_order", { ascending: true })) as {
+      data: Category[] | null;
+      error: Error | null;
+    };
 
     if (catError) {
       throw new Error("카테고리 조회 실패");
@@ -21,10 +24,15 @@ export async function GET() {
 
     // 소분류 조회
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: subcategories, error: subError } = await (supabaseAdmin as any)
+    const { data: subcategories, error: subError } = (await (
+      supabaseAdmin as any
+    )
       .from("subcategories")
       .select("*")
-      .order("sort_order", { ascending: true }) as { data: Subcategory[] | null; error: Error | null };
+      .order("sort_order", { ascending: true })) as {
+      data: Subcategory[] | null;
+      error: Error | null;
+    };
 
     if (subError) {
       throw new Error("소분류 조회 실패");
@@ -34,7 +42,9 @@ export async function GET() {
     const categoriesWithSubs = categories?.map((category: Category) => ({
       ...category,
       subcategories:
-        subcategories?.filter((sub: Subcategory) => sub.category_id === category.id) || [],
+        subcategories?.filter(
+          (sub: Subcategory) => sub.category_id === category.id,
+        ) || [],
     }));
 
     return NextResponse.json({ categories: categoriesWithSubs || [] });

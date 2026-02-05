@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (error || !user) {
       return NextResponse.json(
         { error: "사용자를 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "사용자 정보 조회에 실패했습니다";
+      error instanceof Error
+        ? error.message
+        : "사용자 정보 조회에 실패했습니다";
 
     if (message.includes("인증이 필요")) {
       return NextResponse.json({ error: message }, { status: 401 });

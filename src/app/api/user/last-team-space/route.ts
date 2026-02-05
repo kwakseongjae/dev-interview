@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (error || !user) {
       return NextResponse.json(
         { error: "사용자를 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -82,5 +82,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
-

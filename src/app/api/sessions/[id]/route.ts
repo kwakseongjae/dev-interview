@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/sessions/:id - 세션 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function GET(
     if (!uuidRegex.test(sessionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 세션 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function GET(
     if (sessionError || !session) {
       return NextResponse.json(
         { error: "세션을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -53,7 +53,7 @@ export async function GET(
               role
             )
           )
-        `
+        `,
         )
         .eq("session_id", sessionId)
         .eq("team_spaces.team_space_members.user_id", auth.sub)
@@ -62,7 +62,7 @@ export async function GET(
       if (!teamSpaceSession) {
         return NextResponse.json(
           { error: "세션에 접근할 수 없습니다" },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -84,7 +84,7 @@ export async function GET(
           categories!inner(name, display_name),
           subcategories(name, display_name)
         )
-      `
+      `,
       )
       .eq("session_id", sessionId)
       .order("question_order");
@@ -134,7 +134,7 @@ export async function GET(
           answer: answer || null,
           is_favorited: !!favorite,
         };
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -156,7 +156,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "세션을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -164,7 +164,7 @@ export async function GET(
 // DELETE /api/sessions/:id - 세션 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -178,7 +178,7 @@ export async function DELETE(
     if (!uuidRegex.test(sessionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 세션 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +193,7 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json(
         { error: "세션을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -212,7 +212,7 @@ export async function DELETE(
 
       if (teamSpaceSessions && teamSpaceSessions.length > 0) {
         const teamSpaceIds = teamSpaceSessions.map(
-          (tss: any) => tss.team_space_id
+          (tss: any) => tss.team_space_id,
         );
         // 해당 팀스페이스의 소유자인지 확인
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,7 +231,7 @@ export async function DELETE(
     if (!canDelete) {
       return NextResponse.json(
         { error: "세션을 삭제할 권한이 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -258,7 +258,7 @@ export async function DELETE(
 
     return NextResponse.json(
       { error: "세션 삭제에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

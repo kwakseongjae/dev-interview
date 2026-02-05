@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { error: "아이디와 비밀번호는 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

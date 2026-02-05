@@ -3,7 +3,7 @@
  * 3 minutes (180 seconds) per question
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface UseTimerOptions {
   initialTime?: number; // seconds
@@ -70,15 +70,18 @@ export function useTimer({
     setIsRunning(false);
   }, []);
 
-  const reset = useCallback((newTime?: number) => {
-    setIsRunning(false);
-    setTime(newTime ?? initialTime);
-  }, [initialTime]);
+  const reset = useCallback(
+    (newTime?: number) => {
+      setIsRunning(false);
+      setTime(newTime ?? initialTime);
+    },
+    [initialTime],
+  );
 
   const formatTime = useCallback(() => {
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }, [time]);
 
   const percentage = (time / initialTime) * 100;
@@ -98,7 +101,7 @@ export function useTimer({
 export function formatSeconds(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 // Format seconds to human readable (e.g., "12분 35초")

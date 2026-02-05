@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!refreshToken) {
       return NextResponse.json(
         { error: "Refresh token이 필요합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

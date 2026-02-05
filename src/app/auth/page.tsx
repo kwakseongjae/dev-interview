@@ -35,7 +35,7 @@ function AuthContent() {
     passwordConfirm?: string;
   }>({});
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
-    null
+    null,
   );
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -53,7 +53,7 @@ function AuthContent() {
       router.push(redirectTo);
     } catch (error) {
       setLoginError(
-        error instanceof Error ? error.message : "로그인에 실패했습니다"
+        error instanceof Error ? error.message : "로그인에 실패했습니다",
       );
     } finally {
       setIsLoading(false);

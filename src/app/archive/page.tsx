@@ -66,7 +66,7 @@ export default function ArchivePage() {
   const [teamSpaces, setTeamSpaces] = useState<ApiTeamSpace[]>([]);
   // 실제 팀 스페이스 액세스 상태 (localStorage에서 읽어옴, 변경하지 않음)
   const [actualTeamSpaceId, setActualTeamSpaceId] = useState<string | null>(
-    null
+    null,
   );
   // 페이지 내부에서만 사용하는 뷰 모드 (localStorage와 무관)
   const [viewMode, setViewMode] = useState<"personal" | "team">("personal");
@@ -75,7 +75,7 @@ export default function ArchivePage() {
     Map<string, InterviewSession>
   >(new Map());
   const [loadingQuestions, setLoadingQuestions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   // 진행 중인 로딩 Promise를 저장하는 Map
   const loadingPromisesRef = useRef<
@@ -83,7 +83,7 @@ export default function ArchivePage() {
   >(new Map());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [teamSpaceRole, setTeamSpaceRole] = useState<"owner" | "member" | null>(
-    null
+    null,
   );
 
   // 실제 팀 스페이스 액세스 상태 로드
@@ -123,7 +123,7 @@ export default function ArchivePage() {
           // 실제 팀 스페이스 액세스 상태 확인
           if (actualTeamSpaceId) {
             const teamSpace = response.teamSpaces.find(
-              (ts) => ts.id === actualTeamSpaceId
+              (ts) => ts.id === actualTeamSpaceId,
             );
             if (teamSpace) {
               setTeamSpaceRole(teamSpace.role);
@@ -286,7 +286,7 @@ export default function ArchivePage() {
   useEffect(() => {
     if (!isLoading && !isLoggedIn() && sessions.length === 0) {
       const dismissedUntil = localStorage.getItem(
-        "loginPrompt_archive_dismissedUntil"
+        "loginPrompt_archive_dismissedUntil",
       );
       if (dismissedUntil) {
         const dismissedDate = new Date(dismissedUntil);
@@ -303,7 +303,7 @@ export default function ArchivePage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     localStorage.setItem(
       "loginPrompt_archive_dismissedUntil",
-      tomorrow.toISOString()
+      tomorrow.toISOString(),
     );
     setShowLoginModal(false);
   };
@@ -336,7 +336,7 @@ export default function ArchivePage() {
   const loadSessionQuestions = useCallback(
     async (
       sessionId: string,
-      skipCache = false
+      skipCache = false,
     ): Promise<InterviewSession | null> => {
       // 캐시 확인
       if (!skipCache) {
@@ -404,7 +404,7 @@ export default function ArchivePage() {
 
       return loadPromise;
     },
-    []
+    [],
   );
 
   // Prefetch 질문 목록 (호버 시)
@@ -420,7 +420,7 @@ export default function ArchivePage() {
         // Prefetch 실패는 조용히 무시
       });
     },
-    [expandedSessions, loadingQuestions, loadSessionQuestions]
+    [expandedSessions, loadingQuestions, loadSessionQuestions],
   );
 
   const handleToggleExpand = async (sessionId: string) => {
@@ -450,7 +450,7 @@ export default function ArchivePage() {
   const handleToggleQuestionFavorite = async (
     sessionId: string,
     questionId: string,
-    currentIsFavorite: boolean
+    currentIsFavorite: boolean,
   ) => {
     if (!isLoggedIn()) {
       alert("로그인이 필요합니다.");
@@ -478,7 +478,7 @@ export default function ArchivePage() {
           const updatedSession: InterviewSession = {
             ...session,
             questions: session.questions.map((q) =>
-              q.id === questionId ? { ...q, isFavorite: isFav } : q
+              q.id === questionId ? { ...q, isFavorite: isFav } : q,
             ),
           };
           newMap.set(sessionId, updatedSession);
@@ -513,7 +513,7 @@ export default function ArchivePage() {
                 questions: session.questions.map((q) =>
                   q.id === questionId
                     ? { ...q, isFavorite: actualIsFavorited }
-                    : q
+                    : q,
                 ),
               };
               newMap.set(sessionId, updatedSession);
@@ -689,8 +689,8 @@ export default function ArchivePage() {
                           locale: ko,
                         })}`
                       : dateRange.from
-                      ? format(dateRange.from, "yyyy-MM-dd", { locale: ko })
-                      : "기간 선택"}
+                        ? format(dateRange.from, "yyyy-MM-dd", { locale: ko })
+                        : "기간 선택"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -766,11 +766,11 @@ export default function ArchivePage() {
               const isLoadingQuestions = loadingQuestions.has(session.id);
               const sessionQuestions = expandedSession?.questions || [];
               const answeredCount = sessionQuestions.filter(
-                (q) => q.isAnswered
+                (q) => q.isAnswered,
               ).length;
               const totalQuestions = sessionQuestions.length;
               const favoriteCount = sessionQuestions.filter(
-                (q) => q.isFavorite
+                (q) => q.isFavorite,
               ).length;
 
               return (
@@ -950,7 +950,7 @@ export default function ArchivePage() {
                                               handleToggleQuestionFavorite(
                                                 session.id,
                                                 question.id,
-                                                question.isFavorite
+                                                question.isFavorite,
                                               );
                                             }}
                                             className="flex-shrink-0 p-1.5 rounded-full hover:bg-muted transition-colors"

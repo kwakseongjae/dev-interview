@@ -15,7 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import Link from "next/link";
 import Image from "next/image";
@@ -52,7 +56,7 @@ function TeamSpaceContent() {
     to: Date | undefined;
   }>({ from: undefined, to: undefined });
   const [activeTab, setActiveTab] = useState<"sessions" | "favorites">(
-    "sessions"
+    "sessions",
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,7 +77,7 @@ function TeamSpaceContent() {
             teamSpaceId,
             selectedWeek || undefined,
             startDate || undefined,
-            endDate || undefined
+            endDate || undefined,
           ).catch(() => ({ sessions: [] })),
           getTeamSpaceFavoritesApi(teamSpaceId).catch(() => ({
             favorites: [],
@@ -88,7 +92,7 @@ function TeamSpaceContent() {
         setError(
           error instanceof Error
             ? error.message
-            : "팀스페이스를 불러올 수 없습니다"
+            : "팀스페이스를 불러올 수 없습니다",
         );
       } finally {
         setIsLoading(false);
@@ -112,14 +116,17 @@ function TeamSpaceContent() {
   };
 
   // 주차별 그룹화 (주차 필터가 선택된 경우에만 사용)
-  const sessionsByWeek = sessions.reduce((acc, session) => {
-    const week = session.week_number || 0;
-    if (!acc[week]) {
-      acc[week] = [];
-    }
-    acc[week].push(session);
-    return acc;
-  }, {} as Record<number, TeamSpaceSession[]>);
+  const sessionsByWeek = sessions.reduce(
+    (acc, session) => {
+      const week = session.week_number || 0;
+      if (!acc[week]) {
+        acc[week] = [];
+      }
+      acc[week].push(session);
+      return acc;
+    },
+    {} as Record<number, TeamSpaceSession[]>,
+  );
 
   const weeks = Object.keys(sessionsByWeek)
     .map(Number)
@@ -299,8 +306,8 @@ function TeamSpaceContent() {
                           locale: ko,
                         })}`
                       : dateRange.from
-                      ? format(dateRange.from, "yyyy-MM-dd", { locale: ko })
-                      : "기간 선택"}
+                        ? format(dateRange.from, "yyyy-MM-dd", { locale: ko })
+                        : "기간 선택"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -499,4 +506,3 @@ export default function TeamSpacePage() {
     </Suspense>
   );
 }
-

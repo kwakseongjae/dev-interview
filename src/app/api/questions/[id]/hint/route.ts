@@ -4,7 +4,7 @@ import { getOrGenerateHint } from "@/lib/hint-generator";
 // GET /api/questions/:id/hint - 힌트 조회 (없으면 자동 생성)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: questionId } = await params;
@@ -15,7 +15,7 @@ export async function GET(
     if (!uuidRegex.test(questionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,13 +30,13 @@ export async function GET(
     if (errorMessage.includes("찾을 수 없습니다")) {
       return NextResponse.json(
         { error: "질문을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: "힌트를 가져올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

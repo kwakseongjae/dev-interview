@@ -28,7 +28,7 @@ export async function hashPassword(password: string): Promise<string> {
  */
 export async function verifyPassword(
   password: string,
-  hash: string
+  hash: string,
 ): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
@@ -106,7 +106,7 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
  * Refresh Token 검증
  */
 export async function verifyRefreshToken(
-  token: string
+  token: string,
 ): Promise<RefreshTokenPayload> {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as RefreshTokenPayload;
@@ -183,7 +183,7 @@ export async function revokeAllUserTokens(userId: string): Promise<void> {
 export async function signUp(
   username: string,
   password: string,
-  email?: string
+  email?: string,
 ): Promise<AuthResponse> {
   // 아이디 중복 확인
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -220,7 +220,7 @@ export async function signUp(
   // 토큰 생성
   const accessToken = generateAccessToken(
     newUser.id,
-    newUser.email || newUser.username
+    newUser.email || newUser.username,
   );
   const refreshToken = await generateRefreshToken(newUser.id);
 
@@ -247,7 +247,7 @@ export async function signUp(
  */
 export async function signIn(
   username: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> {
   // 사용자 조회 (username으로 조회)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,7 +293,7 @@ export async function signIn(
  * 토큰 갱신
  */
 export async function refreshTokens(
-  refreshToken: string
+  refreshToken: string,
 ): Promise<TokenRefreshResponse> {
   // Refresh token 검증
   const decoded = await verifyRefreshToken(refreshToken);
@@ -334,7 +334,7 @@ export async function signOut(userId: string): Promise<void> {
  * Request에서 인증 정보 추출 및 검증
  */
 export function getAuthFromRequest(
-  authHeader: string | null
+  authHeader: string | null,
 ): AccessTokenPayload | null {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;

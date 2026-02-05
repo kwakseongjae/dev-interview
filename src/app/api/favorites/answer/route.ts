@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!question_id || !content) {
       return NextResponse.json(
         { error: "질문 ID와 답변 내용은 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!favorite) {
       return NextResponse.json(
         { error: "찜한 질문이 아닙니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
 
       // 임시 세션 생성 (찜 기반 답변용)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: tempSession, error: sessionError } = await (supabaseAdmin as any)
+      const { data: tempSession, error: sessionError } = await (
+        supabaseAdmin as any
+      )
         .from("interview_sessions")
         .insert({
           user_id: auth.sub,
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
         is_public: answer.is_public,
         created_at: answer.created_at,
       },
-      { status: existingAnswer ? 200 : 201 }
+      { status: existingAnswer ? 200 : 201 },
     );
   } catch (error) {
     const message =

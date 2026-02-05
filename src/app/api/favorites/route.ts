@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(
       100,
-      Math.max(1, parseInt(searchParams.get("limit") || "20"))
+      Math.max(1, parseInt(searchParams.get("limit") || "20")),
     ); // 최대 100개로 제한
     const offset = (page - 1) * limit;
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           subcategories(name, display_name)
         )
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .eq("user_id", auth.sub)
       .order("created_at", { ascending: false })
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       console.error("찜 목록 조회 실패:", error);
       return NextResponse.json(
         { error: "찜 목록을 불러올 수 없습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -118,12 +118,12 @@ export async function GET(request: NextRequest) {
             // 개별 항목 처리 실패 시 null 반환하여 필터링
             return null;
           }
-        })
+        }),
     );
 
     // null 값 필터링 (처리 실패한 항목 제외)
     const validFavorites = favoritesWithAnswers.filter(
-      (fav) => fav !== null
+      (fav) => fav !== null,
     ) as Array<{
       id: string;
       question_id: string;
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: "찜 목록을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     if (!question_id || !uuidRegex.test(question_id)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json(
         { error: "이미 찜한 질문입니다" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       console.error("찜하기 실패:", error);
       return NextResponse.json(
         { error: "찜하기에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
         question_id: favorite.question_id,
         created_at: favorite.created_at,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "찜하기에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

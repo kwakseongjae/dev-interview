@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     if (!username) {
       return NextResponse.json(
         { error: "아이디를 입력해주세요" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (username.length < 4 || username.length > 20) {
       return NextResponse.json(
         { error: "아이디는 4글자 이상 20글자 이하여야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       return NextResponse.json(
         { error: "아이디는 영문, 숫자, 언더스코어만 사용할 수 있습니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,8 +56,7 @@ export async function GET(request: NextRequest) {
     console.error("아이디 확인 실패:", error);
     return NextResponse.json(
       { error: "아이디 확인에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

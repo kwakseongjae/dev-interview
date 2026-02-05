@@ -6,7 +6,7 @@ import { evaluateAnswer } from "@/lib/claude";
 // POST /api/answers/:id/score - AI 답변 평가 요청
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -20,7 +20,7 @@ export async function POST(
     if (!uuidRegex.test(answerId)) {
       return NextResponse.json(
         { error: "유효하지 않은 답변 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function POST(
         content,
         user_id,
         questions!inner(id, content, hint)
-      `
+      `,
       )
       .eq("id", answerId)
       .single();
@@ -42,7 +42,7 @@ export async function POST(
     if (answerError || !answer) {
       return NextResponse.json(
         { error: "답변을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -61,7 +61,7 @@ export async function POST(
     const evaluation = await evaluateAnswer(
       question.content,
       question.hint,
-      answer.content
+      answer.content,
     );
 
     // 평가 결과 저장
@@ -79,7 +79,7 @@ export async function POST(
       console.error("평가 결과 저장 실패:", updateError);
       return NextResponse.json(
         { error: "평가 결과 저장에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -102,7 +102,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: "답변 평가에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // POST /api/team-spaces/:id/regenerate-invite - 초대 코드 재생성 (owner만)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function POST(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(
     if (!membership || membership.role !== "owner") {
       return NextResponse.json(
         { error: "초대 코드를 재생성할 권한이 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -83,7 +83,7 @@ export async function POST(
       console.error("초대 코드 재생성 실패:", error);
       return NextResponse.json(
         { error: "초대 코드 재생성에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -101,8 +101,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: "초대 코드 재생성에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

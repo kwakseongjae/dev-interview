@@ -17,7 +17,7 @@ export const supabaseAdmin = createClient<Database>(
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
+  },
 );
 
 // 서버 컴포넌트/API Route용 클라이언트 생성 함수

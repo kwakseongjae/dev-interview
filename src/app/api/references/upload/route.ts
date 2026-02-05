@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         { error: "파일 크기는 10MB 이하여야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (!isPdf && !isImage) {
       return NextResponse.json(
         { error: "PDF 또는 이미지 파일만 업로드 가능합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -51,14 +51,14 @@ export async function POST(request: NextRequest) {
     // 버킷이 없으면 생성 시도 (관리자 권한 필요)
     if (bucketError && bucketError.message?.includes("Bucket not found")) {
       console.error(
-        "references 버킷이 없습니다. Supabase 대시보드에서 버킷을 생성해주세요."
+        "references 버킷이 없습니다. Supabase 대시보드에서 버킷을 생성해주세요.",
       );
       return NextResponse.json(
         {
           error:
             "레퍼런스 저장소가 설정되지 않았습니다. Supabase 대시보드에서 'references' 버킷을 생성해주세요.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             error:
               "레퍼런스 저장소가 설정되지 않았습니다. Supabase 대시보드에서 'references' 버킷을 생성해주세요.",
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
           error: uploadError?.message || "파일 업로드에 실패했습니다",
           details: uploadError,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -115,8 +115,7 @@ export async function POST(request: NextRequest) {
         error: errorMessage || "파일 업로드에 실패했습니다",
         details: error instanceof Error ? error.stack : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

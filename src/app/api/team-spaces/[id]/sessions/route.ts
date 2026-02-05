@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/team-spaces/:id/sessions - 팀스페이스의 면접 기록 목록
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function GET(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function GET(
     if (!membership) {
       return NextResponse.json(
         { error: "팀스페이스에 접근할 수 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function GET(
           is_completed,
           created_at
         )
-      `
+      `,
       )
       .eq("team_space_id", teamSpaceId);
 
@@ -141,7 +141,7 @@ export async function GET(
             nickname: user?.nickname || null,
           },
         };
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -158,7 +158,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "면접 기록을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -166,7 +166,7 @@ export async function GET(
 // POST /api/team-spaces/:id/sessions - 면접 기록을 팀스페이스에 공유
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -183,13 +183,13 @@ export async function POST(
     if (!session_id || !uuidRegex.test(session_id)) {
       return NextResponse.json(
         { error: "유효하지 않은 세션 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (week_number !== undefined) {
       week_number = Math.max(
         1,
-        Math.min(52, parseInt(String(week_number)) || 1)
+        Math.min(52, parseInt(String(week_number)) || 1),
       ); // 1-52 범위로 제한
     }
 
@@ -205,7 +205,7 @@ export async function POST(
     if (!membership) {
       return NextResponse.json(
         { error: "팀스페이스에 접근할 수 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -221,7 +221,7 @@ export async function POST(
     if (!session) {
       return NextResponse.json(
         { error: "세션을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -237,7 +237,7 @@ export async function POST(
     if (existing) {
       return NextResponse.json(
         { error: "이미 공유된 면접 기록입니다" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -258,7 +258,7 @@ export async function POST(
       console.error("면접 기록 공유 실패:", error);
       return NextResponse.json(
         { error: "면접 기록 공유에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -269,7 +269,7 @@ export async function POST(
         week_number: sharedSession.week_number,
         shared_at: sharedSession.shared_at,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -282,8 +282,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: "면접 기록 공유에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

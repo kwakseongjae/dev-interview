@@ -6,7 +6,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth";
 // GET /api/team-spaces/:id - 팀스페이스 상세 정보
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -20,7 +20,7 @@ export async function GET(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET(
     if (error || !teamSpace) {
       return NextResponse.json(
         { error: "팀스페이스를 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -51,7 +51,7 @@ export async function GET(
     if (!membership) {
       return NextResponse.json(
         { error: "팀스페이스에 접근할 수 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -77,7 +77,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "팀스페이스를 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -85,7 +85,7 @@ export async function GET(
 // PATCH /api/team-spaces/:id - 팀스페이스 수정 (owner만)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -99,7 +99,7 @@ export async function PATCH(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const body = await request.json();
@@ -111,7 +111,7 @@ export async function PATCH(
       if (name && name.trim().length === 0) {
         return NextResponse.json(
           { error: "팀스페이스 이름은 필수입니다" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -134,7 +134,7 @@ export async function PATCH(
     if (!membership || membership.role !== "owner") {
       return NextResponse.json(
         { error: "팀스페이스를 수정할 권한이 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -143,7 +143,7 @@ export async function PATCH(
       if (!name || name.trim().length === 0) {
         return NextResponse.json(
           { error: "팀스페이스 이름은 필수입니다" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updateData.name = name.trim();
@@ -192,8 +192,7 @@ export async function PATCH(
 
     return NextResponse.json(
       { error: "팀스페이스 수정에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

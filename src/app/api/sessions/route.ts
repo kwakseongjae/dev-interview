@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(
       100,
-      Math.max(1, parseInt(searchParams.get("limit") || "10"))
+      Math.max(1, parseInt(searchParams.get("limit") || "10")),
     ); // 최대 100개로 제한
     const offset = (page - 1) * limit;
     const startDate = searchParams.get("start_date");
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         created_at,
         session_questions(count)
       `,
-      { count: "exact" }
+      { count: "exact" },
     );
 
     // 팀 스페이스 ID가 있으면 팀 스페이스 세션 조회, 없으면 개인 세션 조회
@@ -61,14 +61,14 @@ export async function GET(request: NextRequest) {
             console.error("팀 스페이스 세션 조회 실패:", tssError);
             return NextResponse.json(
               { error: "팀 스페이스 세션을 불러올 수 없습니다" },
-              { status: 500 }
+              { status: 500 },
             );
           }
 
           // 세션 ID 목록이 있으면 필터링, 없으면 빈 배열 반환
           if (teamSpaceSessions && teamSpaceSessions.length > 0) {
             const sessionIds = teamSpaceSessions.map(
-              (tss: any) => tss.session_id
+              (tss: any) => tss.session_id,
             );
             query = query.in("id", sessionIds);
           } else {
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         } else {
           return NextResponse.json(
             { error: "팀스페이스에 접근할 수 없습니다" },
-            { status: 403 }
+            { status: 403 },
           );
         }
       }
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
           user_id: session.user_id, // 소유자 ID 추가
           shared_by: sharedBy,
         };
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: "세션 목록을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     if (!query || query.length === 0) {
       return NextResponse.json(
         { error: "검색 쿼리는 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -368,7 +368,7 @@ export async function POST(request: NextRequest) {
       console.error("세션 생성 실패:", sessionError);
       return NextResponse.json(
         { error: "세션 생성에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
           categories!inner(name, display_name),
           subcategories(name, display_name)
         )
-      `
+      `,
       )
       .eq("session_id", session.id)
       .order("question_order");
@@ -461,7 +461,7 @@ export async function POST(request: NextRequest) {
           order: sq.question_order,
         })),
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -474,7 +474,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "세션 생성에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

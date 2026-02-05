@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/questions/:questionId/answers - 다른 사람 답변 둘러보기
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: questionId } = await params;
@@ -15,7 +15,7 @@ export async function GET(
     if (!uuidRegex.test(questionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,7 +23,7 @@ export async function GET(
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(
       100,
-      Math.max(1, parseInt(searchParams.get("limit") || "10"))
+      Math.max(1, parseInt(searchParams.get("limit") || "10")),
     ); // 최대 100개로 제한
     const sort = (
       searchParams.get("sort") === "recent" ? "recent" : "score"
@@ -42,7 +42,7 @@ export async function GET(
         created_at,
         users!inner(id, nickname, avatar_url)
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .eq("question_id", questionId)
       .eq("is_public", true);
@@ -63,7 +63,7 @@ export async function GET(
       console.error("답변 목록 조회 실패:", error);
       return NextResponse.json(
         { error: "답변 목록을 불러올 수 없습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -88,7 +88,7 @@ export async function GET(
     console.error("답변 목록 조회 실패:", error);
     return NextResponse.json(
       { error: "답변 목록을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

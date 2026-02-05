@@ -93,7 +93,7 @@ function InterviewContent() {
       if (!saved) return null;
 
       const progress: LocalProgress = JSON.parse(saved);
-      
+
       // 24시간 이상 지난 데이터는 무시
       const hoursSinceSave = (Date.now() - progress.savedAt) / (1000 * 60 * 60);
       if (hoursSinceSave > 24) {
@@ -111,7 +111,7 @@ function InterviewContent() {
   // 로컬 스토리지 클린업
   const clearLocalProgress = useCallback(() => {
     if (!sessionId) return;
-    
+
     try {
       localStorage.removeItem(getStorageKey(sessionId));
     } catch (error) {
@@ -121,7 +121,7 @@ function InterviewContent() {
 
   // API 데이터를 InterviewSession 형태로 변환
   const convertApiSession = (
-    apiSession: ApiSessionDetail
+    apiSession: ApiSessionDetail,
   ): InterviewSession => ({
     id: apiSession.id,
     query: apiSession.query,
@@ -166,26 +166,30 @@ function InterviewContent() {
         if (localProgress) {
           // 로컬에 저장된 데이터가 있으면 복원
           setIsRestoredFromLocal(true);
-          
+
           // 로컬 답변과 서버 답변 병합 (로컬 우선, 단 비어있으면 서버 데이터 사용)
           const mergedAnswers: Record<string, string> = {};
           loadedSession.questions.forEach((q) => {
             const localAnswer = localProgress.answers[q.id];
             const serverAnswer = q.answer || "";
             // 로컬에 답변이 있으면 로컬 사용, 없으면 서버 데이터 사용
-            mergedAnswers[q.id] = localAnswer !== undefined && localAnswer !== "" 
-              ? localAnswer 
-              : serverAnswer;
+            mergedAnswers[q.id] =
+              localAnswer !== undefined && localAnswer !== ""
+                ? localAnswer
+                : serverAnswer;
           });
-          
+
           setAnswers(mergedAnswers);
           setCurrentQuestionIndex(localProgress.currentQuestionIndex);
-          
+
           // 소요시간: 로컬 시간과 서버 시간 중 큰 값 사용
-          const restoredTime = Math.max(localProgress.totalElapsedTime, loadedSession.totalTime);
+          const restoredTime = Math.max(
+            localProgress.totalElapsedTime,
+            loadedSession.totalTime,
+          );
           setTotalElapsedTime(restoredTime);
           totalTimeRef.current = restoredTime;
-          
+
           // 복원 알림을 3초 후에 숨김
           setTimeout(() => setIsRestoredFromLocal(false), 3000);
         } else {
@@ -328,7 +332,7 @@ function InterviewContent() {
       });
 
       const updatedQuestions = session.questions.map((q) =>
-        q.id === currentQuestion.id ? { ...q, isFavorite: isFav } : q
+        q.id === currentQuestion.id ? { ...q, isFavorite: isFav } : q,
       );
 
       const updatedSession = { ...session, questions: updatedQuestions };
@@ -348,7 +352,7 @@ function InterviewContent() {
           const updatedQuestions = session.questions.map((q) =>
             q.id === currentQuestion.id
               ? { ...q, isFavorite: actualIsFavorited }
-              : q
+              : q,
           );
           const updatedSession = { ...session, questions: updatedQuestions };
           setSession(updatedSession);
@@ -393,7 +397,7 @@ function InterviewContent() {
               session.id,
               question.id,
               question.answer,
-              0 // timeSpent는 더 이상 사용하지 않음
+              0, // timeSpent는 더 이상 사용하지 않음
             );
           }
         }
@@ -410,7 +414,7 @@ function InterviewContent() {
       } catch (error) {
         console.error("API 제출 실패:", error);
         alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
-        
+
         // 에러 발생 시 타이머 및 자동저장 다시 시작
         timerIntervalRef.current = setInterval(() => {
           totalTimeRef.current += 1;
@@ -530,8 +534,8 @@ function InterviewContent() {
                       isQuestionAnswered(question.id)
                         ? "bg-timer-safe text-white"
                         : index === currentQuestionIndex
-                        ? "bg-gold text-navy"
-                        : "bg-muted-foreground/20 text-muted-foreground"
+                          ? "bg-gold text-navy"
+                          : "bg-muted-foreground/20 text-muted-foreground"
                     }
                   `}
                 >
@@ -681,8 +685,8 @@ function InterviewContent() {
                             index === currentQuestionIndex
                               ? "bg-navy"
                               : isQuestionAnswered(session.questions[index].id)
-                              ? "bg-timer-safe"
-                              : "bg-muted-foreground/30"
+                                ? "bg-timer-safe"
+                                : "bg-muted-foreground/30"
                           }
                         `}
                         aria-label={`질문 ${index + 1}로 이동`}

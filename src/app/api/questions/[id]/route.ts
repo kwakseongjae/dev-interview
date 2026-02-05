@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/questions/:id - 질문 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: questionId } = await params;
@@ -15,7 +15,7 @@ export async function GET(
     if (!uuidRegex.test(questionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(
         created_at,
         categories!inner(id, name, display_name),
         subcategories(id, name, display_name)
-      `
+      `,
       )
       .eq("id", questionId)
       .single();
@@ -40,7 +40,7 @@ export async function GET(
     if (error || !question) {
       return NextResponse.json(
         { error: "질문을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -50,7 +50,7 @@ export async function GET(
     console.error("질문 조회 실패:", error);
     return NextResponse.json(
       { error: "질문을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

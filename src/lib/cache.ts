@@ -88,9 +88,12 @@ export const cache = new SimpleCache();
 
 // 주기적으로 만료된 캐시 정리 (5분마다)
 if (typeof window !== "undefined") {
-  setInterval(() => {
-    cache.cleanup();
-  }, 5 * 60 * 1000);
+  setInterval(
+    () => {
+      cache.cleanup();
+    },
+    5 * 60 * 1000,
+  );
 }
 
 /**
@@ -98,7 +101,7 @@ if (typeof window !== "undefined") {
  */
 export function createCacheKey(
   prefix: string,
-  params: Record<string, string | number | null | undefined>
+  params: Record<string, string | number | null | undefined>,
 ): string {
   const sortedParams = Object.keys(params)
     .sort()
@@ -106,5 +109,3 @@ export function createCacheKey(
     .join("&");
   return `${prefix}:${sortedParams}`;
 }
-
-

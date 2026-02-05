@@ -202,7 +202,7 @@ export function validateInterviewInput(query: string): InputValidationResult {
   const queryLower = trimmedQuery.toLowerCase();
   const words = trimmedQuery.split(/\s+/);
   const hasTechKeyword = techKeywords.some((keyword) =>
-    queryLower.includes(keyword)
+    queryLower.includes(keyword),
   );
 
   // 2단어 이하이면서 기술 키워드가 없는 경우

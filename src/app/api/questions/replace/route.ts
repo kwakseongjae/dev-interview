@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!query) {
       return NextResponse.json(
         { error: "검색 쿼리는 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "교체할 질문을 선택해주세요" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 유지할 질문 내용 목록 (중복 생성 방지)
     const keepQuestionContents: string[] = (keep_questions || []).map(
-      (q: { content: string }) => q.content
+      (q: { content: string }) => q.content,
     );
 
     // 교체할 질문 수만큼 새로 생성
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       query,
       keepQuestionContents,
       replaceCount,
-      reference_urls
+      reference_urls,
     );
 
     return NextResponse.json({

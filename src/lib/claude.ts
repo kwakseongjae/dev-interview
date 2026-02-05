@@ -80,7 +80,7 @@ export interface ReferenceValidationResult {
  * 레퍼런스 내용이 기술면접 질문 생성에 적합한지 검증
  */
 async function validateReferenceContent(
-  referenceText: string
+  referenceText: string,
 ): Promise<ReferenceValidationResult> {
   // 텍스트가 너무 짧으면 유효하지 않음
   if (referenceText.length < 100) {
@@ -133,11 +133,16 @@ ${referenceText.substring(0, 2000)}
 /**
  * 레퍼런스 파일에서 텍스트 추출 (Claude Vision API 사용)
  */
-export type SupportedMediaType = "application/pdf" | "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+export type SupportedMediaType =
+  | "application/pdf"
+  | "image/jpeg"
+  | "image/png"
+  | "image/gif"
+  | "image/webp";
 
 async function extractTextFromReference(
   referenceUrl: string,
-  fileType: SupportedMediaType
+  fileType: SupportedMediaType,
 ): Promise<string> {
   try {
     console.log("레퍼런스 파일 다운로드 시작:", { referenceUrl, fileType });
@@ -150,7 +155,7 @@ async function extractTextFromReference(
         url: referenceUrl,
       });
       throw new Error(
-        `레퍼런스 파일을 불러올 수 없습니다: ${fileResponse.status} ${fileResponse.statusText}`
+        `레퍼런스 파일을 불러올 수 없습니다: ${fileResponse.status} ${fileResponse.statusText}`,
       );
     }
 
@@ -163,26 +168,30 @@ async function extractTextFromReference(
 
     // Claude Vision API로 텍스트 추출
     console.log("Claude Vision API 호출 시작");
-    
+
     // Create content block based on file type
-    const contentBlock = fileType === "application/pdf"
-      ? {
-          type: "document" as const,
-          source: {
-            type: "base64" as const,
-            media_type: "application/pdf" as const,
-            data: base64,
-          },
-        }
-      : {
-          type: "image" as const,
-          source: {
-            type: "base64" as const,
-            media_type: fileType as Exclude<SupportedMediaType, "application/pdf">,
-            data: base64,
-          },
-        };
-    
+    const contentBlock =
+      fileType === "application/pdf"
+        ? {
+            type: "document" as const,
+            source: {
+              type: "base64" as const,
+              media_type: "application/pdf" as const,
+              data: base64,
+            },
+          }
+        : {
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: fileType as Exclude<
+                SupportedMediaType,
+                "application/pdf"
+              >,
+              data: base64,
+            },
+          };
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
@@ -222,7 +231,7 @@ async function extractTextFromReference(
     throw new Error(
       `레퍼런스 파일 처리에 실패했습니다: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -245,7 +254,7 @@ export async function generateQuestions(
   userPrompt: string,
   excludeQuestions: string[] = [],
   count: number = 5,
-  referenceUrls?: Array<{ url: string; type: SupportedMediaType }>
+  referenceUrls?: Array<{ url: string; type: SupportedMediaType }>,
 ): Promise<GenerateQuestionsResult> {
   // 제외할 질문이 있으면 프롬프트에 추가
   let excludeInstruction = "";
@@ -271,7 +280,7 @@ ${excludeQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
 
     // 레퍼런스 파일에서 텍스트 추출
     referenceTexts = await Promise.all(
-      referenceUrls.map((ref) => extractTextFromReference(ref.url, ref.type))
+      referenceUrls.map((ref) => extractTextFromReference(ref.url, ref.type)),
     );
     console.log("레퍼런스 텍스트 추출 완료:", {
       count: referenceTexts.length,
@@ -376,14 +385,16 @@ ${
     // 레퍼런스가 제공되고 사용된 경우 검증
     if (referenceUrls && referenceUrls.length > 0 && referenceUsed) {
       const actualReferenceBasedCount = questions.filter(
-        (q) => q.isReferenceBased === true
+        (q) => q.isReferenceBased === true,
       ).length;
 
-      const expectedMin = allReferenceBased ? count : Math.max(3, Math.ceil(count * 0.6));
+      const expectedMin = allReferenceBased
+        ? count
+        : Math.max(3, Math.ceil(count * 0.6));
 
       if (actualReferenceBasedCount < expectedMin) {
         console.warn(
-          `경고: 레퍼런스 기반 질문이 ${actualReferenceBasedCount}개로 기대치(${expectedMin}개)보다 적습니다.`
+          `경고: 레퍼런스 기반 질문이 ${actualReferenceBasedCount}개로 기대치(${expectedMin}개)보다 적습니다.`,
         );
         // 레퍼런스 기반 질문이 부족하면 일반 질문을 레퍼런스 기반으로 표시
         // (실제로 레퍼런스가 있으므로 관련성이 있을 수 있음)
@@ -443,12 +454,12 @@ export async function summarizeQueryToTitle(query: string): Promise<string> {
 
     // 응답에서 제목 추출 (따옴표 제거)
     const title = content.text.trim().replace(/^["']|["']$/g, "");
-    
+
     // 제목이 너무 길면 잘라서 반환
     if (title.length > 40) {
       return title.slice(0, 37) + "...";
     }
-    
+
     return title;
   } catch (error) {
     console.error("제목 요약 실패:", error);
@@ -466,7 +477,7 @@ export async function summarizeQueryToTitle(query: string): Promise<string> {
 export async function evaluateAnswer(
   question: string,
   hint: string | null,
-  answer: string
+  answer: string,
 ): Promise<AnswerEvaluation> {
   const prompt = EVALUATE_ANSWER_PROMPT.replace("{question}", question)
     .replace("{hint}", hint || "힌트 없음")

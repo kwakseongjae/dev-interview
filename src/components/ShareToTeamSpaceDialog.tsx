@@ -82,7 +82,7 @@ export const ShareToTeamSpaceDialog = ({
         await shareSessionToTeamSpaceApi(
           selectedTeamSpaceId,
           sessionId,
-          weekNumber ? parseInt(weekNumber) : undefined
+          weekNumber ? parseInt(weekNumber) : undefined,
         );
       } else if (type === "favorite" && favoriteId) {
         await shareFavoriteToTeamSpaceApi(selectedTeamSpaceId, favoriteId);
@@ -188,5 +188,3 @@ export const ShareToTeamSpaceDialog = ({
     </Dialog>
   );
 };
-
-

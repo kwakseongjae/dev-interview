@@ -6,7 +6,7 @@ import { verifyPassword } from "@/lib/auth";
 // POST /api/team-spaces/invite/:code/join - 초대 코드로 팀스페이스 참여
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ code: string }> }
+  { params }: { params: Promise<{ code: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -18,7 +18,7 @@ export async function POST(
     if (!inviteCode || !/^[A-Z0-9]{8}$/.test(inviteCode)) {
       return NextResponse.json(
         { error: "유효하지 않은 초대 코드입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const body = await request.json();
@@ -35,7 +35,7 @@ export async function POST(
     if (findError || !teamSpace) {
       return NextResponse.json(
         { error: "유효하지 않은 초대 코드입니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -44,18 +44,18 @@ export async function POST(
       if (!password) {
         return NextResponse.json(
           { error: "비밀번호가 필요합니다" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const isValidPassword = await verifyPassword(
         password,
-        teamSpace.password_hash
+        teamSpace.password_hash,
       );
       if (!isValidPassword) {
         return NextResponse.json(
           { error: "비밀번호가 올바르지 않습니다" },
-          { status: 401 }
+          { status: 401 },
         );
       }
     }
@@ -78,7 +78,7 @@ export async function POST(
           },
           message: "이미 참여한 팀스페이스입니다",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -103,7 +103,7 @@ export async function POST(
           name: teamSpace.name,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -116,8 +116,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: "팀스페이스 참여에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

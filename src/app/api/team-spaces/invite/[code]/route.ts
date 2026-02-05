@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/team-spaces/invite/:code - 초대 코드로 팀스페이스 정보 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ code: string }> }
+  { params }: { params: Promise<{ code: string }> },
 ) {
   try {
     const { code: inviteCode } = await params;
@@ -13,7 +13,7 @@ export async function GET(
     if (!inviteCode || !/^[A-Z0-9]{8}$/.test(inviteCode)) {
       return NextResponse.json(
         { error: "유효하지 않은 초대 코드입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -28,7 +28,7 @@ export async function GET(
     if (error || !teamSpace) {
       return NextResponse.json(
         { error: "유효하지 않은 초대 코드입니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -45,8 +45,7 @@ export async function GET(
     console.error("팀스페이스 조회 실패:", error);
     return NextResponse.json(
       { error: "팀스페이스를 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

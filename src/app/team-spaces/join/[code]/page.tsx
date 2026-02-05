@@ -44,7 +44,7 @@ function JoinContent() {
         setError(
           error instanceof Error
             ? error.message
-            : "팀스페이스를 찾을 수 없습니다"
+            : "팀스페이스를 찾을 수 없습니다",
         );
       } finally {
         setIsLoading(false);
@@ -85,7 +85,7 @@ function JoinContent() {
       setError(
         error instanceof Error
           ? error.message
-          : "팀스페이스 참여에 실패했습니다"
+          : "팀스페이스 참여에 실패했습니다",
       );
     } finally {
       setIsJoining(false);
@@ -157,7 +157,8 @@ function JoinContent() {
                 className="w-20 h-20 rounded-lg mx-auto mb-4 object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  const fallback = e.currentTarget
+                    .nextElementSibling as HTMLElement;
                   if (fallback) fallback.style.display = "flex";
                 }}
               />
@@ -229,4 +230,3 @@ export default function JoinPage() {
     </Suspense>
   );
 }
-

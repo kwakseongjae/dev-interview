@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
           created_by,
           created_at
         )
-      `
+      `,
       )
       .eq("user_id", auth.sub)
       .order("joined_at", { ascending: false });
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       console.error("팀스페이스 목록 조회 실패:", error);
       return NextResponse.json(
         { error: "팀스페이스 목록을 불러올 수 없습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (!name || name.length === 0) {
       return NextResponse.json(
         { error: "팀스페이스 이름은 필수입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       console.error("팀스페이스 생성 실패:", createError);
       return NextResponse.json(
         { error: "팀스페이스 생성에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       // 팀스페이스는 생성되었지만 멤버 추가 실패 - 롤백은 하지 않고 경고만
       console.warn(
         "팀스페이스는 생성되었지만 멤버 추가에 실패했습니다:",
-        teamSpace.id
+        teamSpace.id,
       );
     }
 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           created_at: teamSpace.created_at,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -151,8 +151,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "팀스페이스 생성에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

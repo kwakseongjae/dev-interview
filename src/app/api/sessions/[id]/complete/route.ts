@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // PATCH /api/sessions/:id/complete - 세션 완료 처리
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function PATCH(
     if (!uuidRegex.test(sessionId)) {
       return NextResponse.json(
         { error: "유효하지 않은 세션 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const body = await request.json();
@@ -29,7 +29,7 @@ export async function PATCH(
     if (total_time !== undefined) {
       total_time = Math.max(
         0,
-        Math.min(86400, parseInt(String(total_time)) || 0)
+        Math.min(86400, parseInt(String(total_time)) || 0),
       ); // 0-86400초(24시간) 범위로 제한
     }
 
@@ -45,7 +45,7 @@ export async function PATCH(
     if (!existingSession) {
       return NextResponse.json(
         { error: "세션을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -66,7 +66,7 @@ export async function PATCH(
       console.error("세션 완료 처리 실패:", error);
       return NextResponse.json(
         { error: "세션 완료 처리에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -126,7 +126,7 @@ export async function PATCH(
 
     return NextResponse.json(
       { error: "세션 완료 처리에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

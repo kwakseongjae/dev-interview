@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!username || !password || !passwordConfirm) {
       return NextResponse.json(
         { error: "모든 필드를 입력해주세요" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (username.length < 4 || username.length > 20) {
       return NextResponse.json(
         { error: "아이디는 4글자 이상 20글자 이하여야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       return NextResponse.json(
         { error: "아이디는 영문, 숫자, 언더스코어만 사용할 수 있습니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (password.length > 128) {
       return NextResponse.json(
         { error: "비밀번호는 128자 이하여야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (password !== passwordConfirm) {
       return NextResponse.json(
         { error: "비밀번호가 일치하지 않습니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json(
         { error: "비밀번호는 8자 이상이어야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (!hasLetter || !hasNumber) {
       return NextResponse.json(
         { error: "비밀번호는 영문과 숫자를 포함해야 합니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 // GET /api/team-spaces/:id/favorites - 팀스페이스의 찜한 질문 목록
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -19,7 +19,7 @@ export async function GET(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET(
     if (!membership) {
       return NextResponse.json(
         { error: "팀스페이스에 접근할 수 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -60,7 +60,7 @@ export async function GET(
             subcategories(name, display_name)
           )
         )
-      `
+      `,
       )
       .eq("team_space_id", teamSpaceId)
       .order("shared_at", { ascending: false });
@@ -106,7 +106,7 @@ export async function GET(
           },
           is_mine: sf.shared_by === auth.sub,
         };
-      })
+      }),
     );
 
     // question_id로 그룹화하여 중복 제거 및 여러 사용자 정보 수집
@@ -181,7 +181,7 @@ export async function GET(
           .eq("user_id", auth.sub)
           .maybeSingle();
         return favorite ? questionId : null;
-      })
+      }),
     );
 
     // 현재 사용자가 찜한 질문들의 is_mine 업데이트
@@ -205,7 +205,7 @@ export async function GET(
       created_at: fav.created_at,
       shared_at: fav.favorited_by.sort(
         (a, b) =>
-          new Date(b.shared_at).getTime() - new Date(a.shared_at).getTime()
+          new Date(b.shared_at).getTime() - new Date(a.shared_at).getTime(),
       )[0].shared_at, // 가장 최근 shared_at
       favorited_by: fav.favorited_by,
       is_mine: fav.is_mine,
@@ -214,7 +214,7 @@ export async function GET(
     // shared_at 기준으로 정렬
     uniqueFavorites.sort(
       (a, b) =>
-        new Date(b.shared_at).getTime() - new Date(a.shared_at).getTime()
+        new Date(b.shared_at).getTime() - new Date(a.shared_at).getTime(),
     );
 
     return NextResponse.json({
@@ -231,7 +231,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "찜한 질문을 불러올 수 없습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -239,7 +239,7 @@ export async function GET(
 // POST /api/team-spaces/:id/favorites - 찜한 질문을 팀스페이스에 공유
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -253,7 +253,7 @@ export async function POST(
     if (!uuidRegex.test(teamSpaceId)) {
       return NextResponse.json(
         { error: "유효하지 않은 팀스페이스 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -264,7 +264,7 @@ export async function POST(
     if (!favorite_id || !uuidRegex.test(favorite_id)) {
       return NextResponse.json(
         { error: "유효하지 않은 찜한 질문 ID입니다" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -280,7 +280,7 @@ export async function POST(
     if (!membership) {
       return NextResponse.json(
         { error: "팀스페이스에 접근할 수 없습니다" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -296,7 +296,7 @@ export async function POST(
     if (!favorite) {
       return NextResponse.json(
         { error: "찜한 질문을 찾을 수 없습니다" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -312,7 +312,7 @@ export async function POST(
     if (existing) {
       return NextResponse.json(
         { error: "이미 공유된 찜한 질문입니다" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -332,7 +332,7 @@ export async function POST(
       console.error("찜한 질문 공유 실패:", error);
       return NextResponse.json(
         { error: "찜한 질문 공유에 실패했습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -342,7 +342,7 @@ export async function POST(
         favorite_id: sharedFavorite.favorite_id,
         shared_at: sharedFavorite.shared_at,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
@@ -355,8 +355,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: "찜한 질문 공유에 실패했습니다" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
