@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Brain, FolderKanban, Network, Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApiInterviewType } from "@/lib/api";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 // 아이콘 매핑
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -64,24 +64,7 @@ export function InterviewTypeSelector({
   onSelect,
   disabled = false,
 }: InterviewTypeSelectorProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-[160px] rounded-xl bg-muted/50 animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
+  const isMobile = useIsMobile();
 
   const handleSelect = (typeId: string) => {
     if (disabled) return;
@@ -93,8 +76,47 @@ export function InterviewTypeSelector({
     }
   };
 
+  // 모바일: 줄바꿈되는 칩 형태 (체크 아이콘 없이 배경/테두리로 선택 표시)
+  if (isMobile) {
+    return (
+      <div className="flex flex-wrap justify-center gap-2">
+        {interviewTypes.map((type) => {
+          const isSelected = selectedTypeId === type.id;
+          const IconComponent = ICON_MAP[type.icon || "Brain"] || Brain;
+          const colors = COLOR_MAP[type.color || "blue"] || COLOR_MAP.blue;
+
+          return (
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => handleSelect(type.id)}
+              disabled={disabled}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-full border-2 transition-colors min-h-[40px]",
+                "focus:outline-none focus-visible:outline-none",
+                disabled && "opacity-50 cursor-not-allowed",
+                isSelected
+                  ? `${colors.selectedBg} ${colors.border} ${colors.text} shadow-sm`
+                  : "bg-card border-border/40 text-foreground hover:border-border hover:bg-muted/50",
+              )}
+            >
+              <IconComponent
+                className={cn(
+                  "w-4 h-4 flex-shrink-0",
+                  !isSelected && colors.text, // 미선택 시에도 아이콘에 색상
+                )}
+              />
+              <span className="text-sm font-medium">{type.displayName}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 데스크톱: 기존 카드 레이아웃
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-3">
       {interviewTypes.map((type) => {
         const isSelected = selectedTypeId === type.id;
         const IconComponent = ICON_MAP[type.icon || "Brain"] || Brain;
