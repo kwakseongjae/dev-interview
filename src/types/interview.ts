@@ -63,3 +63,48 @@ export interface SearchProgress {
   label: string;
   completed: boolean;
 }
+
+// AI Feedback Types
+export interface QuickFeedbackData {
+  keywords: string[];
+  score: number; // 1-5
+  summary: string;
+}
+
+export interface DetailedFeedbackData {
+  strengths: string[];
+  improvements: string[];
+  followUpQuestions: string[];
+  detailedFeedback: string;
+}
+
+export interface FeedbackData extends QuickFeedbackData {
+  strengths?: string[];
+  improvements?: string[];
+  followUpQuestions?: string[];
+  detailedFeedback?: string;
+  hasDetailedFeedback: boolean;
+  keywordAnalysis?: KeywordAnalysis;
+}
+
+// Enhanced keyword analysis for better UX
+export interface KeywordAnalysis {
+  expected: string[]; // Keywords the interviewer expects
+  mentioned: string[]; // Keywords the user actually used
+  missing: string[]; // Expected keywords not mentioned
+}
+
+// Full feedback data (one-click complete analysis)
+export interface FullFeedbackData {
+  keywordAnalysis: KeywordAnalysis;
+  score: number;
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  followUpQuestions: string[];
+  detailedFeedback: string;
+}
+
+export interface QuestionWithFeedback extends Question {
+  feedback?: FeedbackData | null;
+}

@@ -31,7 +31,7 @@ import logoImage from "@/assets/images/logo.png";
 import logoTextImage from "@/assets/images/logo-text.png";
 import { useRouter } from "next/navigation";
 
-import type { InterviewSession } from "@/types/interview";
+import type { InterviewSession, Question } from "@/types/interview";
 import {
   toggleFavoriteApi,
   isLoggedIn,
@@ -39,6 +39,12 @@ import {
   createSessionApi,
   type ApiSessionDetail,
 } from "@/lib/api";
+import { FeedbackSection } from "@/components/feedback/FeedbackSection";
+
+// Extended Question type with answerId
+interface QuestionWithAnswerId extends Question {
+  answerId?: string;
+}
 import { formatSecondsKorean } from "@/hooks/useTimer";
 
 export default function ArchiveDetailPage() {
@@ -46,7 +52,9 @@ export default function ArchiveDetailPage() {
   const router = useRouter();
   const sessionId = params.id as string;
 
-  const [session, setSession] = useState<InterviewSession | null>(null);
+  const [session, setSession] = useState<
+    (InterviewSession & { questions: QuestionWithAnswerId[] }) | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showQuestionSelectDialog, setShowQuestionSelectDialog] =
     useState(false);
@@ -55,10 +63,10 @@ export default function ArchiveDetailPage() {
   );
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
-  // API 데이터를 InterviewSession 형태로 변환
+  // API 데이터를 InterviewSession 형태로 변환 (answerId 포함)
   const convertApiSession = (
     apiSession: ApiSessionDetail,
-  ): InterviewSession => ({
+  ): InterviewSession & { questions: QuestionWithAnswerId[] } => ({
     id: apiSession.id,
     query: apiSession.query,
     createdAt: apiSession.created_at,
@@ -72,6 +80,7 @@ export default function ArchiveDetailPage() {
       timeSpent: q.answer?.time_spent || 0,
       isAnswered: !!q.answer,
       isFavorite: q.is_favorited,
+      answerId: q.answer?.id,
     })),
     totalTime: apiSession.total_time,
     isCompleted: apiSession.is_completed,
@@ -344,73 +353,86 @@ export default function ArchiveDetailPage() {
 
         {/* Questions and Answers */}
         <div className="space-y-6">
-          {session.questions.map((question, index) => (
-            <motion.div
-              key={question.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="overflow-hidden">
-                {/* Question Header */}
-                <div className="p-5 bg-muted/30">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-display text-lg font-semibold text-gold">
-                          Q{index + 1}.
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {question.category}
-                        </Badge>
-                        {question.isAnswered && (
-                          <CheckCircle2 className="w-4 h-4 text-timer-safe" />
-                        )}
+          {(session.questions as QuestionWithAnswerId[]).map(
+            (question, index) => (
+              <motion.div
+                key={question.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="overflow-hidden">
+                  {/* Question Header */}
+                  <div className="p-5 bg-muted/30">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-display text-lg font-semibold text-gold">
+                            Q{index + 1}.
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {question.category}
+                          </Badge>
+                          {question.isAnswered && (
+                            <CheckCircle2 className="w-4 h-4 text-timer-safe" />
+                          )}
+                        </div>
+                        <p className="text-foreground leading-relaxed">
+                          {question.content}
+                        </p>
                       </div>
-                      <p className="text-foreground leading-relaxed">
-                        {question.content}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleFavorite(question.id)}
+                          className="p-2 rounded-full hover:bg-muted transition-colors"
+                          aria-label={
+                            question.isFavorite ? "찜 취소" : "찜하기"
+                          }
+                        >
+                          <Heart
+                            className={`w-5 h-5 transition-colors ${
+                              question.isFavorite
+                                ? "fill-red-500 text-red-500"
+                                : "text-muted-foreground hover:text-red-400"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Answer */}
+                  <div className="p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        A:
+                      </span>
+                    </div>
+                    {question.answer ? (
+                      <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                        {question.answer}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleFavorite(question.id)}
-                        className="p-2 rounded-full hover:bg-muted transition-colors"
-                        aria-label={question.isFavorite ? "찜 취소" : "찜하기"}
-                      >
-                        <Heart
-                          className={`w-5 h-5 transition-colors ${
-                            question.isFavorite
-                              ? "fill-red-500 text-red-500"
-                              : "text-muted-foreground hover:text-red-400"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        답변이 작성되지 않았습니다.
+                      </p>
+                    )}
 
-                <Separator />
-
-                {/* Answer */}
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      A:
-                    </span>
+                    {/* AI Feedback Section */}
+                    {question.answerId && (
+                      <FeedbackSection
+                        answerId={question.answerId}
+                        hasAnswer={question.isAnswered}
+                        className="mt-4"
+                      />
+                    )}
                   </div>
-                  {question.answer ? (
-                    <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-                      {question.answer}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      답변이 작성되지 않았습니다.
-                    </p>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            ),
+          )}
         </div>
 
         {/* Action Buttons */}

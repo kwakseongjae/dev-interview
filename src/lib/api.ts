@@ -841,3 +841,79 @@ export async function markTeamSpaceIntroSeenApi(): Promise<{
     method: "POST",
   });
 }
+
+// ============ Answer Feedback API ============
+
+export interface ApiFeedbackData {
+  id: string;
+  answerId: string;
+  keywords: string[];
+  score: number | null;
+  summary: string | null;
+  strengths: string[];
+  improvements: string[];
+  followUpQuestions: string[];
+  detailedFeedback: string | null;
+  hasDetailedFeedback: boolean;
+  keywordAnalysis?: {
+    expected: string[];
+    mentioned: string[];
+    missing: string[];
+  };
+  createdAt: string;
+  detailGeneratedAt: string | null;
+}
+
+/**
+ * Get feedback for an answer
+ */
+export async function getFeedbackApi(
+  answerId: string,
+): Promise<{ feedback: ApiFeedbackData | null }> {
+  return fetchApi<{ feedback: ApiFeedbackData | null }>(
+    `/api/answers/${answerId}/feedback`,
+  );
+}
+
+/**
+ * Generate quick feedback (keywords, score, summary) using Haiku
+ */
+export async function generateQuickFeedbackApi(
+  answerId: string,
+): Promise<{ feedback: ApiFeedbackData }> {
+  return fetchApi<{ feedback: ApiFeedbackData }>(
+    `/api/answers/${answerId}/feedback/quick`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+/**
+ * Generate detailed feedback (strengths, improvements, followUpQuestions) using Sonnet
+ */
+export async function generateDetailedFeedbackApi(
+  answerId: string,
+): Promise<{ feedback: ApiFeedbackData }> {
+  return fetchApi<{ feedback: ApiFeedbackData }>(
+    `/api/answers/${answerId}/feedback/detail`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+/**
+ * Generate full feedback (one-click complete analysis) using Sonnet
+ * Returns: keyword analysis, score, summary, strengths, improvements, followUpQuestions, detailedFeedback
+ */
+export async function generateFullFeedbackApi(
+  answerId: string,
+): Promise<{ feedback: ApiFeedbackData }> {
+  return fetchApi<{ feedback: ApiFeedbackData }>(
+    `/api/answers/${answerId}/feedback/full`,
+    {
+      method: "POST",
+    },
+  );
+}

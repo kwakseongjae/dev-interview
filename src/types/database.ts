@@ -246,6 +246,66 @@ export interface Database {
         };
         Update: Record<string, never>; // favorites는 업데이트하지 않음
       };
+      answer_feedback: {
+        Row: {
+          id: string;
+          answer_id: string;
+          keywords: string[];
+          quick_score: number | null;
+          summary: string | null;
+          strengths: string[];
+          improvements: string[];
+          follow_up_questions: string[];
+          detailed_feedback: string | null;
+          pre_gen_model: string;
+          detail_model: string | null;
+          pre_gen_tokens: number | null;
+          detail_tokens: number | null;
+          created_at: string;
+          detail_generated_at: string | null;
+          // Keyword analysis columns
+          expected_keywords: string[];
+          mentioned_keywords: string[];
+          missing_keywords: string[];
+        };
+        Insert: {
+          id?: string;
+          answer_id: string;
+          keywords?: string[];
+          quick_score?: number | null;
+          summary?: string | null;
+          strengths?: string[];
+          improvements?: string[];
+          follow_up_questions?: string[];
+          detailed_feedback?: string | null;
+          pre_gen_model?: string;
+          detail_model?: string | null;
+          pre_gen_tokens?: number | null;
+          detail_tokens?: number | null;
+          created_at?: string;
+          detail_generated_at?: string | null;
+          // Keyword analysis columns
+          expected_keywords?: string[];
+          mentioned_keywords?: string[];
+          missing_keywords?: string[];
+        };
+        Update: {
+          keywords?: string[];
+          quick_score?: number | null;
+          summary?: string | null;
+          strengths?: string[];
+          improvements?: string[];
+          follow_up_questions?: string[];
+          detailed_feedback?: string | null;
+          detail_model?: string | null;
+          detail_tokens?: number | null;
+          detail_generated_at?: string | null;
+          // Keyword analysis columns
+          expected_keywords?: string[];
+          mentioned_keywords?: string[];
+          missing_keywords?: string[];
+        };
+      };
     };
     Functions: {
       search_similar_questions: {
@@ -300,6 +360,13 @@ export type AnswerInsert = Database["public"]["Tables"]["answers"]["Insert"];
 export type Favorite = Database["public"]["Tables"]["favorites"]["Row"];
 export type FavoriteInsert =
   Database["public"]["Tables"]["favorites"]["Insert"];
+
+export type AnswerFeedback =
+  Database["public"]["Tables"]["answer_feedback"]["Row"];
+export type AnswerFeedbackInsert =
+  Database["public"]["Tables"]["answer_feedback"]["Insert"];
+export type AnswerFeedbackUpdate =
+  Database["public"]["Tables"]["answer_feedback"]["Update"];
 
 // JWT Payload Types
 export interface AccessTokenPayload {
