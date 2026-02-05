@@ -39,6 +39,7 @@ import {
   type ApiSessionDetail,
 } from "@/lib/api";
 import { AIAnalysisSection } from "@/components/feedback/AIAnalysisSection";
+import { HintSection } from "@/components/feedback/HintSection";
 
 // Extended Question type with answerId
 interface QuestionWithAnswerId extends Question {
@@ -379,6 +380,11 @@ export default function ArchiveDetailPage() {
                         <p className="text-foreground leading-relaxed">
                           {question.content}
                         </p>
+
+                        {/* 힌트 섹션 */}
+                        {question.hint && (
+                          <HintSection hint={question.hint} className="mt-4" />
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
