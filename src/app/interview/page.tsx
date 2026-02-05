@@ -9,7 +9,6 @@ import {
   ChevronRight,
   CloudCheck,
   Heart,
-  Lightbulb,
   Loader2,
   Send,
 } from "lucide-react";
@@ -33,6 +32,7 @@ import {
   type ApiSessionDetail,
 } from "@/lib/api";
 import { formatSeconds } from "@/hooks/useTimer";
+import { HintSection } from "@/components/feedback/HintSection";
 
 // 로컬 스토리지 키 생성
 const getStorageKey = (sessionId: string) => `interview_progress_${sessionId}`;
@@ -624,43 +624,11 @@ function InterviewContent() {
                 </Card>
 
                 {/* Hint Section */}
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowHint(!showHint)}
-                    className="gap-2"
-                  >
-                    <Lightbulb
-                      className={`w-4 h-4 ${showHint ? "text-gold" : ""}`}
-                    />
-                    {showHint ? "힌트 숨기기" : "힌트 보기"}
-                  </Button>
-
-                  <AnimatePresence>
-                    {showHint && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <Card className="p-4 bg-gold/5 border-gold/20">
-                          <div className="flex items-start gap-3">
-                            <Lightbulb className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-medium text-sm text-gold mb-1">
-                                힌트
-                              </p>
-                              <p className="text-muted-foreground">
-                                {currentQuestion.hint}
-                              </p>
-                            </div>
-                          </div>
-                        </Card>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <HintSection
+                  hint={currentQuestion.hint}
+                  isOpen={showHint}
+                  onToggle={() => setShowHint(!showHint)}
+                />
 
                 {/* Navigation */}
                 <div className="flex items-center justify-between pt-4">

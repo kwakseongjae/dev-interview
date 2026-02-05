@@ -48,6 +48,7 @@ import { cache, createCacheKey } from "@/lib/cache";
 import { LoginPromptModal } from "@/components/LoginPromptModal";
 import { ShareToTeamSpaceDialog } from "@/components/ShareToTeamSpaceDialog";
 import { useRouter } from "next/navigation";
+import { HintSection } from "@/components/feedback/HintSection";
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -739,6 +740,11 @@ export default function FavoritesPage() {
                             {favorite.content}
                           </p>
                         </div>
+
+                        {/* 힌트 섹션 */}
+                        {favorite.hint && (
+                          <HintSection hint={favorite.hint} className="mb-3" />
+                        )}
 
                         <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                           <Badge variant="outline" className="text-xs">
