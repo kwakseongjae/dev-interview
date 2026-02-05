@@ -389,7 +389,7 @@ export default function ArchiveDetailPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleFavorite(question.id)}
-                          className="p-2 rounded-full hover:bg-muted transition-colors"
+                          className="p-2.5 md:p-2 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
                           aria-label={
                             question.isFavorite ? "찜 취소" : "찜하기"
                           }
@@ -461,7 +461,7 @@ export default function ArchiveDetailPage() {
           open={showQuestionSelectDialog}
           onOpenChange={setShowQuestionSelectDialog}
         >
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>면접에 포함할 질문 선택</DialogTitle>
               <DialogDescription>

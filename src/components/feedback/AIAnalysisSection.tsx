@@ -145,13 +145,13 @@ export function AIAnalysisSection({
 
   return (
     <div className={cn("border-t pt-4", className)}>
-      {/* 버튼 그룹 - 나란히 배치 */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* 버튼 그룹 - 나란히 배치, 터치 타겟 44px 이상 확보 */}
+      <div className="flex flex-wrap items-center gap-2 md:gap-2">
         {/* AI 피드백 버튼 */}
         <button
           onClick={handleToggleFeedback}
           className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            "inline-flex items-center gap-2 px-4 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg text-sm font-medium transition-all",
             feedbackOpen
               ? "bg-navy text-white"
               : "bg-muted hover:bg-muted/80 text-foreground",
@@ -185,7 +185,7 @@ export function AIAnalysisSection({
         <button
           onClick={handleToggleModelAnswer}
           className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            "inline-flex items-center gap-2 px-4 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg text-sm font-medium transition-all",
             modelAnswerOpen
               ? "bg-gold text-white"
               : "bg-muted hover:bg-muted/80 text-foreground",

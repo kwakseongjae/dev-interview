@@ -54,6 +54,7 @@ import { InterviewTypeBadge } from "@/components/InterviewTypeSelector";
 import { cache, createCacheKey } from "@/lib/cache";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 import { LoginPromptModal } from "@/components/LoginPromptModal";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 export default function ArchivePage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
@@ -92,6 +93,9 @@ export default function ArchivePage() {
   const [selectedInterviewTypeId, setSelectedInterviewTypeId] = useState<
     string | null
   >(null);
+
+  // 모바일 여부 감지
+  const isMobile = useIsMobile();
 
   // 실제 팀 스페이스 액세스 상태 로드
   useEffect(() => {
@@ -729,7 +733,7 @@ export default function ArchivePage() {
                         to: range?.to,
                       });
                     }}
-                    numberOfMonths={2}
+                    numberOfMonths={isMobile ? 1 : 2}
                     locale={ko}
                   />
                   {(dateRange.from || dateRange.to) && (
@@ -913,11 +917,12 @@ export default function ArchivePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        {/* 액션 버튼 - 모바일에서 항상 표시, 데스크톱에서 hover 시 표시 */}
+                        <div className="flex items-center gap-1 md:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-9 w-9 md:h-8 md:w-auto md:px-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleExpand(session.id);
@@ -936,10 +941,10 @@ export default function ArchivePage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/50"
+                              className="h-9 md:h-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-muted/50"
                             >
-                              <Play className="w-4 h-4 mr-1" />
-                              보기
+                              <Play className="w-4 h-4 md:mr-1" />
+                              <span className="hidden md:inline">보기</span>
                             </Button>
                           </Link>
                           {/* 삭제 버튼: 본인 세션이거나 팀스페이스 소유자인 경우에만 표시 */}
@@ -954,7 +959,7 @@ export default function ArchivePage() {
                                 handleDelete(session.id);
                               }}
                               disabled={isDeleting === session.id}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-red-50/50"
+                              className="h-9 w-9 md:h-8 md:w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-red-50/50"
                             >
                               {isDeleting === session.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

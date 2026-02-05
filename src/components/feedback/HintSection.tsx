@@ -55,11 +55,11 @@ export const HintSection = memo(function HintSection({
 
   return (
     <div className={cn("", className)}>
-      {/* 힌트 토글 버튼 */}
+      {/* 힌트 토글 버튼 - 터치 타겟 44px 이상 확보 */}
       <button
         onClick={handleToggle}
         className={cn(
-          "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+          "inline-flex items-center gap-2 px-4 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg text-sm font-medium transition-all",
           isOpen
             ? "bg-gold text-white"
             : "bg-muted hover:bg-muted/80 text-foreground",

@@ -798,20 +798,21 @@ export default function FavoritesPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {/* 액션 버튼 - 모바일에서 항상 표시, 데스크톱에서 hover 시 표시 */}
+                      <div className="flex items-center gap-1 md:gap-2">
                         {isLoggedIn() && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/50"
+                            className="h-9 md:h-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-muted/50"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedFavoriteId(favorite.id);
                               setShowShareDialog(true);
                             }}
                           >
-                            <Share2 className="w-4 h-4 mr-1" />
-                            공유
+                            <Share2 className="w-4 h-4 md:mr-1" />
+                            <span className="hidden md:inline">공유</span>
                           </Button>
                         )}
                         <Button
@@ -832,7 +833,7 @@ export default function FavoritesPage() {
                             );
                           }}
                           disabled={isRemoving === favorite.id}
-                          className="hover:bg-red-50/50"
+                          className="h-9 w-9 md:h-8 md:w-8 hover:bg-red-50/50"
                         >
                           {isRemoving === favorite.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -896,7 +897,7 @@ export default function FavoritesPage() {
         open={showStartInterviewDialog}
         onOpenChange={setShowStartInterviewDialog}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>면접 시작하기</DialogTitle>
             <DialogDescription>
