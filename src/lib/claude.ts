@@ -293,6 +293,17 @@ export interface GenerateQuestionsResult {
   questions: GeneratedQuestion[];
   referenceUsed: boolean;
   referenceMessage?: string; // 레퍼런스 미사용 시 사유
+  extractedReferenceText?: string; // 추출된 레퍼런스 텍스트 (핑거프린트 생성용)
+}
+
+// 질문 생성 옵션
+export interface GenerateQuestionsOptions {
+  userPrompt: string;
+  excludeQuestions?: string[];
+  count?: number;
+  referenceUrls?: Array<{ url: string; type: SupportedMediaType }>;
+  interviewType?: InterviewTypeCode;
+  diversityPrompt?: string; // 다양성 강화 프롬프트 (이전 질문 이력 기반)
 }
 
 /**
@@ -302,6 +313,7 @@ export interface GenerateQuestionsResult {
  * @param count - 생성할 질문 수 (기본값: 5)
  * @param referenceUrls - 레퍼런스 파일 URL 목록 (선택사항)
  * @param interviewType - 면접 범주 (선택사항)
+ * @param diversityPrompt - 다양성 강화 프롬프트 (선택사항)
  */
 export async function generateQuestions(
   userPrompt: string,
@@ -309,6 +321,7 @@ export async function generateQuestions(
   count: number = 5,
   referenceUrls?: Array<{ url: string; type: SupportedMediaType }>,
   interviewType?: InterviewTypeCode,
+  diversityPrompt?: string,
 ): Promise<GenerateQuestionsResult> {
   // 제외할 질문이 있으면 프롬프트에 추가
   let excludeInstruction = "";
@@ -411,17 +424,22 @@ ${
     interviewTypeInstruction = INTERVIEW_TYPE_PROMPTS[interviewType];
   }
 
+  // 다양성 프롬프트 추가 (이전 질문 이력 기반)
+  const diversityInstruction = diversityPrompt || "";
+
   const prompt = GENERATE_QUESTIONS_PROMPT.replace("{user_prompt}", userPrompt)
-    .replace("{exclude_instruction}", excludeInstruction)
+    .replace("{exclude_instruction}", excludeInstruction + diversityInstruction)
     .replace(
       "{reference_instruction}",
       interviewTypeInstruction + referenceInstruction,
     )
     .replace("{question_count}", count.toString());
 
+  // temperature 0.7로 설정하여 질문 다양성 향상
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 2048,
+    temperature: 0.7,
     messages: [
       {
         role: "user",
@@ -429,6 +447,10 @@ ${
       },
     ],
   });
+
+  // 추출된 레퍼런스 텍스트 (핑거프린트 생성용)
+  const extractedReferenceText =
+    referenceTexts.length > 0 ? referenceTexts.join("\n\n") : undefined;
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -475,6 +497,7 @@ ${
       questions,
       referenceUsed,
       referenceMessage,
+      extractedReferenceText,
     };
   } catch {
     throw new Error("질문 생성 응답 파싱 실패");

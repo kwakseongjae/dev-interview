@@ -363,6 +363,33 @@ export interface Database {
           model_answer_generated_at?: string | null;
         };
       };
+      question_generation_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          question_content: string;
+          question_fingerprint: string;
+          reference_fingerprint: string | null;
+          interview_type_id: string | null;
+          session_id: string | null;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          question_content: string;
+          question_fingerprint: string;
+          reference_fingerprint?: string | null;
+          interview_type_id?: string | null;
+          session_id?: string | null;
+          created_at?: string;
+          expires_at?: string;
+        };
+        Update: {
+          expires_at?: string;
+        };
+      };
     };
     Functions: {
       search_similar_questions: {
@@ -429,6 +456,11 @@ export type InterviewType =
   Database["public"]["Tables"]["interview_types"]["Row"];
 export type InterviewTypeInsert =
   Database["public"]["Tables"]["interview_types"]["Insert"];
+
+export type QuestionGenerationHistory =
+  Database["public"]["Tables"]["question_generation_history"]["Row"];
+export type QuestionGenerationHistoryInsert =
+  Database["public"]["Tables"]["question_generation_history"]["Insert"];
 
 // JWT Payload Types
 export interface AccessTokenPayload {
