@@ -35,14 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# .claude
-/.claude
-
 # .mcp
 /.mcp.json
-
-# .cursor
-/.cursor
 
 # supabase
 /supabase
