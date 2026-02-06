@@ -10,16 +10,41 @@ export const metadata: Metadata = {
     "기술면접",
     "개발자",
     "면접 준비",
-    "React",
+    "AI 면접",
+    "모의면접",
     "프론트엔드",
     "백엔드",
-    "AI",
+    "React",
   ],
   authors: [{ name: "모카번" }],
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    other: {
+      ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION && {
+        "naver-site-verification":
+          process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION,
+      }),
+    },
+  },
   openGraph: {
     title: "모카번 - AI 기술면접 준비",
-    description: "개발자 기술면접, AI와 함께 준비하세요",
+    description:
+      "개발자 기술면접, AI와 함께 준비하세요. 맞춤형 질문 생성과 실전 모의면접을 경험해보세요.",
     type: "website",
+    locale: "ko_KR",
+    url: "https://mochabun.com",
+    siteName: "모카번",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: "https://mochabun.com",
   },
 };
 
