@@ -35,9 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# docs
-/docs
-
 # .claude
 /.claude
 
@@ -46,3 +43,6 @@ next-env.d.ts
 
 # .cursor
 /.cursor
+
+# supabase
+/supabase
