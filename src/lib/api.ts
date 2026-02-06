@@ -985,3 +985,101 @@ export async function generateModelAnswerApi(
     },
   );
 }
+
+// ============ Case Studies API ============
+
+import type {
+  CaseStudy,
+  CaseStudyListItem,
+  CaseStudyFilters,
+} from "@/types/case-study";
+
+export interface CaseStudiesResponse {
+  caseStudies: CaseStudyListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getCaseStudiesApi(
+  filters: Partial<CaseStudyFilters> = {},
+  page: number = 1,
+  limit: number = 12,
+): Promise<CaseStudiesResponse> {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+
+  if (filters.search) params.set("search", filters.search);
+  if (filters.companies?.length)
+    params.set("companies", filters.companies.join(","));
+  if (filters.domains?.length) params.set("domains", filters.domains.join(","));
+  if (filters.difficulty?.length)
+    params.set("difficulty", filters.difficulty.join(","));
+  if (filters.sourceType?.length)
+    params.set("sourceType", filters.sourceType.join(","));
+  if (filters.sort) params.set("sort", filters.sort);
+
+  return fetchApi<CaseStudiesResponse>(
+    `/api/case-studies?${params.toString()}`,
+  );
+}
+
+export async function getCaseStudyBySlugApi(
+  slug: string,
+): Promise<{ caseStudy: CaseStudy }> {
+  return fetchApi<{ caseStudy: CaseStudy }>(`/api/case-studies/${slug}`);
+}
+
+export async function getCaseStudyFiltersApi(): Promise<{
+  companies: { slug: string; name: string }[];
+  domains: string[];
+}> {
+  return fetchApi(`/api/case-studies/filters`);
+}
+
+export async function generateCaseStudyQuestionsApi(
+  slug: string,
+  options?: { count?: number; use_seed_questions?: boolean },
+): Promise<{
+  questions: GeneratedQuestion[];
+  caseStudyId: string;
+  caseStudyTitle: string;
+  source: "seed" | "ai";
+}> {
+  return fetchApi(`/api/case-studies/${slug}/questions`, {
+    method: "POST",
+    body: JSON.stringify({
+      count: options?.count || 5,
+      use_seed_questions: options?.use_seed_questions || false,
+    }),
+  });
+}
+
+export async function startCaseStudyInterviewApi(slug: string): Promise<{
+  session: { id: string; created_at: string };
+  query: string;
+  caseStudyId: string;
+  questions: Array<{
+    id: string;
+    content: string;
+    hint: string;
+    difficulty: string;
+    categories: { name: string; display_name: string };
+    order: number;
+  }>;
+}> {
+  return fetchApi(`/api/case-studies/${slug}/start`, { method: "POST" });
+}
+
+export async function toggleCaseStudyFavoriteApi(
+  caseStudyId: string,
+): Promise<{ isFavorite: boolean }> {
+  return fetchApi<{ isFavorite: boolean }>(
+    `/api/case-studies/${caseStudyId}/favorite`,
+    {
+      method: "POST",
+    },
+  );
+}

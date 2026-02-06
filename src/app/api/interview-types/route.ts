@@ -8,6 +8,7 @@ export async function GET() {
     const { data: interviewTypes, error } = await (supabaseAdmin as any)
       .from("interview_types")
       .select("*")
+      .eq("is_selectable", true)
       .order("sort_order", { ascending: true });
 
     if (error) {

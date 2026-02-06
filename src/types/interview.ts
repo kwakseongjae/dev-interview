@@ -4,7 +4,11 @@
  */
 
 // Interview Type (면접 범주) types
-export type InterviewTypeCode = "CS" | "PROJECT" | "SYSTEM_DESIGN";
+export type InterviewTypeCode =
+  | "CS"
+  | "PROJECT"
+  | "SYSTEM_DESIGN"
+  | "CASE_STUDY";
 
 export interface InterviewTypeInfo {
   id: string;
