@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://mochabun.com";
+const BASE_URL = "https://mochabun.co.kr";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Static pages

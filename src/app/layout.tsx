@@ -20,10 +20,8 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
     other: {
-      ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION && {
-        "naver-site-verification":
-          process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION,
-      }),
+      "naver-site-verification":
+        process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION ?? "",
     },
   },
   openGraph: {
@@ -32,7 +30,7 @@ export const metadata: Metadata = {
       "개발자 기술면접, AI와 함께 준비하세요. 맞춤형 질문 생성과 실전 모의면접을 경험해보세요.",
     type: "website",
     locale: "ko_KR",
-    url: "https://mochabun.com",
+    url: "https://mochabun.co.kr",
     siteName: "모카번",
   },
   robots: {
@@ -44,7 +42,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://mochabun.com",
+    canonical: "https://mochabun.co.kr",
   },
 };
 
