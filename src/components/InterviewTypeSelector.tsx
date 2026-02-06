@@ -1,7 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, FolderKanban, Network, Check, Sparkles } from "lucide-react";
+import {
+  Brain,
+  FolderKanban,
+  Network,
+  BookOpen,
+  Check,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApiInterviewType } from "@/lib/api";
 import { useIsMobile } from "@/hooks/useMediaQuery";
@@ -11,6 +18,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Brain,
   FolderKanban,
   Network,
+  BookOpen,
 };
 
 // 색상 매핑 (Tailwind 클래스)
@@ -48,6 +56,14 @@ const COLOR_MAP: Record<
     text: "text-purple-600",
     selectedBg: "bg-purple-50",
     hoverBorder: "hover:border-purple-200",
+  },
+  amber: {
+    bg: "bg-amber-100",
+    bgLight: "bg-amber-50",
+    border: "border-amber-300",
+    text: "text-amber-600",
+    selectedBg: "bg-amber-50",
+    hoverBorder: "hover:border-amber-200",
   },
 };
 

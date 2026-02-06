@@ -13,6 +13,7 @@ import {
   X,
   FileText,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -781,12 +782,39 @@ export default function Home() {
           </div>
         </motion.div>
 
+        {/* Case Study Section - 별도 경험으로 분리 */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="mt-8 md:mt-10 w-full max-w-2xl"
+        >
+          <Link href="/case-studies" className="block group">
+            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/50 bg-card hover:border-gold/30 hover:shadow-md transition-all p-4 md:p-5">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-sm md:text-base font-semibold mb-0.5">
+                    실제 기술 사례로 면접 준비하기
+                  </h3>
+                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-1">
+                    카카오, 토스, 네이버 등 실제 기업 사례 기반 고난도 면접
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-gold group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Quick Links - 모바일에서 더 컴팩트하게 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-6 md:mt-8 flex items-center justify-center gap-3 md:gap-6 text-xs md:text-sm text-muted-foreground flex-wrap"
+          className="mt-4 md:mt-6 flex items-center justify-center gap-3 md:gap-6 text-xs md:text-sm text-muted-foreground flex-wrap"
         >
           <Link
             href="/archive"
