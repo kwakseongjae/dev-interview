@@ -56,11 +56,13 @@
 **문제**: 네이버/구글 검색엔진 소유권 확인 실패
 
 **원인 분석**:
+
 1. `mochabun.co.kr` → 307 → `www.mochabun.co.kr` 리다이렉트로 인해 크롤러가 원본 URL에서 메타 태그를 찾지 못함
 2. `verification.other`에서 spread 연산자 사용 시 빌드 최적화에서 불안정할 수 있음
 3. 모든 URL이 `mochabun.com`(잘못된 도메인)으로 설정되어 있었음
 
 **수정 사항**:
+
 - `verification.other`: spread 연산자 패턴 → Next.js 공식 문서 방식(직접 할당 + nullish coalescing)
 - `mochabun.com` → `mochabun.co.kr`로 전체 수정 (layout.tsx, sitemap.ts, robots.ts)
 - Vercel 도메인 설정에서 `mochabun.co.kr`을 primary로 설정 필요 (리다이렉트 방향 변경)
@@ -74,6 +76,7 @@
 ### Deviations from Plan
 
 **Changed**:
+
 - 도메인 URL: `mochabun.com` → `mochabun.co.kr` (실제 프로덕션 도메인 반영)
 - `verification.other` 패턴: spread 연산자 → 직접 할당 (안정성 개선)
 

@@ -14,11 +14,13 @@
 이력서나 포트폴리오와 같은 레퍼런스 기반으로 면접을 준비하는 사용자들이 많은데, 이러한 자료들은 작성 후 변동이 크지 않아 동일한 파일을 반복 첨부하는 경우가 빈번합니다.
 
 **현재 문제점**:
+
 - 동일한 레퍼런스로 질문 생성 시 거의 동일한 질문이 반복 생성됨
 - 2회 이상 면접 연습 시 학습 효과가 크게 감소
 - 실전 면접의 예측 불가능성을 경험하기 어려움
 
 **근본 원인**:
+
 - `exclude_questions` 파라미터가 같은 세션 내 중복 방지에만 사용됨
 - 이전 세션에서 생성된 질문 이력이 추적되지 않음
 - 레퍼런스 동일성 판단 로직 없음
@@ -50,22 +52,22 @@
 
 ### Functional Requirements
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-1 | 사용자별 생성된 질문 이력을 DB에 저장 | P1 |
-| FR-2 | 질문 생성 시 최근 30일간 생성된 질문을 자동 제외 | P1 |
-| FR-3 | 레퍼런스 텍스트의 핑거프린트 생성 및 저장 | P1 |
-| FR-4 | 동일 핑거프린트의 이전 질문 조회 | P1 |
-| FR-5 | Claude 프롬프트에 다양성 지시문 추가 | P2 |
-| FR-6 | temperature 파라미터 조정 (0.7) | P2 |
+| ID   | Requirement                                      | Priority |
+| ---- | ------------------------------------------------ | -------- |
+| FR-1 | 사용자별 생성된 질문 이력을 DB에 저장            | P1       |
+| FR-2 | 질문 생성 시 최근 30일간 생성된 질문을 자동 제외 | P1       |
+| FR-3 | 레퍼런스 텍스트의 핑거프린트 생성 및 저장        | P1       |
+| FR-4 | 동일 핑거프린트의 이전 질문 조회                 | P1       |
+| FR-5 | Claude 프롬프트에 다양성 지시문 추가             | P2       |
+| FR-6 | temperature 파라미터 조정 (0.7)                  | P2       |
 
 ### Non-Functional Requirements
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| NFR-1 | 질문 생성 API 응답 시간 증가 < 500ms | P1 |
-| NFR-2 | 기존 기능 회귀 없음 (빌드, 타입, 린트 통과) | P1 |
-| NFR-3 | 비로그인 사용자도 세션 내 중복 방지 유지 | P1 |
+| ID    | Requirement                                 | Priority |
+| ----- | ------------------------------------------- | -------- |
+| NFR-1 | 질문 생성 API 응답 시간 증가 < 500ms        | P1       |
+| NFR-2 | 기존 기능 회귀 없음 (빌드, 타입, 린트 통과) | P1       |
+| NFR-3 | 비로그인 사용자도 세션 내 중복 방지 유지    | P1       |
 
 ---
 
@@ -73,13 +75,14 @@
 
 ### 3.1 솔루션 접근법 비교
 
-| 접근법 | 장점 | 단점 | 선택 |
-|--------|------|------|------|
-| A. 클라이언트 사이드 (localStorage) | 빠름, DB 부담 없음 | 기기간 공유 불가, 휘발성 | ❌ |
-| B. 서버 사이드 (DB 이력 테이블) | 영구 저장, 기기간 공유 | DB 쿼리 추가 | ✅ |
-| C. 하이브리드 | 속도 + 영구성 | 복잡도 증가 | 2단계 |
+| 접근법                              | 장점                   | 단점                     | 선택  |
+| ----------------------------------- | ---------------------- | ------------------------ | ----- |
+| A. 클라이언트 사이드 (localStorage) | 빠름, DB 부담 없음     | 기기간 공유 불가, 휘발성 | ❌    |
+| B. 서버 사이드 (DB 이력 테이블)     | 영구 저장, 기기간 공유 | DB 쿼리 추가             | ✅    |
+| C. 하이브리드                       | 속도 + 영구성          | 복잡도 증가              | 2단계 |
 
 **선택: B. 서버 사이드 (DB 이력 테이블)**
+
 - 이유: 사용자가 다양한 기기에서 접속해도 일관된 다양성 보장
 - 향후 하이브리드로 확장 가능
 
@@ -131,21 +134,25 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 function generateTextFingerprint(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s가-힣]/g, '')  // 특수문자 제거
-    .replace(/\s+/g, ' ')          // 연속 공백 정규화
+    .replace(/[^\w\s가-힣]/g, "") // 특수문자 제거
+    .replace(/\s+/g, " ") // 연속 공백 정규화
     .trim()
-    .split(' ')
-    .filter(word => word.length > 2)  // 2글자 이하 제거
+    .split(" ")
+    .filter((word) => word.length > 2) // 2글자 이하 제거
     .sort()
-    .slice(0, 100)  // 상위 100개 단어만
-    .join('|');
+    .slice(0, 100) // 상위 100개 단어만
+    .join("|");
 }
 
 // 레퍼런스 핑거프린트 (추출된 텍스트 기반)
 function generateReferenceFingerprint(extractedText: string): string {
   const fingerprint = generateTextFingerprint(extractedText);
   // SHA-256 해시로 변환 (저장 공간 절약)
-  return crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 32);
+  return crypto
+    .createHash("sha256")
+    .update(fingerprint)
+    .digest("hex")
+    .slice(0, 32);
 }
 ```
 
@@ -217,51 +224,51 @@ function generateReferenceFingerprint(extractedText: string): string {
 
 ### Phase 1: 데이터베이스 스키마 추가 (P1)
 
-| Task | File | Description |
-|------|------|-------------|
-| 1.1 | Supabase MCP | `question_generation_history` 테이블 생성 |
-| 1.2 | Supabase MCP | 인덱스 및 RLS 정책 추가 |
-| 1.3 | `src/types/database.ts` | 테이블 타입 정의 추가 |
+| Task | File                    | Description                               |
+| ---- | ----------------------- | ----------------------------------------- |
+| 1.1  | Supabase MCP            | `question_generation_history` 테이블 생성 |
+| 1.2  | Supabase MCP            | 인덱스 및 RLS 정책 추가                   |
+| 1.3  | `src/types/database.ts` | 테이블 타입 정의 추가                     |
 
 ### Phase 2: 핑거프린트 유틸리티 (P1)
 
-| Task | File | Description |
-|------|------|-------------|
-| 2.1 | `src/lib/fingerprint.ts` | 텍스트/레퍼런스 핑거프린트 함수 생성 |
-| 2.2 | `src/lib/fingerprint.ts` | 단위 테스트 (선택적) |
+| Task | File                     | Description                          |
+| ---- | ------------------------ | ------------------------------------ |
+| 2.1  | `src/lib/fingerprint.ts` | 텍스트/레퍼런스 핑거프린트 함수 생성 |
+| 2.2  | `src/lib/fingerprint.ts` | 단위 테스트 (선택적)                 |
 
 ### Phase 3: 질문 이력 관리 서비스 (P1)
 
-| Task | File | Description |
-|------|------|-------------|
-| 3.1 | `src/lib/question-history.ts` | 이력 조회 함수 (getQuestionHistory) |
-| 3.2 | `src/lib/question-history.ts` | 이력 저장 함수 (saveQuestionHistory) |
-| 3.3 | `src/lib/question-history.ts` | 레퍼런스별 이력 조회 함수 |
+| Task | File                          | Description                          |
+| ---- | ----------------------------- | ------------------------------------ |
+| 3.1  | `src/lib/question-history.ts` | 이력 조회 함수 (getQuestionHistory)  |
+| 3.2  | `src/lib/question-history.ts` | 이력 저장 함수 (saveQuestionHistory) |
+| 3.3  | `src/lib/question-history.ts` | 레퍼런스별 이력 조회 함수            |
 
 ### Phase 4: Claude 프롬프트 개선 (P2)
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.1 | `src/lib/claude.ts` | 다양성 지시문 추가 (buildDiversityPrompt) |
-| 4.2 | `src/lib/claude.ts` | temperature 파라미터 추가 (0.7) |
-| 4.3 | `src/lib/claude.ts` | generateQuestions 시그니처 확장 |
+| Task | File                | Description                               |
+| ---- | ------------------- | ----------------------------------------- |
+| 4.1  | `src/lib/claude.ts` | 다양성 지시문 추가 (buildDiversityPrompt) |
+| 4.2  | `src/lib/claude.ts` | temperature 파라미터 추가 (0.7)           |
+| 4.3  | `src/lib/claude.ts` | generateQuestions 시그니처 확장           |
 
 ### Phase 5: API 통합 (P1)
 
-| Task | File | Description |
-|------|------|-------------|
-| 5.1 | `src/app/api/questions/generate/route.ts` | 이력 조회 통합 |
-| 5.2 | `src/app/api/questions/generate/route.ts` | 이력 저장 통합 |
-| 5.3 | `src/app/api/questions/generate/route.ts` | 레퍼런스 핑거프린트 처리 |
+| Task | File                                      | Description              |
+| ---- | ----------------------------------------- | ------------------------ |
+| 5.1  | `src/app/api/questions/generate/route.ts` | 이력 조회 통합           |
+| 5.2  | `src/app/api/questions/generate/route.ts` | 이력 저장 통합           |
+| 5.3  | `src/app/api/questions/generate/route.ts` | 레퍼런스 핑거프린트 처리 |
 
 ### Phase 6: 검증 및 정리
 
-| Task | Description |
-|------|-------------|
-| 6.1 | npm run build - 빌드 검증 |
-| 6.2 | npx tsc --noEmit - 타입 검증 |
-| 6.3 | npm run lint - 린트 검증 |
-| 6.4 | 수동 테스트 - 동일 레퍼런스 2회 질문 생성 |
+| Task | Description                               |
+| ---- | ----------------------------------------- |
+| 6.1  | npm run build - 빌드 검증                 |
+| 6.2  | npx tsc --noEmit - 타입 검증              |
+| 6.3  | npm run lint - 린트 검증                  |
+| 6.4  | 수동 테스트 - 동일 레퍼런스 2회 질문 생성 |
 
 ---
 
@@ -269,13 +276,13 @@ function generateReferenceFingerprint(extractedText: string): string {
 
 ### 테스트 시나리오
 
-| ID | Scenario | Expected Result |
-|----|----------|-----------------|
-| TC-1 | 동일 레퍼런스로 첫 번째 질문 생성 | 정상 생성, 이력 저장됨 |
-| TC-2 | 동일 레퍼런스로 두 번째 질문 생성 | 80% 이상 새로운 질문 |
-| TC-3 | 다른 레퍼런스로 질문 생성 | 이전 이력 영향 없음 |
-| TC-4 | 비로그인 사용자 질문 생성 | 기존 로직 유지 (세션 내 중복만 방지) |
-| TC-5 | 30일 이후 동일 레퍼런스 | 이력 만료, 새로운 질문 허용 |
+| ID   | Scenario                          | Expected Result                      |
+| ---- | --------------------------------- | ------------------------------------ |
+| TC-1 | 동일 레퍼런스로 첫 번째 질문 생성 | 정상 생성, 이력 저장됨               |
+| TC-2 | 동일 레퍼런스로 두 번째 질문 생성 | 80% 이상 새로운 질문                 |
+| TC-3 | 다른 레퍼런스로 질문 생성         | 이전 이력 영향 없음                  |
+| TC-4 | 비로그인 사용자 질문 생성         | 기존 로직 유지 (세션 내 중복만 방지) |
+| TC-5 | 30일 이후 동일 레퍼런스           | 이력 만료, 새로운 질문 허용          |
 
 ### 성공 기준
 
@@ -289,23 +296,25 @@ function generateReferenceFingerprint(extractedText: string): string {
 
 ## 6. Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| 이력 테이블 용량 증가 | Medium | Medium | 30일 자동 만료, 정기 정리 함수 |
-| API 응답 시간 증가 | High | Low | 인덱스 최적화, 비동기 이력 저장 |
-| 핑거프린트 충돌 | Low | Low | SHA-256 32자 사용 (충돌 확률 극히 낮음) |
-| 비로그인 사용자 미지원 | Low | N/A | 의도적 범위 제외, 향후 세션 기반 확장 가능 |
+| Risk                   | Impact | Probability | Mitigation                                 |
+| ---------------------- | ------ | ----------- | ------------------------------------------ |
+| 이력 테이블 용량 증가  | Medium | Medium      | 30일 자동 만료, 정기 정리 함수             |
+| API 응답 시간 증가     | High   | Low         | 인덱스 최적화, 비동기 이력 저장            |
+| 핑거프린트 충돌        | Low    | Low         | SHA-256 32자 사용 (충돌 확률 극히 낮음)    |
+| 비로그인 사용자 미지원 | Low    | N/A         | 의도적 범위 제외, 향후 세션 기반 확장 가능 |
 
 ---
 
 ## 7. Dependencies
 
 ### 내부 의존성
+
 - `src/lib/claude.ts` - 기존 질문 생성 로직
 - `src/lib/supabase.ts` - DB 클라이언트
 - `src/types/database.ts` - 타입 정의
 
 ### 외부 의존성
+
 - Node.js `crypto` 모듈 (SHA-256 해시) - 기본 내장
 - Supabase (테이블 추가)
 
@@ -314,10 +323,12 @@ function generateReferenceFingerprint(extractedText: string): string {
 ## 8. Best Practices Applied
 
 ### Vercel React Best Practices
+
 - **async-parallel**: 이력 조회와 레퍼런스 처리를 병렬 실행
 - **server-serialization**: API 응답에 불필요한 데이터 제외
 
 ### Code Quality
+
 - 기존 코드 패턴 준수 (supabaseAdmin 사용)
 - 타입 안전성 (TypeScript strict mode)
 - 에러 핸들링 (try-catch, 적절한 HTTP 상태 코드)
@@ -351,18 +362,18 @@ function generateReferenceFingerprint(extractedText: string): string {
 
 #### Files Created
 
-| File | Description | Lines |
-|------|-------------|-------|
-| `src/lib/fingerprint.ts` | 텍스트/레퍼런스 핑거프린트 유틸리티 | 80 |
-| `src/lib/question-history.ts` | 질문 이력 조회/저장 서비스, 다양성 프롬프트 생성 | 150 |
+| File                          | Description                                      | Lines |
+| ----------------------------- | ------------------------------------------------ | ----- |
+| `src/lib/fingerprint.ts`      | 텍스트/레퍼런스 핑거프린트 유틸리티              | 80    |
+| `src/lib/question-history.ts` | 질문 이력 조회/저장 서비스, 다양성 프롬프트 생성 | 150   |
 
 #### Files Modified
 
-| File | Changes |
-|------|---------|
-| `src/types/database.ts` | `question_generation_history` 테이블 타입 정의 추가 (+32 lines) |
-| `src/lib/claude.ts` | `diversityPrompt` 파라미터 추가, temperature 0.7 설정, `extractedReferenceText` 반환 (+25 lines) |
-| `src/app/api/questions/generate/route.ts` | 이력 조회/저장 통합, 다양성 적용 로직 (+142 lines) |
+| File                                      | Changes                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/types/database.ts`                   | `question_generation_history` 테이블 타입 정의 추가 (+32 lines)                                  |
+| `src/lib/claude.ts`                       | `diversityPrompt` 파라미터 추가, temperature 0.7 설정, `extractedReferenceText` 반환 (+25 lines) |
+| `src/app/api/questions/generate/route.ts` | 이력 조회/저장 통합, 다양성 적용 로직 (+142 lines)                                               |
 
 ### Key Implementation Details
 
@@ -396,14 +407,17 @@ function generateReferenceFingerprint(extractedText: string): string {
 ### Deviations from Plan
 
 **Added**:
+
 - `GenerateQuestionsOptions` 인터페이스 추가 (향후 옵션 확장용)
 - `getInterviewTypeId()` 헬퍼 함수 추가 (코드 → ID 변환)
 
 **Changed**:
+
 - 첫 질문 생성 후 이력 기반 재생성 방식 채택 (레퍼런스 핑거프린트 추출 필요)
 - 비동기 이력 저장으로 응답 시간 영향 최소화
 
 **Skipped**:
+
 - 단위 테스트 (선택적으로 분류됨)
 - 질문 생성 이력 정리 함수 DB 트리거 설정 (수동 실행 가능)
 

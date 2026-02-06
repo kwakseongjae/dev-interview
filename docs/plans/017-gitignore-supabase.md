@@ -27,10 +27,10 @@ Supabase 로컬 설정 폴더(`supabase/`)가 Git에 트래킹되고 있어, 로
 
 ### 변경 파일
 
-| 파일 | 변경 내용 |
-|------|-----------|
-| `.gitignore` | `supabase/` 항목 추가 |
-| `supabase/` (삭제) | Git 캐시에서만 제거 |
+| 파일               | 변경 내용             |
+| ------------------ | --------------------- |
+| `.gitignore`       | `supabase/` 항목 추가 |
+| `supabase/` (삭제) | Git 캐시에서만 제거   |
 
 ## Quality Gates
 

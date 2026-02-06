@@ -10,14 +10,17 @@
 ## 1. Overview
 
 ### Problem Statement
+
 현재 아카이브 상세 페이지(`/archive/[id]`)에서는 질문과 답변만 표시됩니다. 사용자가 작성한 답변에 대한 피드백(키워드, 꼬리질문, 잘한 점 등)이 없어 학습 효과가 제한적입니다.
 
 ### Objectives
+
 1. 사용자 답변 기반 AI 피드백 UI 제공
 2. **Token 효율적인 구현** (비용 최적화)
 3. 기존 UI/UX 흐름을 방해하지 않는 자연스러운 통합
 
 ### Scope
+
 - **In Scope**: 아카이브 상세 페이지 피드백 UI, API 엔드포인트, DB 스키마
 - **Out of Scope**: 실시간 면접 중 피드백, 팀 스페이스 피드백 공유
 
@@ -27,31 +30,31 @@
 
 ### Functional Requirements (FR)
 
-| ID | 요구사항 | 우선순위 |
-|----|---------|---------|
-| FR-1 | 답변별 키워드 Badge 표시 | P1 |
-| FR-2 | 답변별 꼬리질문 목록 표시 | P1 |
-| FR-3 | 답변의 잘한 점/개선점 표시 | P2 |
-| FR-4 | 피드백 접기/펼치기 토글 | P1 |
-| FR-5 | 피드백 로딩 상태 표시 | P1 |
-| FR-6 | 피드백 미리보기 (간략 요약) | P2 |
+| ID   | 요구사항                    | 우선순위 |
+| ---- | --------------------------- | -------- |
+| FR-1 | 답변별 키워드 Badge 표시    | P1       |
+| FR-2 | 답변별 꼬리질문 목록 표시   | P1       |
+| FR-3 | 답변의 잘한 점/개선점 표시  | P2       |
+| FR-4 | 피드백 접기/펼치기 토글     | P1       |
+| FR-5 | 피드백 로딩 상태 표시       | P1       |
+| FR-6 | 피드백 미리보기 (간략 요약) | P2       |
 
 ### Technical Requirements (TR)
 
-| ID | 요구사항 | 상세 |
-|----|---------|-----|
-| TR-1 | Token 최적화 | Haiku + Sonnet 하이브리드 전략 |
-| TR-2 | 캐싱 전략 | DB 캐싱 (7일 TTL) + 클라이언트 캐싱 |
+| ID   | 요구사항               | 상세                                    |
+| ---- | ---------------------- | --------------------------------------- |
+| TR-1 | Token 최적화           | Haiku + Sonnet 하이브리드 전략          |
+| TR-2 | 캐싱 전략              | DB 캐싱 (7일 TTL) + 클라이언트 캐싱     |
 | TR-3 | Progressive Disclosure | 즉시 표시(키워드) + 온디맨드(상세 분석) |
-| TR-4 | 스트리밍 지원 | Vercel AI SDK 사용 (옵션) |
+| TR-4 | 스트리밍 지원          | Vercel AI SDK 사용 (옵션)               |
 
 ### Non-Functional Requirements (NFR)
 
-| ID | 요구사항 | 기준 |
-|----|---------|-----|
-| NFR-1 | 응답 속도 | 키워드: 즉시, 상세 분석: < 3초 |
-| NFR-2 | 비용 효율성 | 기존 대비 70% 이상 절감 |
-| NFR-3 | 모바일 반응형 | 320px ~ 1440px 지원 |
+| ID    | 요구사항      | 기준                           |
+| ----- | ------------- | ------------------------------ |
+| NFR-1 | 응답 속도     | 키워드: 즉시, 상세 분석: < 3초 |
+| NFR-2 | 비용 효율성   | 기존 대비 70% 이상 절감        |
+| NFR-3 | 모바일 반응형 | 320px ~ 1440px 지원            |
 
 ---
 
@@ -82,9 +85,10 @@
 ```
 
 **예상 비용 절감**:
+
 - 기존 (모든 답변 Sonnet): 월 ~$2.10 (1000답변 기준)
 - 하이브리드 (Haiku + Sonnet 30%): 월 **~$0.75** (65% 절감)
-- + Prompt Caching 적용: 월 **~$0.30** (85% 절감)
+- - Prompt Caching 적용: 월 **~$0.30** (85% 절감)
 
 ### 3.2 데이터베이스 스키마
 
@@ -188,44 +192,44 @@ src/
 
 ### Phase 1: 기반 구조 (Backend)
 
-| 작업 | 파일 | 설명 |
-|-----|------|-----|
-| 1.1 | `supabase/migrations/xxx_answer_feedback.sql` | DB 스키마 마이그레이션 |
-| 1.2 | `src/types/database.ts` | 타입 정의 추가 |
-| 1.3 | `src/lib/ai/feedback-prompts.ts` | 프롬프트 템플릿 |
-| 1.4 | `src/lib/ai/feedback-generator.ts` | AI 피드백 생성 로직 |
+| 작업 | 파일                                          | 설명                   |
+| ---- | --------------------------------------------- | ---------------------- |
+| 1.1  | `supabase/migrations/xxx_answer_feedback.sql` | DB 스키마 마이그레이션 |
+| 1.2  | `src/types/database.ts`                       | 타입 정의 추가         |
+| 1.3  | `src/lib/ai/feedback-prompts.ts`              | 프롬프트 템플릿        |
+| 1.4  | `src/lib/ai/feedback-generator.ts`            | AI 피드백 생성 로직    |
 
 ### Phase 2: API 엔드포인트
 
-| 작업 | 파일 | 설명 |
-|-----|------|-----|
-| 2.1 | `src/app/api/answers/[id]/feedback/route.ts` | GET 피드백 조회 |
-| 2.2 | `src/app/api/answers/[id]/feedback/quick/route.ts` | POST 퀵 피드백 |
-| 2.3 | `src/app/api/answers/[id]/feedback/detail/route.ts` | POST 상세 피드백 |
-| 2.4 | `src/lib/api.ts` | 클라이언트 API 함수 추가 |
+| 작업 | 파일                                                | 설명                     |
+| ---- | --------------------------------------------------- | ------------------------ |
+| 2.1  | `src/app/api/answers/[id]/feedback/route.ts`        | GET 피드백 조회          |
+| 2.2  | `src/app/api/answers/[id]/feedback/quick/route.ts`  | POST 퀵 피드백           |
+| 2.3  | `src/app/api/answers/[id]/feedback/detail/route.ts` | POST 상세 피드백         |
+| 2.4  | `src/lib/api.ts`                                    | 클라이언트 API 함수 추가 |
 
 ### Phase 3: UI 컴포넌트
 
-| 작업 | 파일 | 설명 |
-|-----|------|-----|
-| 3.1 | `src/components/feedback/QuickFeedback.tsx` | 키워드/점수 컴포넌트 |
-| 3.2 | `src/components/feedback/FollowUpQuestions.tsx` | 꼬리질문 컴포넌트 |
-| 3.3 | `src/components/feedback/DetailedFeedback.tsx` | 상세 분석 컴포넌트 |
-| 3.4 | `src/components/feedback/FeedbackSection.tsx` | 통합 컴포넌트 |
-| 3.5 | `src/components/feedback/FeedbackSkeleton.tsx` | 로딩 상태 |
+| 작업 | 파일                                            | 설명                 |
+| ---- | ----------------------------------------------- | -------------------- |
+| 3.1  | `src/components/feedback/QuickFeedback.tsx`     | 키워드/점수 컴포넌트 |
+| 3.2  | `src/components/feedback/FollowUpQuestions.tsx` | 꼬리질문 컴포넌트    |
+| 3.3  | `src/components/feedback/DetailedFeedback.tsx`  | 상세 분석 컴포넌트   |
+| 3.4  | `src/components/feedback/FeedbackSection.tsx`   | 통합 컴포넌트        |
+| 3.5  | `src/components/feedback/FeedbackSkeleton.tsx`  | 로딩 상태            |
 
 ### Phase 4: 페이지 통합
 
-| 작업 | 파일 | 설명 |
-|-----|------|-----|
-| 4.1 | `src/app/archive/[id]/page.tsx` | 아카이브 상세 페이지에 FeedbackSection 통합 |
-| 4.2 | `src/types/interview.ts` | Question 타입에 feedback 필드 추가 |
+| 작업 | 파일                            | 설명                                        |
+| ---- | ------------------------------- | ------------------------------------------- |
+| 4.1  | `src/app/archive/[id]/page.tsx` | 아카이브 상세 페이지에 FeedbackSection 통합 |
+| 4.2  | `src/types/interview.ts`        | Question 타입에 feedback 필드 추가          |
 
 ### Phase 5: 자동 생성 연동 (선택적)
 
-| 작업 | 파일 | 설명 |
-|-----|------|-----|
-| 5.1 | `src/app/api/answers/route.ts` | 답변 제출 시 퀵 피드백 자동 생성 트리거 |
+| 작업 | 파일                           | 설명                                    |
+| ---- | ------------------------------ | --------------------------------------- |
+| 5.1  | `src/app/api/answers/route.ts` | 답변 제출 시 퀵 피드백 자동 생성 트리거 |
 
 ---
 
@@ -244,12 +248,12 @@ src/
 
 ### 성능 기준
 
-| 지표 | 목표 |
-|-----|-----|
-| 퀵 피드백 생성 | < 1초 |
-| 상세 피드백 생성 | < 3초 |
-| 페이지 로드 (피드백 포함) | < 2초 |
-| 모바일 LCP | < 2.5초 |
+| 지표                      | 목표    |
+| ------------------------- | ------- |
+| 퀵 피드백 생성            | < 1초   |
+| 상세 피드백 생성          | < 3초   |
+| 페이지 로드 (피드백 포함) | < 2초   |
+| 모바일 LCP                | < 2.5초 |
 
 ---
 
@@ -257,11 +261,11 @@ src/
 
 ### Risks
 
-| 리스크 | 영향 | 완화 방안 |
-|-------|-----|---------|
-| Claude API 지연 | 사용자 경험 저하 | 스켈레톤 UI, 타임아웃 처리 |
-| 토큰 비용 초과 | 운영 비용 증가 | 모니터링, 일일 한도 설정 |
-| 프롬프트 품질 | 피드백 품질 저하 | A/B 테스트, 프롬프트 반복 개선 |
+| 리스크          | 영향             | 완화 방안                      |
+| --------------- | ---------------- | ------------------------------ |
+| Claude API 지연 | 사용자 경험 저하 | 스켈레톤 UI, 타임아웃 처리     |
+| 토큰 비용 초과  | 운영 비용 증가   | 모니터링, 일일 한도 설정       |
+| 프롬프트 품질   | 피드백 품질 저하 | A/B 테스트, 프롬프트 반복 개선 |
 
 ### Dependencies
 
@@ -378,17 +382,20 @@ JSON 반환:
 ## 9. References
 
 ### 관련 파일
+
 - `src/app/archive/[id]/page.tsx` - 아카이브 상세 페이지
 - `src/lib/claude.ts` - 기존 Claude 통합
 - `src/types/interview.ts` - Question 타입
 - `src/components/ui/badge.tsx` - Badge 컴포넌트
 
 ### 참고 자료
+
 - [Claude API Prompt Caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 - [Vercel AI SDK 6](https://sdk.vercel.ai/docs)
 - [Token Optimization Strategies](https://medium.com/elementor-engineers/optimizing-token-usage-in-agent-based-assistants)
 
 ### Vercel React Best Practices 적용
+
 - `rerender-memo`: 피드백 컴포넌트 메모이제이션
 - `async-parallel`: 피드백 데이터 병렬 로딩
 - `bundle-barrel-imports`: 컴포넌트 개별 import
@@ -403,6 +410,7 @@ JSON 반환:
 ### Changes Made
 
 #### Files Created
+
 - `src/lib/ai/feedback-prompts.ts` - AI 피드백 프롬프트 템플릿 (Quick, Detailed, Full)
 - `src/lib/ai/feedback-generator.ts` - AI 피드백 생성 로직 (Haiku/Sonnet 모델)
 - `src/app/api/answers/[id]/feedback/route.ts` - GET 피드백 조회 API
@@ -419,12 +427,14 @@ JSON 반환:
 - `supabase/migrations/20260205_answer_feedback.sql` - DB 스키마 마이그레이션
 
 #### Files Modified
+
 - `src/app/archive/[id]/page.tsx` - FeedbackSection 통합
 - `src/lib/api.ts` - 피드백 API 클라이언트 함수 추가
 - `src/types/interview.ts` - 피드백 관련 타입 정의 추가
 - `src/types/database.ts` - answer_feedback 테이블 타입 추가
 
 #### Key Implementation Details
+
 - **하이브리드 토큰 전략 적용**: Haiku(저비용) + Sonnet(고품질) 조합
 - **원클릭 전체 피드백**: 사용자 요청에 따라 두 번 클릭 → 한 번 클릭으로 개선
 - **키워드 분석 UI 강화**: 기대 키워드, 언급 키워드, 누락 키워드 시각적 구분
@@ -432,6 +442,7 @@ JSON 반환:
 - Supabase MCP로 DB 마이그레이션 적용
 
 ### Quality Validation
+
 - [x] Build: Success
 - [x] Type Check: Passed (npx tsc --noEmit)
 - [x] Lint: Passed
@@ -439,23 +450,28 @@ JSON 반환:
 ### Deviations from Plan
 
 **Added**:
+
 - **원클릭 전체 피드백**: 계획에서는 Quick → Detail 2단계였으나, 사용자 요청으로 1단계로 통합
 - **KeywordAnalysis 컴포넌트**: 기대/언급/누락 키워드 구분 UI 추가 (계획에 없던 기능)
 - **키워드 분석 DB 컬럼**: expected_keywords, mentioned_keywords, missing_keywords 추가
 - **Full Feedback API**: `/api/answers/[id]/feedback/full` 엔드포인트 추가
 
 **Changed**:
+
 - Token 최적화 전략 유지하되, 사용자 편의를 위해 기본적으로 Sonnet Full 피드백 제공
 
 **Skipped**:
+
 - Phase 5 (자동 생성 연동): 답변 제출 시 자동 생성은 미구현 (온디맨드 방식 유지)
 
 ### Performance Impact
+
 - 새 컴포넌트: ~15KB (gzipped)
 - API 응답 시간: Quick ~1초, Full ~3-5초
 - 피드백은 캐싱되어 재요청 시 즉시 반환
 
 ### Database Changes (via Supabase MCP)
+
 ```sql
 -- 적용된 마이그레이션
 CREATE TABLE answer_feedback (
@@ -482,9 +498,11 @@ CREATE TABLE answer_feedback (
 ```
 
 ### Commits
+
 (커밋 전 - `/commit` 명령으로 생성 예정)
 
 ### Follow-up Tasks
+
 - [ ] 답변 제출 시 백그라운드 피드백 자동 생성 (Phase 5)
 - [ ] 피드백 품질 모니터링 및 프롬프트 개선
 - [ ] 팀 스페이스 피드백 공유 기능
