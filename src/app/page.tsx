@@ -14,6 +14,8 @@ import {
   FileText,
   Loader2,
   Building2,
+  TrendingUp,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -32,13 +34,18 @@ import { TeamSpaceSelector } from "@/components/TeamSpaceSelector";
 import { TeamSpaceIntro } from "@/components/TeamSpaceIntro";
 import { validateInterviewInput } from "@/lib/validation";
 import { InterviewTypeSelector } from "@/components/InterviewTypeSelector";
+import {
+  TrendTopicSelector,
+  SelectedTrendPill,
+} from "@/components/TrendTopicChips";
+import type { TrendTopic } from "@/data/trend-topics";
 import { validateFile, uploadFileWithTimeout } from "@/lib/file-utils";
 
 const SAMPLE_PROMPTS = [
   "프론트엔드 3년차 개발자를 위한 기술면접",
   "백엔드 신입 개발자 면접 준비",
   "React와 TypeScript 심화 면접",
-  "CS 기초 지식 점검",
+  "LLM 활용 개발자 면접 준비",
 ];
 
 export default function Home() {
@@ -61,6 +68,8 @@ export default function Home() {
     string | null
   >(null);
   const [isLoadingInterviewTypes, setIsLoadingInterviewTypes] = useState(true);
+  const [selectedTrendTopic, setSelectedTrendTopic] =
+    useState<TrendTopic | null>(null);
 
   // 면접 범주 로드
   useEffect(() => {
@@ -307,13 +316,16 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+
+    // 트렌드 토픽만 선택하고 쿼리가 비어있으면 chipQuery 사용
+    const effectiveQuery = query.trim() || selectedTrendTopic?.chipQuery || "";
+    if (!effectiveQuery) return;
 
     // 이미 진행 중이면 무시
     if (isUploading) return;
 
     // 입력 유효성 검증
-    const validation = validateInterviewInput(query);
+    const validation = validateInterviewInput(effectiveQuery);
     if (!validation.isValid) {
       setInputWarning(validation.suggestion || "유효한 검색어를 입력해주세요.");
       return;
@@ -383,7 +395,7 @@ export default function Home() {
 
       // 검색 페이지로 이동 (레퍼런스 URL 및 면접 범주 전달)
       const params = new URLSearchParams({
-        q: query.trim(),
+        q: effectiveQuery,
       });
       if (referenceData.length > 0) {
         // URL과 타입을 함께 인코딩하여 전달
@@ -411,6 +423,11 @@ export default function Home() {
         }
       }
 
+      // 트렌드 토픽이 선택되어 있으면 전달
+      if (selectedTrendTopic) {
+        params.append("trend_topic", selectedTrendTopic.id);
+      }
+
       router.push(`/search?${params.toString()}`);
     } catch (error) {
       console.error("제출 실패:", error);
@@ -418,6 +435,10 @@ export default function Home() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleTrendTopicSelect = (topic: TrendTopic | null) => {
+    setSelectedTrendTopic(topic);
   };
 
   const handleSampleClick = (sample: string) => {
@@ -438,6 +459,11 @@ export default function Home() {
         params.append("interview_type", selectedType.code);
         params.append("interview_type_id", selectedInterviewTypeId);
       }
+    }
+
+    // 트렌드 토픽이 선택되어 있으면 전달
+    if (selectedTrendTopic) {
+      params.append("trend_topic", selectedTrendTopic.id);
     }
 
     router.push(`/search?${params.toString()}`);
@@ -584,6 +610,15 @@ export default function Home() {
                   </div>
                 </div>
               )}
+              {/* 선택된 트렌드 토픽 Pill (검색창 상단) */}
+              {selectedTrendTopic && (
+                <div className="px-3 pt-2.5 md:px-5 md:pt-3">
+                  <SelectedTrendPill
+                    topic={selectedTrendTopic}
+                    onRemove={() => setSelectedTrendTopic(null)}
+                  />
+                </div>
+              )}
               <div className="flex items-center px-3 py-2.5 md:px-5 md:py-4 gap-2 md:gap-4">
                 <Search className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
                 <textarea
@@ -600,7 +635,11 @@ export default function Home() {
                       }
                     }
                   }}
-                  placeholder="면접 준비 내용을 입력하세요"
+                  placeholder={
+                    selectedTrendTopic
+                      ? "추가 요청사항을 입력하세요 (선택)"
+                      : "면접 준비 내용을 입력하세요"
+                  }
                   className="flex-1 bg-transparent text-sm md:text-lg outline-none focus:outline-none focus-visible:outline-none placeholder:text-muted-foreground/50 resize-none min-h-[20px] md:min-h-[24px] max-h-[200px] overflow-y-auto"
                   rows={1}
                   style={{
@@ -619,7 +658,9 @@ export default function Home() {
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={!query.trim() || isUploading}
+                  disabled={
+                    (!query.trim() && !selectedTrendTopic) || isUploading
+                  }
                   className="bg-navy hover:bg-navy-light text-primary-foreground rounded-lg md:rounded-xl px-3 md:px-4 h-8 md:h-9 disabled:opacity-50 flex-shrink-0"
                 >
                   {isUploading ? (
@@ -697,8 +738,13 @@ export default function Home() {
                       className="hidden"
                     />
 
-                    {/* File count hint */}
-                    <div className="ml-auto flex items-center">
+                    {/* File count + Trend Topic */}
+                    <div className="ml-auto flex items-center gap-3">
+                      <TrendTopicSelector
+                        selectedTopic={selectedTrendTopic}
+                        onSelect={handleTrendTopicSelect}
+                        disabled={isUploading}
+                      />
                       <span className="text-sm text-muted-foreground">
                         {referenceFiles.length}/{MAX_FILES}
                       </span>
@@ -707,10 +753,10 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Reference Files Upload (when no files) */}
+              {/* Reference Files Upload (when no files) + Trend Topic Selector */}
               {referenceFiles.length === 0 && (
                 <div className="px-3 pb-2 md:px-5 md:pb-3 border-t border-border/30">
-                  <div className="flex items-center gap-2 pt-2 md:pt-3">
+                  <div className="flex items-center gap-3 md:gap-4 pt-2 md:pt-3">
                     <label
                       htmlFor="reference-upload-empty"
                       className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
@@ -730,6 +776,12 @@ export default function Home() {
                       multiple
                       onChange={handleFileSelect}
                       className="hidden"
+                    />
+                    <span className="text-border/60">|</span>
+                    <TrendTopicSelector
+                      selectedTopic={selectedTrendTopic}
+                      onSelect={handleTrendTopicSelect}
+                      disabled={isUploading}
                     />
                   </div>
                 </div>
@@ -772,28 +824,115 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Case Study Section - 별도 경험으로 분리 */}
+        {/* Feature Cards - 케이스 스터디 & 트렌드 */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="mt-8 md:mt-10 w-full max-w-2xl"
+          className="mt-8 md:mt-10 w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3"
         >
+          {/* Case Study Card */}
           <Link href="/case-studies" className="block group">
-            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/50 bg-card hover:border-gold/30 hover:shadow-md transition-all p-4 md:p-5">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/50 bg-card hover:border-gold/30 hover:shadow-lg transition-all p-4 md:p-5 h-full">
+              <div className="flex flex-col h-full">
+                {/* Row 1: Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Building2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    </div>
+                    <h3 className="font-display text-sm md:text-base font-semibold">
+                      기업 사례 면접
+                    </h3>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-display text-sm md:text-base font-semibold mb-0.5">
-                    실제 기술 사례로 면접 준비하기
-                  </h3>
-                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-1">
-                    카카오, 토스, 네이버 등 실제 기업 사례 기반 고난도 면접
-                  </p>
+
+                {/* Row 2: Description */}
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-4">
+                  카카오, 토스, 네이버 등 실제 기업의 기술 블로그와 컨퍼런스
+                  발표를 분석한 고난도 심층 면접
+                </p>
+
+                {/* Row 3: Company Logos */}
+                <div className="flex items-center mt-auto">
+                  <div className="flex -space-x-2">
+                    {["kakao", "toss", "naver", "coupang", "woowa"].map(
+                      (slug) => (
+                        <div
+                          key={slug}
+                          className="w-8 h-8 rounded-full border-2 border-card bg-white flex items-center justify-center overflow-hidden shadow-sm"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/companies/${slug}.png`}
+                            alt=""
+                            className="w-5 h-5 object-contain"
+                          />
+                        </div>
+                      ),
+                    )}
+                    <div className="w-8 h-8 rounded-full border-2 border-card bg-muted flex items-center justify-center shadow-sm">
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        +7
+                      </span>
+                    </div>
+                  </div>
+                  <span className="ml-2.5 text-xs text-muted-foreground">
+                    12개 기업 사례
+                  </span>
                 </div>
-                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-gold group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Trend Card */}
+          <Link href="/trends" className="block group">
+            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/50 bg-card hover:border-amber-300/50 hover:shadow-lg transition-all p-4 md:p-5 h-full">
+              <div className="flex flex-col h-full">
+                {/* Row 1: Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
+                    </div>
+                    <h3 className="font-display text-sm md:text-base font-semibold">
+                      트렌드 면접
+                    </h3>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                      NEW
+                    </span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                </div>
+
+                {/* Row 2: Description */}
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed mb-4">
+                  2026년 면접에서 출제율이 급상승하는 최신 기술 토픽을 AI가
+                  분석하여 맞춤 질문을 생성합니다
+                </p>
+
+                {/* Row 3: Trend Topic Chips */}
+                <div className="flex flex-wrap gap-2 mt-auto">
+                  {[
+                    { label: "LLM/GenAI", hot: true },
+                    { label: "RAG", hot: true },
+                    { label: "AI Agent", hot: true },
+                    { label: "+7개 토픽", hot: false },
+                  ].map((chip) => (
+                    <span
+                      key={chip.label}
+                      className={
+                        chip.hot
+                          ? "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200/60"
+                          : "inline-flex items-center px-2.5 py-1 rounded-full text-xs text-muted-foreground bg-muted border border-border/40"
+                      }
+                    >
+                      {chip.hot && <Flame className="w-3 h-3 flex-shrink-0" />}
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </Link>

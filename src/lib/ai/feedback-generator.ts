@@ -18,6 +18,25 @@ import type {
   FullFeedbackData,
   ModelAnswerData,
 } from "@/types/interview";
+import { getTrendTopicById } from "@/data/trend-topics";
+
+/**
+ * Build trend context string for feedback prompts.
+ * Returns empty string if no trend topic, so existing behavior is preserved.
+ */
+function buildFeedbackTrendContext(trendTopicId?: string): string {
+  if (!trendTopicId) return "";
+  const topic = getTrendTopicById(trendTopicId);
+  if (!topic) return "";
+  return `
+**🔥 트렌드 토픽**: ${topic.nameKo} (${topic.name})
+이 질문은 최신 기술 트렌드 토픽에 해당합니다.
+토픽 설명: ${topic.description}
+피드백 시 다음 관점을 반영해주세요:
+${topic.sampleAngles.map((a) => `- ${a}`).join("\n")}
+- 기대 키워드에 이 트렌드 토픽의 핵심 개념을 포함해주세요
+- 꼬리질문도 이 트렌드 분야의 심화 질문으로 구성해주세요`;
+}
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -53,11 +72,13 @@ export async function generateQuickFeedback(
   question: string,
   hint: string | null,
   answer: string,
+  trendTopicId?: string,
 ): Promise<QuickFeedbackData & { inputTokens: number; outputTokens: number }> {
   const prompt = fillPromptTemplate(QUICK_FEEDBACK_PROMPT, {
     question,
     hint: hint || "힌트 없음",
     answer: answer || "(답변 없음)",
+    trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
   const response = await anthropic.messages.create({
@@ -204,11 +225,13 @@ export async function generateFullFeedback(
   question: string,
   hint: string | null,
   answer: string,
+  trendTopicId?: string,
 ): Promise<FullFeedbackData & { inputTokens: number; outputTokens: number }> {
   const prompt = fillPromptTemplate(FULL_FEEDBACK_PROMPT, {
     question,
     hint: hint || "힌트 없음",
     answer: answer || "(답변 없음)",
+    trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
   const response = await anthropic.messages.create({
@@ -314,11 +337,13 @@ export async function generateModelAnswer(
   question: string,
   hint: string | null,
   category: string,
+  trendTopicId?: string,
 ): Promise<ModelAnswerData & { inputTokens: number; outputTokens: number }> {
   const prompt = fillPromptTemplate(MODEL_ANSWER_PROMPT, {
     question,
     hint: hint || "힌트 없음",
     category: category || "일반",
+    trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
   const response = await anthropic.messages.create({

@@ -39,7 +39,7 @@ export async function POST(
         id,
         content,
         user_id,
-        questions!inner(id, content, hint)
+        questions!inner(id, content, hint, trend_topic)
       `,
       )
       .eq("id", answerId)
@@ -93,6 +93,7 @@ export async function POST(
       id: string;
       content: string;
       hint: string | null;
+      trend_topic: string | null;
     };
 
     // Generate full feedback using Sonnet
@@ -100,6 +101,7 @@ export async function POST(
       question.content,
       question.hint,
       answer.content,
+      question.trend_topic || undefined,
     );
 
     const { detailModel } = getModelInfo();

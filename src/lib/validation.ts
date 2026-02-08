@@ -14,6 +14,8 @@ const SUGGESTION_EXAMPLES = [
   "백엔드 신입 개발자 면접 대비",
   "데이터베이스 관련 기술면접 질문",
   "JavaScript 비동기 처리 면접 질문",
+  "LLM 활용 개발 면접 질문 만들어줘",
+  "RAG 파이프라인 설계 면접 준비",
 ];
 
 /**
@@ -197,6 +199,36 @@ export function validateInterviewInput(query: string): InputValidationResult {
     "노드",
     "스프링",
     "데이터베이스",
+    // AI/트렌드 관련
+    "ai",
+    "llm",
+    "rag",
+    "에이전트",
+    "agent",
+    "gpt",
+    "claude",
+    "프롬프트",
+    "prompt",
+    "트렌드",
+    "벡터",
+    "임베딩",
+    "embedding",
+    "transformer",
+    "트랜스포머",
+    "파인튜닝",
+    "할루시네이션",
+    "생성형",
+    "머신러닝",
+    "딥러닝",
+    "ml",
+    "서버리스",
+    "serverless",
+    "엣지",
+    "edge",
+    "옵저버빌리티",
+    "observability",
+    "kafka",
+    "이벤트 드리븐",
   ];
 
   const queryLower = trimmedQuery.toLowerCase();

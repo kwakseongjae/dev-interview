@@ -42,6 +42,7 @@ export async function POST(
         questions!inner (
           content,
           hint,
+          trend_topic,
           categories!inner (
             display_name
           )
@@ -91,6 +92,7 @@ export async function POST(
         question.content,
         question.hint,
         question.categories?.display_name || "일반",
+        question.trend_topic || undefined,
       );
 
     const { detailModel } = getModelInfo();

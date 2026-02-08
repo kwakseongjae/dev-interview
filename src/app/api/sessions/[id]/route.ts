@@ -80,6 +80,8 @@ export async function GET(
           content,
           hint,
           difficulty,
+          is_trending,
+          trend_topic,
           categories!inner(name, display_name),
           subcategories(name, display_name)
         )

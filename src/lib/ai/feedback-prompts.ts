@@ -14,6 +14,7 @@ export const QUICK_FEEDBACK_PROMPT = `당신은 기술면접 피드백 전문가
 **질문**: {question}
 **힌트**: {hint}
 **답변**: {answer}
+{trend_context}
 
 다음 JSON 형식으로만 응답해주세요:
 {
@@ -78,6 +79,7 @@ export const FULL_FEEDBACK_PROMPT = `당신은 시니어 기술면접관입니�
 **질문**: {question}
 **힌트**: {hint}
 **답변**: {answer}
+{trend_context}
 
 다음 JSON 형식으로만 응답해주세요:
 {
@@ -135,6 +137,7 @@ export const MODEL_ANSWER_PROMPT = `당신은 시니어 기술면접관입니다
 **질문**: {question}
 **힌트(기대 키워드)**: {hint}
 **카테고리**: {category}
+{trend_context}
 
 다음 JSON 형식으로만 응답해주세요:
 {
