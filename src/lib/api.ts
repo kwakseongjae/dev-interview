@@ -26,6 +26,11 @@ function ensureAuthListener() {
 
   supabase.auth.getSession().then(({ data: { session } }) => {
     _isLoggedIn = !!session;
+    window.dispatchEvent(
+      new CustomEvent("authStateChanged", {
+        detail: { isLoggedIn: !!session },
+      }),
+    );
   });
 
   supabase.auth.onAuthStateChange(async (event, session) => {
