@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +15,7 @@ import { isLoggedIn } from "@/lib/api";
 interface LoginPromptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "complete" | "archive";
+  type: "complete" | "archive" | "interview";
   onLater?: () => void;
 }
 
@@ -27,11 +26,6 @@ export const LoginPromptModal = ({
   onLater,
 }: LoginPromptModalProps) => {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // 로그인 상태 감지
   useEffect(() => {
@@ -39,8 +33,6 @@ export const LoginPromptModal = ({
       onOpenChange(false);
     }
   }, [open, onOpenChange]);
-
-  if (!isClient) return null;
 
   const handleLogin = () => {
     const currentPath = window.location.pathname + window.location.search;
@@ -55,7 +47,21 @@ export const LoginPromptModal = ({
   };
 
   const getContent = () => {
-    if (type === "complete") {
+    if (type === "interview") {
+      return {
+        title: "면접 결과를 저장하시겠어요?",
+        description:
+          "로그인하면 답변이 아카이브에 저장되고, AI 피드백과 모범 답변을 받아볼 수 있습니다.",
+        features: [
+          "AI가 분석한 답변 피드백",
+          "질문별 모범 답변 제공",
+          "아카이브에서 복습 및 관리",
+        ],
+        warning: "저장하지 않으면 작성한 답변이 사라집니다.",
+        loginText: "로그인하고 저장하기",
+        laterText: "저장하지 않고 나가기",
+      };
+    } else if (type === "complete") {
       return {
         title: "면접 기록을 저장하세요",
         description:
@@ -83,6 +89,22 @@ export const LoginPromptModal = ({
             {content.description}
           </DialogDescription>
         </DialogHeader>
+
+        {/* interview 타입: 로그인 혜택 */}
+        {"features" in content && content.features && (
+          <ul className="space-y-1.5 pt-1">
+            {content.features.map((feat: string) => (
+              <li
+                key={feat}
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <span className="text-gold">&#10003;</span>
+                {feat}
+              </li>
+            ))}
+          </ul>
+        )}
+
         <div className="flex flex-col gap-3 pt-4">
           <Button
             onClick={handleLogin}
@@ -91,8 +113,13 @@ export const LoginPromptModal = ({
             {content.loginText}
           </Button>
           <Button onClick={handleLater} variant="ghost" className="w-full h-12">
-            나중에 하기
+            {"laterText" in content ? content.laterText : "나중에 하기"}
           </Button>
+          {"warning" in content && (
+            <p className="text-xs text-center text-destructive">
+              {content.warning}
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
