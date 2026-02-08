@@ -80,6 +80,9 @@ function CompleteContent() {
       timeSpent: q.answer?.time_spent || 0,
       isAnswered: !!q.answer,
       isFavorite: q.is_favorited,
+      isReferenceBased: q.is_reference_based || false,
+      isTrending: q.is_trending || false,
+      trendTopic: q.trend_topic || undefined,
     })),
     totalTime: apiSession.total_time,
     isCompleted: apiSession.is_completed,
@@ -219,6 +222,8 @@ function CompleteContent() {
   const answeredCount =
     session?.questions.filter((q) => q.isAnswered).length || 0;
   const totalQuestions = session?.questions.length || 0;
+  const trendingCount =
+    session?.questions.filter((q) => q.isTrending).length || 0;
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 grain">
@@ -274,6 +279,11 @@ function CompleteContent() {
           className="text-lg text-muted-foreground mb-8"
         >
           총 {totalQuestions}개 질문에 답변을 완료했습니다.
+          {trendingCount > 0 && (
+            <span className="block text-sm mt-1 text-amber-600">
+              트렌드 질문 {trendingCount}개 포함
+            </span>
+          )}
         </motion.p>
 
         {/* Stats Card */}
@@ -322,7 +332,13 @@ function CompleteContent() {
               결과 보기
             </Button>
           </Link>
-          <Link href={`/search?q=${encodeURIComponent(session?.query || "")}`}>
+          <Link
+            href={`/search?q=${encodeURIComponent(session?.query || "")}${
+              session?.questions.some((q) => q.trendTopic)
+                ? `&trend_topic=${session.questions.find((q) => q.trendTopic)?.trendTopic}`
+                : ""
+            }`}
+          >
             <Button variant="outline" size="lg" className="w-full sm:w-auto">
               <RefreshCw className="w-4 h-4 mr-2" />
               다시 풀기

@@ -138,6 +138,9 @@ function InterviewContent() {
       timeSpent: q.answer?.time_spent || 0,
       isAnswered: !!q.answer,
       isFavorite: q.is_favorited,
+      isReferenceBased: q.is_reference_based || false,
+      isTrending: q.is_trending || false,
+      trendTopic: q.trend_topic || undefined,
     })),
     totalTime: apiSession.total_time,
     isCompleted: apiSession.is_completed,
@@ -601,6 +604,14 @@ function InterviewContent() {
                       <Badge variant="outline">
                         {currentQuestion.category}
                       </Badge>
+                      {currentQuestion.isTrending && (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-700 border-amber-200"
+                        >
+                          트렌드
+                        </Badge>
+                      )}
                       <span className="text-sm text-muted-foreground">
                         질문 {currentQuestionIndex + 1}/
                         {session.questions.length}

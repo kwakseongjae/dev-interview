@@ -281,6 +281,8 @@ export async function POST(request: NextRequest) {
       hint: string;
       category: string;
       subcategory?: string;
+      isTrending?: boolean;
+      trendTopic?: string;
     }> = [];
 
     // question_ids가 있으면 기존 질문을 재사용하므로 새 질문 생성하지 않음
@@ -367,6 +369,8 @@ export async function POST(request: NextRequest) {
             difficulty: "MEDIUM",
             is_verified: false,
             created_by: auth.sub,
+            is_trending: q.isTrending || false,
+            trend_topic: q.trendTopic || null,
           })
           .select("id")
           .single();
@@ -473,6 +477,8 @@ export async function POST(request: NextRequest) {
           content,
           hint,
           difficulty,
+          is_trending,
+          trend_topic,
           categories!inner(name, display_name),
           subcategories(name, display_name)
         )

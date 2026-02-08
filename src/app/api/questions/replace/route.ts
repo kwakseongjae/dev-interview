@@ -10,11 +10,13 @@ export async function POST(request: NextRequest) {
       questions_to_replace,
       keep_questions,
       reference_urls,
+      trend_topic,
     }: {
       query: string;
       questions_to_replace: string[];
       keep_questions: Array<{ content: string }>;
       reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
+      trend_topic?: string;
     } = body;
 
     // 입력 검증
@@ -44,12 +46,15 @@ export async function POST(request: NextRequest) {
     // 교체할 질문 수만큼 새로 생성
     const replaceCount = questions_to_replace.length;
 
-    // Claude로 새 질문 생성 (기존 질문들과 중복 방지, 레퍼런스 URL 포함)
+    // Claude로 새 질문 생성 (기존 질문들과 중복 방지, 레퍼런스 URL 및 트렌드 토픽 포함)
     const result = await generateQuestions(
       query,
       keepQuestionContents,
       replaceCount,
       reference_urls,
+      undefined, // interviewType
+      undefined, // diversityPrompt
+      trend_topic,
     );
 
     return NextResponse.json({

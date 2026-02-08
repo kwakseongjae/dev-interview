@@ -43,6 +43,8 @@ interface GeneratedQuestion {
   category: string;
   subcategory?: string;
   isReferenceBased?: boolean;
+  isTrending?: boolean;
+  trendTopic?: string;
 }
 
 function SearchContent() {
@@ -52,6 +54,7 @@ function SearchContent() {
   const referenceUrlsParam = searchParams.get("references") || "";
   const interviewTypeCode = searchParams.get("interview_type") || null;
   const interviewTypeId = searchParams.get("interview_type_id") || null;
+  const trendTopicParam = searchParams.get("trend_topic") || null;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSearching, setIsSearching] = useState(true);
@@ -155,12 +158,14 @@ function SearchContent() {
           count: 5,
           reference_urls: refsToUse.length > 0 ? refsToUse : undefined,
           interview_type: interviewTypeCode || undefined,
+          trend_topic: trendTopicParam || undefined,
         };
         console.log("질문 생성 API 호출:", {
           query,
           referenceUrlsCount: refsToUse.length,
           referenceUrls: refsToUse,
           interviewType: interviewTypeCode,
+          trendTopic: trendTopicParam,
         });
         const response = await fetch("/api/questions/generate", {
           method: "POST",
@@ -199,7 +204,7 @@ function SearchContent() {
         throw error;
       }
     },
-    [query, referenceUrls, interviewTypeCode],
+    [query, referenceUrls, interviewTypeCode, trendTopicParam],
   );
 
   // GeneratedQuestion을 Question으로 변환
@@ -216,6 +221,8 @@ function SearchContent() {
       isAnswered: false,
       isFavorite: false,
       isReferenceBased: gq.isReferenceBased || false,
+      isTrending: gq.isTrending || false,
+      trendTopic: gq.trendTopic,
     }));
   };
 
@@ -392,6 +399,7 @@ function SearchContent() {
           questions_to_replace: Array.from(selectedForReplace),
           keep_questions: keepQuestions.map((q) => ({ content: q.content })),
           reference_urls: referenceUrls.length > 0 ? referenceUrls : undefined,
+          trend_topic: trendTopicParam || undefined,
         }),
       });
 
@@ -841,6 +849,14 @@ function SearchContent() {
                                   className="text-xs bg-blue-50 text-blue-700 border-blue-200"
                                 >
                                   레퍼런스 기반
+                                </Badge>
+                              )}
+                              {question.isTrending && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                                >
+                                  트렌드
                                 </Badge>
                               )}
                             </div>

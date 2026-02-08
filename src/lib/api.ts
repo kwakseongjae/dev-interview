@@ -305,6 +305,9 @@ export interface ApiSessionDetail {
       created_at: string;
     } | null;
     is_favorited: boolean;
+    is_reference_based?: boolean;
+    is_trending?: boolean;
+    trend_topic?: string | null;
   }>;
   created_at: string;
 }

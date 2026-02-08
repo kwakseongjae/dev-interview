@@ -21,12 +21,14 @@ export async function POST(request: NextRequest) {
       count,
       reference_urls,
       interview_type,
+      trend_topic,
     }: {
       query: string;
       exclude_questions?: string[];
       count?: number;
       reference_urls?: Array<{ url: string; type: SupportedMediaType }>;
       interview_type?: InterviewTypeCode;
+      trend_topic?: string;
     } = body;
 
     // 입력 검증 - 빈 쿼리
@@ -72,10 +74,11 @@ export async function POST(request: NextRequest) {
       referenceUrlsCount: reference_urls?.length || 0,
       referenceUrls: reference_urls,
       interviewType: interview_type,
+      trendTopic: trend_topic,
       hasUser: !!userId,
     });
 
-    // Claude로 질문 생성 (레퍼런스 URL 및 면접 범주 포함)
+    // Claude로 질문 생성 (레퍼런스 URL, 면접 범주, 트렌드 토픽 포함)
     const result = await generateQuestions(
       query,
       excludeQuestions,
@@ -83,6 +86,7 @@ export async function POST(request: NextRequest) {
       reference_urls,
       interview_type,
       diversityPrompt,
+      trend_topic,
     );
 
     // 레퍼런스 핑거프린트 생성 (레퍼런스가 사용된 경우)
@@ -145,6 +149,7 @@ export async function POST(request: NextRequest) {
           reference_urls,
           interview_type,
           diversityPrompt,
+          trend_topic,
         );
 
         // 질문 이력 저장 (비동기, 에러 무시)

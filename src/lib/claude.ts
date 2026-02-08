@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { InterviewTypeCode } from "@/types/interview";
+import { getTrendTopicById, type TrendTopic } from "@/data/trend-topics";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -94,7 +95,9 @@ const GENERATE_QUESTIONS_PROMPT = `
       "hint": "답변 시 참고할 키워드 가이드 (예: 키워드1, 키워드2, 키워드3을 포함해보세요)",
       "category": "카테고리명",
       "subcategory": "소분류명",
-      "isReferenceBased": true 또는 false
+      "isReferenceBased": true 또는 false,
+      "isTrending": true 또는 false,
+      "trendTopic": "트렌드 토픽 ID (해당하는 경우)"
     }
   ]
 }
@@ -103,7 +106,32 @@ const GENERATE_QUESTIONS_PROMPT = `
 소분류 예시: JAVASCRIPT, REACT, NODEJS, SQL, HTTP, DATA_STRUCTURE 등
 isReferenceBased는 레퍼런스 기반으로 생성된 질문인 경우에만 true로 설정해주세요.
 레퍼런스가 제공된 경우, 반드시 최소 1개 이상의 질문은 isReferenceBased를 true로 설정해야 합니다.
+isTrending은 최신 기술 트렌드(AI/LLM, RAG, 에이전트 등)와 관련된 질문인 경우 true로 설정해주세요.
+trendTopic은 트렌드 컨텍스트가 제공된 경우 해당 토픽 ID를 설정해주세요.
 `;
+
+/**
+ * 트렌드 토픽 컨텍스트를 프롬프트용 문자열로 변환
+ */
+function buildTrendInstruction(topic: TrendTopic): string {
+  return `
+🔥 트렌드 토픽: ${topic.nameKo} (${topic.name})
+
+이 질문은 현재 기술면접에서 빈번하게 출제되는 트렌드 토픽에 대한 것입니다.
+
+토픽 설명: ${topic.description}
+
+질문 생성 시 다음 각도를 참고해주세요:
+${topic.sampleAngles.map((angle) => `- ${angle}`).join("\n")}
+
+트렌드 질문 규칙:
+1. 단순 정의 질문 금지 - 실무 적용, 비교, 판단력을 평가하는 질문 생성
+2. "왜"와 "트레이드오프"를 묻는 질문 위주
+3. 최소 3개의 질문은 이 트렌드 토픽과 직접 관련되어야 합니다
+4. 트렌드 관련 질문에는 isTrending: true, trendTopic: "${topic.id}"를 설정해주세요
+5. 나머지 질문은 관련 기초 지식 질문으로 구성 (isTrending: false)
+`;
+}
 
 // 답변 평가 프롬프트
 const EVALUATE_ANSWER_PROMPT = `
@@ -136,6 +164,8 @@ export interface GeneratedQuestion {
   category: string;
   subcategory?: string;
   isReferenceBased?: boolean; // 레퍼런스 기반 질문 여부
+  isTrending?: boolean; // 트렌드 토픽 관련 질문 여부
+  trendTopic?: string; // 관련 트렌드 토픽 ID
 }
 
 export interface AnswerEvaluation {
@@ -343,6 +373,7 @@ export async function generateQuestions(
   referenceUrls?: Array<{ url: string; type: SupportedMediaType }>,
   interviewType?: InterviewTypeCode,
   diversityPrompt?: string,
+  trendTopicId?: string,
 ): Promise<GenerateQuestionsResult> {
   // 제외할 질문이 있으면 프롬프트에 추가
   let excludeInstruction = "";
@@ -445,6 +476,15 @@ ${
     interviewTypeInstruction = INTERVIEW_TYPE_PROMPTS[interviewType];
   }
 
+  // 트렌드 토픽 컨텍스트 추가
+  let trendInstruction = "";
+  if (trendTopicId) {
+    const trendTopic = getTrendTopicById(trendTopicId);
+    if (trendTopic) {
+      trendInstruction = buildTrendInstruction(trendTopic);
+    }
+  }
+
   // 다양성 프롬프트 추가 (이전 질문 이력 기반)
   const diversityInstruction = diversityPrompt || "";
 
@@ -452,7 +492,7 @@ ${
     .replace("{exclude_instruction}", excludeInstruction + diversityInstruction)
     .replace(
       "{reference_instruction}",
-      interviewTypeInstruction + referenceInstruction,
+      interviewTypeInstruction + trendInstruction + referenceInstruction,
     )
     .replace("{question_count}", count.toString());
 

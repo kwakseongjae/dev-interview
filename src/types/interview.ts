@@ -31,6 +31,8 @@ export interface Question {
   isAnswered: boolean;
   isFavorite: boolean;
   isReferenceBased?: boolean; // 레퍼런스 기반 질문 여부
+  isTrending?: boolean; // 트렌드 토픽 관련 질문 여부
+  trendTopic?: string; // 관련 트렌드 토픽 ID
 }
 
 export interface InterviewSession {
