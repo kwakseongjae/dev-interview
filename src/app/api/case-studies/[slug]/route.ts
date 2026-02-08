@@ -4,7 +4,7 @@ import {
   incrementViewCount,
   getCaseStudyFavoriteIds,
 } from "@/lib/case-studies";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 
 // GET /api/case-studies/[slug] - 케이스 스터디 상세 조회
 export async function GET(
@@ -27,8 +27,7 @@ export async function GET(
     incrementViewCount(caseStudy.id).catch(() => {});
 
     // 로그인 사용자인 경우 즐겨찾기 상태 추가
-    const authHeader = request.headers.get("Authorization");
-    const auth = getAuthFromRequest(authHeader);
+    const auth = await getUserOptional();
 
     let isFavorite = false;
     if (auth?.sub) {

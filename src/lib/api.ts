@@ -1,61 +1,94 @@
 /**
  * API Client for DevInterview
- * Handles all API calls with authentication
+ * Supabase Auth (cookie 기반) 사용
  */
 
-// 인증 토큰 저장/조회
-const TOKEN_KEY = "devinterview_access_token";
-const REFRESH_TOKEN_KEY = "devinterview_refresh_token";
+import { createClient } from "@/lib/supabase/client";
 
-// 토큰 갱신 중복 방지를 위한 Promise 저장
-let refreshPromise: Promise<boolean> | null = null;
+// ============ Supabase Auth 클라이언트 ============
 
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+let _supabase: ReturnType<typeof createClient> | null = null;
+let _isLoggedIn = false;
+let _initialized = false;
+
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient();
+  }
+  return _supabase;
 }
 
-export function setTokens(accessToken: string, refreshToken: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  // 로그인 이벤트 발생 (다른 컴포넌트에서 감지 가능)
-  window.dispatchEvent(
-    new CustomEvent("authStateChanged", { detail: { isLoggedIn: true } }),
-  );
+function ensureAuthListener() {
+  if (_initialized || typeof window === "undefined") return;
+  _initialized = true;
+
+  const supabase = getSupabase();
+
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    _isLoggedIn = !!session;
+  });
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    _isLoggedIn = !!session;
+    window.dispatchEvent(
+      new CustomEvent("authStateChanged", {
+        detail: { isLoggedIn: !!session },
+      }),
+    );
+
+    // 로그인 시 마지막 선택한 팀스페이스 불러오기
+    if (event === "SIGNED_IN" && session) {
+      try {
+        const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
+        if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
+          localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
+        }
+      } catch {
+        // 실패해도 로그인은 계속 진행
+      }
+    }
+  });
 }
 
-export function clearTokens(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  // 로그아웃 이벤트 발생 (다른 컴포넌트에서 감지 가능)
-  window.dispatchEvent(
-    new CustomEvent("authStateChanged", { detail: { isLoggedIn: false } }),
-  );
+// ============ Auth API ============
+
+export function isLoggedIn(): boolean {
+  ensureAuthListener();
+  return _isLoggedIn;
 }
 
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+export async function signInWithGoogle(redirectTo?: string): Promise<void> {
+  const supabase = getSupabase();
+  const next = redirectTo || "/";
+  const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callbackUrl,
+    },
+  });
+
+  if (error) throw error;
 }
 
-// API 호출 헬퍼 (자동 토큰 갱신 포함)
+export async function signOut(): Promise<void> {
+  const supabase = getSupabase();
+  await supabase.auth.signOut();
+  // onAuthStateChange 리스너가 이벤트를 디스패치함
+}
+
+// ============ API 호출 헬퍼 ============
+
+// API 호출 헬퍼 (cookie 기반 인증 - 자동 포함)
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {},
-  retryCount = 0,
 ): Promise<T> {
-  const token = getAccessToken();
-
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
   };
-
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-  }
 
   // 현재 선택된 팀 스페이스 ID를 헤더에 추가
   if (typeof window !== "undefined") {
@@ -71,58 +104,6 @@ async function fetchApi<T>(
     headers,
   });
 
-  // 401 에러 발생 시 토큰 갱신 시도 (한 번만)
-  if (response.status === 401 && retryCount === 0) {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      try {
-        // 이미 토큰 갱신이 진행 중이면 기다림
-        if (!refreshPromise) {
-          refreshPromise = (async () => {
-            try {
-              // 토큰 갱신 API 직접 호출 (순환 참조 방지)
-              const refreshResponse = await fetch("/api/auth/refresh", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ refreshToken }),
-              });
-
-              if (refreshResponse.ok) {
-                const refreshData = await refreshResponse.json();
-                setTokens(refreshData.accessToken, refreshData.refreshToken);
-                return true;
-              } else {
-                // 토큰 갱신 실패 시 토큰 제거
-                clearTokens();
-                return false;
-              }
-            } catch (refreshError) {
-              // 토큰 갱신 실패 시 토큰 제거
-              clearTokens();
-              return false;
-            } finally {
-              // Promise 완료 후 초기화
-              refreshPromise = null;
-            }
-          })();
-        }
-
-        const refreshed = await refreshPromise;
-        if (refreshed) {
-          // 갱신된 토큰으로 원래 요청 재시도
-          return fetchApi<T>(endpoint, options, retryCount + 1);
-        }
-      } catch (refreshError) {
-        // 토큰 갱신 실패는 이미 처리됨
-      }
-    } else {
-      // Refresh token이 없으면 토큰 제거
-      clearTokens();
-    }
-  }
-
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.error || `API Error: ${response.status}`);
@@ -131,127 +112,34 @@ async function fetchApi<T>(
   return response.json();
 }
 
-// ============ Auth API ============
+// ============ User Info ============
 
-interface AuthResponse {
-  user: {
-    id: string;
-    email: string;
-    nickname: string | null;
-  };
-  accessToken: string;
-  refreshToken: string;
+interface UserInfo {
+  id: string;
+  email: string;
+  nickname: string | null;
 }
 
-export async function signUp(
-  username: string,
-  password: string,
-  passwordConfirm: string,
-): Promise<AuthResponse> {
-  const data = await fetchApi<AuthResponse>("/api/auth/signup", {
-    method: "POST",
-    body: JSON.stringify({ username, password, passwordConfirm }),
-  });
-  setTokens(data.accessToken, data.refreshToken);
+let cachedUser: UserInfo | null = null;
 
-  // 회원가입 후 마지막 선택한 팀스페이스 불러오기 (보통 null이지만 일관성을 위해)
+export function getCachedUser(): UserInfo | null {
+  return cachedUser;
+}
+
+export function setCachedUser(user: UserInfo | null): void {
+  cachedUser = user;
+}
+
+export async function getCurrentUser(): Promise<UserInfo | null> {
+  if (!isLoggedIn()) return null;
+
   try {
-    const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
-    if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
-      localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
-    }
+    const data = await fetchApi<{ user: UserInfo }>("/api/auth/me");
+    cachedUser = data.user;
+    return data.user;
   } catch {
-    // 실패해도 회원가입은 계속 진행
+    return null;
   }
-
-  return data;
-}
-
-export async function signIn(
-  username: string,
-  password: string,
-): Promise<AuthResponse> {
-  const data = await fetchApi<AuthResponse>("/api/auth/signin", {
-    method: "POST",
-    body: JSON.stringify({ username, password }),
-  });
-  setTokens(data.accessToken, data.refreshToken);
-
-  // 로그인 후 마지막 선택한 팀스페이스 불러오기
-  try {
-    const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
-    if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
-      localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
-    }
-  } catch {
-    // 실패해도 로그인은 계속 진행
-  }
-
-  return data;
-}
-
-export async function checkUsername(username: string): Promise<{
-  available: boolean;
-  message: string;
-}> {
-  return fetchApi(
-    `/api/auth/check-username?username=${encodeURIComponent(username)}`,
-  );
-}
-
-export async function signOut(): Promise<void> {
-  try {
-    await fetchApi("/api/auth/signout", { method: "POST" });
-  } finally {
-    clearTokens();
-    // 로그아웃 이벤트 발생 (다른 컴포넌트에서 감지 가능)
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("authStateChanged", { detail: { isLoggedIn: false } }),
-      );
-    }
-  }
-}
-
-export async function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-
-  // 이미 토큰 갱신이 진행 중이면 기다림
-  if (refreshPromise) {
-    return refreshPromise;
-  }
-
-  // 새로운 토큰 갱신 시작
-  refreshPromise = (async () => {
-    try {
-      // 직접 fetch 사용 (순환 참조 방지)
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        clearTokens();
-        return false;
-      }
-
-      const data = await response.json();
-      setTokens(data.accessToken, data.refreshToken);
-      return true;
-    } catch {
-      clearTokens();
-      return false;
-    } finally {
-      // Promise 완료 후 초기화
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
 }
 
 // ============ User Preferences API ============
@@ -382,7 +270,7 @@ export interface ApiSession {
   interview_type_id?: string | null;
   interview_type?: ApiInterviewType | null;
   created_at: string;
-  user_id: string; // 소유자 ID 추가
+  user_id: string;
   shared_by?: {
     id: string;
     username: string;
@@ -463,11 +351,10 @@ export async function createSessionApi(
     content: string;
     hint: string;
     category: string;
-    questionId?: string; // 기존 질문 ID (있으면 사용)
+    questionId?: string;
   }>,
   interviewTypeId?: string | null,
 ): Promise<{ session: { id: string; created_at: string } }> {
-  // questionId가 있는 경우 question_ids로 전달
   const questionIds = questions
     .map((q) => q.questionId)
     .filter((id): id is string => !!id);
@@ -589,52 +476,6 @@ export async function replaceQuestionsApi(
     },
   );
   return data.new_questions;
-}
-
-// ============ User Info ============
-
-interface UserInfo {
-  id: string;
-  email: string;
-  nickname: string | null;
-}
-
-let cachedUser: UserInfo | null = null;
-
-export function getCachedUser(): UserInfo | null {
-  return cachedUser;
-}
-
-export function setCachedUser(user: UserInfo | null): void {
-  cachedUser = user;
-}
-
-export async function getCurrentUser(): Promise<UserInfo | null> {
-  const token = getAccessToken();
-  if (!token) return null;
-
-  try {
-    const data = await fetchApi<{ user: UserInfo }>("/api/auth/me");
-    cachedUser = data.user;
-    return data.user;
-  } catch {
-    // 토큰 갱신 시도
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      try {
-        const data = await fetchApi<{ user: UserInfo }>("/api/auth/me");
-        cachedUser = data.user;
-        return data.user;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
-export function isLoggedIn(): boolean {
-  return !!getAccessToken();
 }
 
 // ============ Team Spaces API ============
@@ -897,16 +738,12 @@ export interface ApiFeedbackData {
     mentioned: string[];
     missing: string[];
   };
-  // Model answer fields
   modelAnswer?: ApiModelAnswerData | null;
   hasModelAnswer?: boolean;
   createdAt: string;
   detailGeneratedAt: string | null;
 }
 
-/**
- * Get feedback for an answer
- */
 export async function getFeedbackApi(
   answerId: string,
 ): Promise<{ feedback: ApiFeedbackData | null }> {
@@ -915,9 +752,6 @@ export async function getFeedbackApi(
   );
 }
 
-/**
- * Generate quick feedback (keywords, score, summary) using Haiku
- */
 export async function generateQuickFeedbackApi(
   answerId: string,
 ): Promise<{ feedback: ApiFeedbackData }> {
@@ -929,9 +763,6 @@ export async function generateQuickFeedbackApi(
   );
 }
 
-/**
- * Generate detailed feedback (strengths, improvements, followUpQuestions) using Sonnet
- */
 export async function generateDetailedFeedbackApi(
   answerId: string,
 ): Promise<{ feedback: ApiFeedbackData }> {
@@ -943,10 +774,6 @@ export async function generateDetailedFeedbackApi(
   );
 }
 
-/**
- * Generate full feedback (one-click complete analysis) using Sonnet
- * Returns: keyword analysis, score, summary, strengths, improvements, followUpQuestions, detailedFeedback
- */
 export async function generateFullFeedbackApi(
   answerId: string,
 ): Promise<{ feedback: ApiFeedbackData }> {
@@ -960,9 +787,6 @@ export async function generateFullFeedbackApi(
 
 // ============ Model Answer API ============
 
-/**
- * Get cached model answer for a question
- */
 export async function getModelAnswerApi(
   answerId: string,
 ): Promise<{ modelAnswer: ApiModelAnswerData | null }> {
@@ -971,10 +795,6 @@ export async function getModelAnswerApi(
   );
 }
 
-/**
- * Generate model answer for a question using Sonnet
- * Returns: exemplary answer, key points, optional code example
- */
 export async function generateModelAnswerApi(
   answerId: string,
 ): Promise<{ modelAnswer: ApiModelAnswerData; cached: boolean }> {

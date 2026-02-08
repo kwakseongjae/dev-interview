@@ -25,7 +25,6 @@ import {
   getCurrentUser,
   signOut,
   getLastSelectedTeamSpaceApi,
-  getAccessToken,
   getInterviewTypesApi,
   type ApiInterviewType,
 } from "@/lib/api";
@@ -335,21 +334,12 @@ export default function Home() {
           return;
         }
 
-        const token = getAccessToken();
-        if (!token) {
-          alert("로그인이 필요합니다.");
-          router.push("/auth");
-          setIsUploading(false);
-          return;
-        }
-
         for (const file of referenceFiles) {
           try {
             // 타임아웃 및 파일명 sanitization이 적용된 업로드 함수 사용
             const response = await uploadFileWithTimeout(
               file,
               "/api/references/upload",
-              token,
               60000, // 60초 타임아웃
             );
 
@@ -519,7 +509,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center md:justify-center px-4 md:px-6 pb-24 md:pb-32 pt-12 md:pt-20">
+      <div className="flex-1 flex flex-col items-center md:justify-center px-4 md:px-6 pb-8 md:pb-12 pt-12 md:pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -851,6 +841,18 @@ export default function Home() {
 
       {/* Team Space Intro */}
       {user && <TeamSpaceIntro />}
+
+      {/* Footer */}
+      <footer className="mt-auto py-4 flex items-center justify-center gap-3 text-xs text-muted-foreground/50">
+        <span>&copy; 2026 mochabun</span>
+        <span>·</span>
+        <Link
+          href="/privacy"
+          className="hover:text-muted-foreground transition-colors"
+        >
+          개인정보 처리방침
+        </Link>
+      </footer>
     </main>
   );
 }

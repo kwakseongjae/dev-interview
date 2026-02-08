@@ -10,7 +10,6 @@ export interface Database {
         Row: {
           id: string;
           email: string;
-          password_hash: string;
           nickname: string | null;
           avatar_url: string | null;
           has_seen_teamspace_intro: boolean;
@@ -20,7 +19,6 @@ export interface Database {
         Insert: {
           id?: string;
           email: string;
-          password_hash: string;
           nickname?: string | null;
           avatar_url?: string | null;
           has_seen_teamspace_intro?: boolean;
@@ -30,32 +28,10 @@ export interface Database {
         Update: {
           id?: string;
           email?: string;
-          password_hash?: string;
           nickname?: string | null;
           avatar_url?: string | null;
           has_seen_teamspace_intro?: boolean;
           updated_at?: string;
-        };
-      };
-      refresh_tokens: {
-        Row: {
-          id: string;
-          user_id: string;
-          token: string;
-          expires_at: string;
-          created_at: string;
-          revoked_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          token: string;
-          expires_at: string;
-          created_at?: string;
-          revoked_at?: string | null;
-        };
-        Update: {
-          revoked_at?: string | null;
         };
       };
       categories: {
@@ -414,12 +390,6 @@ export interface Database {
 // Convenience types
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
-export type PublicUser = Omit<User, "password_hash">;
-
-export type RefreshToken =
-  Database["public"]["Tables"]["refresh_tokens"]["Row"];
-export type RefreshTokenInsert =
-  Database["public"]["Tables"]["refresh_tokens"]["Insert"];
 
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Subcategory = Database["public"]["Tables"]["subcategories"]["Row"];
@@ -461,35 +431,6 @@ export type QuestionGenerationHistory =
   Database["public"]["Tables"]["question_generation_history"]["Row"];
 export type QuestionGenerationHistoryInsert =
   Database["public"]["Tables"]["question_generation_history"]["Insert"];
-
-// JWT Payload Types
-export interface AccessTokenPayload {
-  sub: string; // user_id
-  email: string;
-  iat: number;
-  exp: number;
-  type: "access";
-}
-
-export interface RefreshTokenPayload {
-  sub: string; // user_id
-  jti: string; // token id (DB의 refresh_tokens.id)
-  iat: number;
-  exp: number;
-  type: "refresh";
-}
-
-// API Response Types
-export interface AuthResponse {
-  user: PublicUser;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface TokenRefreshResponse {
-  accessToken: string;
-  refreshToken: string;
-}
 
 // Question with relations
 export interface QuestionWithCategory extends Question {

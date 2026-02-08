@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/questions - 질문 목록 조회
@@ -90,8 +90,7 @@ export async function GET(request: NextRequest) {
 // POST /api/questions - 새 질문 생성 (관리자 또는 인증된 사용자)
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = getAuthFromRequest(authHeader);
+    const auth = await getUserOptional();
 
     const body = await request.json();
     let { content, hint, category_id, subcategory_id, difficulty } = body;

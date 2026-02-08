@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/team-spaces/:id/sessions - 팀스페이스의 면접 기록 목록
@@ -8,8 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { id: teamSpaceId } = await params;
 
@@ -169,8 +168,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { id: teamSpaceId } = await params;
     const body = await request.json();

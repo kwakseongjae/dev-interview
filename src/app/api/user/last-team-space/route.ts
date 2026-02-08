@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/user/last-team-space - 마지막 선택한 팀스페이스 조회
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     // 사용자 정보 조회 (last_selected_team_space_id 포함)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,8 +42,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/user/last-team-space - 마지막 선택한 팀스페이스 저장
 export async function PUT(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const body = await request.json();
     const { teamSpaceId } = body;

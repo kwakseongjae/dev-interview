@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET: 팀스페이스 인트로를 봤는지 확인
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: user, error } = await (supabaseAdmin as any)
@@ -41,8 +40,7 @@ export async function GET(request: NextRequest) {
 // POST: 팀스페이스 인트로를 봤음으로 표시
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabaseAdmin as any)

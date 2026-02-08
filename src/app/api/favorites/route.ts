@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/favorites - 찜한 질문 목록
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
@@ -160,8 +159,7 @@ export async function GET(request: NextRequest) {
 // POST /api/favorites - 질문 찜하기
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const body = await request.json();
     const { question_id } = body;

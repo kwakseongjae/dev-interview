@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateQuestions, summarizeQueryToTitle } from "@/lib/claude";
 
 // GET /api/sessions - 내 면접 세션 목록
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
@@ -231,8 +230,7 @@ export async function GET(request: NextRequest) {
 // POST /api/sessions - 새 면접 세션 생성
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const body = await request.json();
     let { query, question_ids, questions: questionsData } = body;

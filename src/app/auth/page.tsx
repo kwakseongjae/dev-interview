@@ -1,150 +1,63 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 import logoImage from "@/assets/images/logo.png";
 import logoTextImage from "@/assets/images/logo-text.png";
-import { signIn, signUp, checkUsername } from "@/lib/api";
+import { signInWithGoogle, isLoggedIn } from "@/lib/api";
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24">
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
 
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
-  const [isLogin, setIsLogin] = useState(true);
+  const error = searchParams.get("error");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-
-  // 로그인 폼
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  // 회원가입 폼
-  const [signupUsername, setSignupUsername] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
-  const [signupErrors, setSignupErrors] = useState<{
-    username?: string;
-    password?: string;
-    passwordConfirm?: string;
-  }>({});
-  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
-    null,
+  const [errorMessage, setErrorMessage] = useState(
+    error === "callback_failed"
+      ? "로그인에 실패했습니다. 다시 시도해주세요."
+      : "",
   );
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-
-    if (!loginUsername || !loginPassword) {
-      setLoginError("아이디와 비밀번호를 입력해주세요");
-      return;
+  useEffect(() => {
+    if (isLoggedIn()) {
+      router.replace(redirectTo);
     }
+  }, [router, redirectTo]);
 
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setErrorMessage("");
     try {
-      await signIn(loginUsername, loginPassword);
-      router.push(redirectTo);
-    } catch (error) {
-      setLoginError(
-        error instanceof Error ? error.message : "로그인에 실패했습니다",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCheckUsername = async () => {
-    if (signupUsername.length < 4) {
-      setSignupErrors((prev) => ({
-        ...prev,
-        username: "아이디는 4글자 이상이어야 합니다",
-      }));
-      setUsernameAvailable(false);
-      return;
-    }
-
-    setIsCheckingUsername(true);
-    try {
-      const result = await checkUsername(signupUsername);
-      setUsernameAvailable(result.available);
-      setSignupErrors((prev) => ({
-        ...prev,
-        username: result.available ? undefined : result.message,
-      }));
-    } catch (error) {
-      setSignupErrors((prev) => ({
-        ...prev,
-        username: "아이디 확인 중 오류가 발생했습니다",
-      }));
-      setUsernameAvailable(false);
-    } finally {
-      setIsCheckingUsername(false);
-    }
-  };
-
-  const validateSignup = () => {
-    const errors: typeof signupErrors = {};
-
-    // 아이디 검증
-    if (signupUsername.length < 4) {
-      errors.username = "아이디는 4글자 이상이어야 합니다";
-    }
-
-    // 비밀번호 검증
-    if (signupPassword.length < 8) {
-      errors.password = "비밀번호는 8자 이상이어야 합니다";
-    } else {
-      const hasLetter = /[a-zA-Z]/.test(signupPassword);
-      const hasNumber = /[0-9]/.test(signupPassword);
-      if (!hasLetter || !hasNumber) {
-        errors.password = "비밀번호는 영문과 숫자를 포함해야 합니다";
-      }
-    }
-
-    // 비밀번호 확인 검증
-    if (signupPassword !== signupPasswordConfirm) {
-      errors.passwordConfirm = "비밀번호가 일치하지 않습니다";
-    }
-
-    setSignupErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateSignup()) {
-      return;
-    }
-
-    if (usernameAvailable === false) {
-      setSignupErrors((prev) => ({
-        ...prev,
-        username: "아이디 중복 확인을 해주세요",
-      }));
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await signUp(signupUsername, signupPassword, signupPasswordConfirm);
-      router.push(redirectTo);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "회원가입에 실패했습니다";
-      if (message.includes("이미 존재하는")) {
-        setSignupErrors((prev) => ({ ...prev, username: message }));
-      } else {
-        setSignupErrors((prev) => ({ ...prev, password: message }));
-      }
-    } finally {
+      await signInWithGoogle(redirectTo);
+    } catch {
+      setErrorMessage("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
       setIsLoading(false);
     }
   };
@@ -160,190 +73,65 @@ function AuthContent() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-md"
+        className="relative z-10 w-full max-w-[420px]"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-1 mb-8">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden">
             <Image
               src={logoImage}
               alt="모카번 Logo"
-              width={48}
-              height={48}
+              width={56}
+              height={56}
               className="w-full h-full object-contain"
             />
           </div>
           <Image
             src={logoTextImage}
             alt="모카번"
-            width={80}
-            height={34}
-            className="h-7 w-auto object-contain"
+            width={96}
+            height={40}
+            className="h-9 w-auto object-contain"
             priority
           />
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-4 mb-6">
+        {/* Description */}
+        <p className="text-center text-muted-foreground text-lg mb-10">
+          AI 기반 개발자 기술면접 준비 서비스
+        </p>
+
+        {/* Card */}
+        <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm p-8 shadow-sm">
+          <p className="text-center text-sm text-muted-foreground mb-6">
+            Google 계정으로 간편하게 시작하세요
+          </p>
+
+          {/* Google Login Button */}
           <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 text-center font-medium transition-colors ${
-              isLogin
-                ? "text-foreground border-b-2 border-gold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full h-[52px] flex items-center justify-center gap-3 rounded-xl border border-border bg-white text-[15px] font-medium text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            로그인
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            ) : (
+              <>
+                <GoogleIcon />
+                Google로 시작하기
+              </>
+            )}
           </button>
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 text-center font-medium transition-colors ${
-              !isLogin
-                ? "text-foreground border-b-2 border-gold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            회원가입
-          </button>
+
+          {errorMessage && (
+            <p className="text-sm text-red-500 text-center mt-4">
+              {errorMessage}
+            </p>
+          )}
         </div>
 
-        {/* Login Form */}
-        {isLogin ? (
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Input
-                type="text"
-                placeholder="아이디"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                className="h-12"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="비밀번호"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="h-12"
-                disabled={isLoading}
-              />
-            </div>
-            {loginError && <p className="text-sm text-red-500">{loginError}</p>}
-            <Button
-              type="submit"
-              className="w-full h-12 bg-navy hover:bg-navy-light"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "로그인"
-              )}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="아이디 (4글자 이상)"
-                  value={signupUsername}
-                  onChange={(e) => {
-                    setSignupUsername(e.target.value);
-                    setUsernameAvailable(null);
-                    setSignupErrors((prev) => ({
-                      ...prev,
-                      username: undefined,
-                    }));
-                  }}
-                  className="h-12 flex-1"
-                  disabled={isLoading || isCheckingUsername}
-                />
-                <Button
-                  type="button"
-                  onClick={handleCheckUsername}
-                  disabled={
-                    isLoading || isCheckingUsername || signupUsername.length < 4
-                  }
-                  variant="outline"
-                  className="h-12"
-                >
-                  {isCheckingUsername ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "중복확인"
-                  )}
-                </Button>
-              </div>
-              {signupErrors.username && (
-                <p className="text-sm text-red-500 mt-1">
-                  {signupErrors.username}
-                </p>
-              )}
-              {usernameAvailable === true && (
-                <p className="text-sm text-green-500 mt-1">
-                  사용 가능한 아이디입니다
-                </p>
-              )}
-            </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="비밀번호 (영문+숫자 8자 이상)"
-                value={signupPassword}
-                onChange={(e) => {
-                  setSignupPassword(e.target.value);
-                  setSignupErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                className="h-12"
-                disabled={isLoading}
-              />
-              {signupErrors.password && (
-                <p className="text-sm text-red-500 mt-1">
-                  {signupErrors.password}
-                </p>
-              )}
-            </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="비밀번호 확인"
-                value={signupPasswordConfirm}
-                onChange={(e) => {
-                  setSignupPasswordConfirm(e.target.value);
-                  setSignupErrors((prev) => ({
-                    ...prev,
-                    passwordConfirm: undefined,
-                  }));
-                }}
-                className="h-12"
-                disabled={isLoading}
-              />
-              {signupErrors.passwordConfirm && (
-                <p className="text-sm text-red-500 mt-1">
-                  {signupErrors.passwordConfirm}
-                </p>
-              )}
-            </div>
-            <Button
-              type="submit"
-              className="w-full h-12 bg-navy hover:bg-navy-light"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "회원가입"
-              )}
-            </Button>
-          </form>
-        )}
-
         {/* Back to home */}
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <Link
             href="/"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
