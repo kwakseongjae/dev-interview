@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hashPassword, verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 // GET /api/team-spaces - 내가 참여한 팀스페이스 목록
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: memberships, error } = await (supabaseAdmin as any)
@@ -65,8 +64,7 @@ export async function GET(request: NextRequest) {
 // POST /api/team-spaces - 새 팀스페이스 생성
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const body = await request.json();
     let { name, avatar_url, password } = body;

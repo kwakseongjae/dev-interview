@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 /**
@@ -11,8 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = getAuthFromRequest(authHeader);
+    const auth = await getUserOptional();
 
     if (!auth) {
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });

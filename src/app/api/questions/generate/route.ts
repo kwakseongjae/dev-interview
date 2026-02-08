@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 import { validateInterviewInput } from "@/lib/validation";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import {
   getQuestionHistory,
   getQuestionHistoryByReference,
@@ -52,8 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 선택적 인증 - 로그인 사용자는 질문 이력 기반 다양성 적용
-    const authHeader = request.headers.get("Authorization");
-    const auth = getAuthFromRequest(authHeader);
+    const auth = await getUserOptional();
     const userId = auth?.sub;
 
     // 제외할 질문 내용 목록 (이미 추천된 질문들)

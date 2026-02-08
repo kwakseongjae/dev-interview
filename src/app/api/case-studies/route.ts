@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCaseStudies, getCaseStudyFavoriteIds } from "@/lib/case-studies";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 
 // GET /api/case-studies - 케이스 스터디 목록 조회
 export async function GET(request: NextRequest) {
@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
     );
 
     // 로그인 사용자인 경우 즐겨찾기 상태 추가
-    const authHeader = request.headers.get("Authorization");
-    const auth = getAuthFromRequest(authHeader);
+    const auth = await getUserOptional();
 
     if (auth?.sub) {
       const favoriteIds = await getCaseStudyFavoriteIds(auth.sub);

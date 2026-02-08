@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
-import { verifyPassword } from "@/lib/auth";
+import { verifyPassword } from "@/lib/password";
 
 // POST /api/team-spaces/invite/:code/join - 초대 코드로 팀스페이스 참여
 export async function POST(
@@ -9,8 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { code: inviteCode } = await params;
 

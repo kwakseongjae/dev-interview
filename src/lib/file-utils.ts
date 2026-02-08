@@ -86,7 +86,6 @@ export function createSanitizedFile(file: File): File {
 export async function uploadFileWithTimeout(
   file: File,
   url: string,
-  token: string,
   timeoutMs: number = 60000,
 ): Promise<Response> {
   const controller = new AbortController();
@@ -99,7 +98,6 @@ export async function uploadFileWithTimeout(
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
       body: formData,
       signal: controller.signal,
     });

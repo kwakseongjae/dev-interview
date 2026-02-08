@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/favorites/:questionId - 찜 여부 확인
@@ -8,8 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ questionId: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { questionId } = await params;
 
@@ -57,8 +56,7 @@ export async function DELETE(
   { params }: { params: Promise<{ questionId: string }> },
 ) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const auth = requireAuth(authHeader);
+    const auth = await requireUser();
 
     const { questionId } = await params;
 
