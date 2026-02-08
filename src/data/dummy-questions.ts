@@ -160,7 +160,10 @@ export function createQuestionsFromTemplates(
 
 // 검색 진행 단계
 export const SEARCH_STEPS = [
-  { step: 1, label: "경력 분석 완료", completed: false },
-  { step: 2, label: "기술 스택 파악 완료", completed: false },
-  { step: 3, label: "질문 생성 중...", completed: false },
+  { step: 1, label: "검색어를 분석하고 있어요" },
+  { step: 2, label: "관련 기술 스택을 파악하고 있어요" },
+  { step: 3, label: "면접 출제 경향을 확인하고 있어요" },
+  { step: 4, label: "난이도를 조정하고 있어요" },
+  { step: 5, label: "핵심 질문을 선별하고 있어요" },
+  { step: 6, label: "힌트를 생성하고 있어요" },
 ];
