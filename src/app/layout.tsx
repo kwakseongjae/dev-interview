@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Agentation } from "agentation";
+import FloatingContactButton from "@/components/FloatingContactButton";
 
 export const metadata: Metadata = {
   title: "모카번 - AI 기술면접 준비",
@@ -63,6 +64,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-body antialiased">
         {children}
+        <FloatingContactButton />
         {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
