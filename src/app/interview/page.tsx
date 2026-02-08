@@ -31,6 +31,7 @@ import {
   getSessionByIdApi,
   type ApiSessionDetail,
 } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import { formatSeconds } from "@/hooks/useTimer";
 import { HintSection } from "@/components/feedback/HintSection";
 
@@ -56,6 +57,7 @@ function InterviewContent() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [totalElapsedTime, setTotalElapsedTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
 
@@ -366,7 +368,22 @@ function InterviewContent() {
   };
 
   const handleSubmit = async () => {
-    if (!session) return;
+    if (!session || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    // 비동기로 실제 인증 상태 확인 (race condition 방지)
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setIsSubmitting(false);
+      alert("로그인이 필요합니다.");
+      router.push("/auth");
+      return;
+    }
 
     // 타이머 및 자동저장 정지
     if (timerIntervalRef.current) {
@@ -387,48 +404,40 @@ function InterviewContent() {
       isAnswered: (answers[q.id] || "").trim().length > 0,
     }));
 
-    // 로그인 상태면 API로 답변 제출 및 서버에 저장
-    if (isLoggedIn()) {
-      try {
-        // 각 질문에 대한 답변을 API로 제출
-        for (const question of updatedQuestions) {
-          if (question.answer && question.answer.trim().length > 0) {
-            await submitAnswerApi(
-              session.id,
-              question.id,
-              question.answer,
-              0, // timeSpent는 더 이상 사용하지 않음
-            );
-          }
+    try {
+      // 각 질문에 대한 답변을 API로 제출
+      for (const question of updatedQuestions) {
+        if (question.answer && question.answer.trim().length > 0) {
+          await submitAnswerApi(
+            session.id,
+            question.id,
+            question.answer,
+            0, // timeSpent는 더 이상 사용하지 않음
+          );
         }
-
-        // 세션 완료 처리 - 총 소요시간만 전달
-        await completeSessionApi(session.id, finalTotalTime);
-
-        // 제출 성공 시 로컬 스토리지 클린업
-        clearLocalProgress();
-
-        // Navigate to complete page
-        router.push(`/complete?session=${session.id}`);
-        return;
-      } catch (error) {
-        console.error("API 제출 실패:", error);
-        alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
-
-        // 에러 발생 시 타이머 및 자동저장 다시 시작
-        timerIntervalRef.current = setInterval(() => {
-          totalTimeRef.current += 1;
-          setTotalElapsedTime(totalTimeRef.current);
-        }, 1000);
-        autoSaveIntervalRef.current = setInterval(() => {
-          saveToLocal();
-        }, 10000);
-        return;
       }
-    } else {
-      // 로그인하지 않은 경우
-      alert("로그인이 필요합니다.");
-      router.push("/auth");
+
+      // 세션 완료 처리 - 총 소요시간만 전달
+      await completeSessionApi(session.id, finalTotalTime);
+
+      // 제출 성공 시 로컬 스토리지 클린업
+      clearLocalProgress();
+
+      // Navigate to complete page
+      router.push(`/complete?session=${session.id}`);
+    } catch (error) {
+      console.error("API 제출 실패:", error);
+      alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
+
+      // 에러 발생 시 타이머 및 자동저장 다시 시작
+      setIsSubmitting(false);
+      timerIntervalRef.current = setInterval(() => {
+        totalTimeRef.current += 1;
+        setTotalElapsedTime(totalTimeRef.current);
+      }, 1000);
+      autoSaveIntervalRef.current = setInterval(() => {
+        saveToLocal();
+      }, 10000);
     }
   };
 
@@ -556,11 +565,16 @@ function InterviewContent() {
           <div className="p-4 border-t border-border">
             <Button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className="w-full bg-gold hover:bg-gold-light text-navy font-semibold"
               size="lg"
             >
-              <Send className="w-4 h-4 mr-2" />
-              제출하기
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              {isSubmitting ? "제출 중..." : "제출하기"}
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
               총 소요 시간: {formatSeconds(totalElapsedTime)}
@@ -673,10 +687,15 @@ function InterviewContent() {
                   ) : (
                     <Button
                       onClick={handleSubmit}
+                      disabled={isSubmitting}
                       className="gap-2 bg-gold hover:bg-gold-light text-navy"
                     >
-                      제출하기
-                      <Send className="w-4 h-4" />
+                      {isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                      {isSubmitting ? "제출 중..." : "제출하기"}
                     </Button>
                   )}
                 </div>
@@ -696,10 +715,15 @@ function InterviewContent() {
             </div>
             <Button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className="w-full bg-gold hover:bg-gold-light text-navy font-semibold"
             >
-              <Send className="w-4 h-4 mr-2" />
-              제출하기
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              {isSubmitting ? "제출 중..." : "제출하기"}
             </Button>
           </div>
         </div>

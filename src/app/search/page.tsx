@@ -237,22 +237,31 @@ function SearchContent() {
     setReferenceUrls(parsedReferenceUrls);
 
     const runSearch = async () => {
-      const steps = SEARCH_STEPS.length;
+      const totalSteps = SEARCH_STEPS.length;
+
+      // 처음 5단계를 점진적으로 진행 (마지막 단계는 API 완료 시 표시)
+      const stepsBeforeLast = totalSteps - 1;
       let step = 0;
+      let apiDone = false;
 
-      // 진행 상황 애니메이션
+      // 2초 간격으로 단계 진행, 마지막 전 단계까지만 자동 진행
       const interval = setInterval(() => {
-        step++;
-        setCurrentStep(step);
-
-        if (step >= steps) {
+        if (apiDone) {
           clearInterval(interval);
+          return;
         }
-      }, 600);
+        if (step < stepsBeforeLast) {
+          step++;
+          setCurrentStep(step);
+        }
+      }, 2000);
 
       try {
         // API 호출 (파싱된 레퍼런스 URL 전달)
         const result = await fetchQuestions([], parsedReferenceUrls);
+        apiDone = true;
+        clearInterval(interval);
+
         const convertedQuestions = convertToQuestions(result.questions);
 
         // 레퍼런스 미사용 알림 설정
@@ -264,8 +273,14 @@ function SearchContent() {
           setReferenceNotice(result.referenceMessage);
         }
 
-        // 진행 완료 대기
-        await new Promise((resolve) => setTimeout(resolve, steps * 600 + 300));
+        // 남은 단계 빠르게 완료
+        for (let i = step + 1; i <= totalSteps; i++) {
+          setCurrentStep(i);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+
+        // 최종 결과 표시 전 짧은 딜레이
+        await new Promise((resolve) => setTimeout(resolve, 400));
 
         setQuestions(convertedQuestions);
 
@@ -291,8 +306,9 @@ function SearchContent() {
         setIsSearching(false);
       } catch (error) {
         // 에러 시에도 검색 완료 상태로 전환
+        apiDone = true;
         clearInterval(interval);
-        setCurrentStep(steps);
+        setCurrentStep(totalSteps);
         setIsSearching(false);
 
         // 유효성 검증 에러인 경우
@@ -565,55 +581,73 @@ function SearchContent() {
             >
               <Card className="p-6 bg-card/80 backdrop-blur">
                 <div className="flex items-center gap-3 mb-6">
-                  <Loader2 className="w-5 h-5 animate-spin text-gold" />
-                  <span className="text-lg font-medium">
-                    AI가 질문을 생성하고 있습니다...
-                  </span>
+                  <div className="relative flex items-center justify-center w-8 h-8">
+                    <Sparkles className="w-5 h-5 text-gold" />
+                    <span className="absolute inset-0 rounded-full bg-gold/20 animate-ping" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-medium">
+                      AI가 맞춤 질문을 만들고 있어요
+                    </span>
+                    <p className="text-sm text-muted-foreground">
+                      잠시만 기다려주세요
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  {SEARCH_STEPS.map((step, index) => (
-                    <motion.div
-                      key={step.step}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{
-                        opacity: currentStep >= index + 1 ? 1 : 0.4,
-                        x: 0,
-                      }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
-                      <div
-                        className={`
-                          w-6 h-6 rounded-full flex items-center justify-center transition-colors
-                          ${
-                            currentStep > index
-                              ? "bg-timer-safe text-white"
-                              : currentStep === index
-                                ? "bg-gold text-white"
-                                : "bg-muted text-muted-foreground"
-                          }
-                        `}
+                <div className="space-y-3">
+                  {SEARCH_STEPS.map((step, index) => {
+                    const isCompleted = currentStep > index;
+                    const isCurrent = currentStep === index;
+                    const isPending = currentStep < index;
+
+                    return (
+                      <motion.div
+                        key={step.step}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{
+                          opacity: isPending ? 0.35 : 1,
+                          x: 0,
+                        }}
+                        transition={{ delay: index * 0.05, duration: 0.3 }}
+                        className="flex items-center gap-3"
                       >
-                        {currentStep > index ? (
-                          <Check className="w-4 h-4" />
-                        ) : currentStep === index ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <span className="text-xs">{step.step}</span>
-                        )}
-                      </div>
-                      <span
-                        className={
-                          currentStep >= index
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {step.label}
-                      </span>
-                    </motion.div>
-                  ))}
+                        <div
+                          className={`
+                            w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300
+                            ${
+                              isCompleted
+                                ? "bg-timer-safe text-white"
+                                : isCurrent
+                                  ? "bg-gold text-white"
+                                  : "bg-muted text-muted-foreground"
+                            }
+                          `}
+                        >
+                          {isCompleted ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : isCurrent ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <span className="text-xs">{step.step}</span>
+                          )}
+                        </div>
+                        <span
+                          className={`text-sm transition-colors duration-300 ${
+                            isCompleted
+                              ? "text-muted-foreground"
+                              : isCurrent
+                                ? "text-foreground font-medium"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {isCompleted
+                            ? step.label.replace(/하고 있어요|있어요/, "완료")
+                            : step.label}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </Card>
             </motion.div>
