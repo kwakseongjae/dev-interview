@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { isLoggedIn, signInWithGoogle } from "@/lib/api";
+import { signInWithGoogle } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LoginPromptModalProps {
   open: boolean;
@@ -25,14 +26,15 @@ export const LoginPromptModal = ({
   type,
   onLater,
 }: LoginPromptModalProps) => {
+  const { loggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   // 로그인 상태 감지
   useEffect(() => {
-    if (open && isLoggedIn()) {
+    if (open && loggedIn) {
       onOpenChange(false);
     }
-  }, [open, onOpenChange]);
+  }, [open, loggedIn, onOpenChange]);
 
   const handleLogin = async () => {
     setIsLoading(true);

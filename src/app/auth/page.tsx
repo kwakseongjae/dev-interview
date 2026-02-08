@@ -8,7 +8,8 @@ import Link from "next/link";
 import Image from "next/image";
 import logoImage from "@/assets/images/logo.png";
 import logoTextImage from "@/assets/images/logo-text.png";
-import { signInWithGoogle, isLoggedIn } from "@/lib/api";
+import { signInWithGoogle } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 function GoogleIcon() {
   return (
@@ -38,6 +39,7 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
   const error = searchParams.get("error");
+  const { loggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     error === "callback_failed"
@@ -46,10 +48,10 @@ function AuthContent() {
   );
 
   useEffect(() => {
-    if (isLoggedIn()) {
+    if (loggedIn) {
       router.replace(redirectTo);
     }
-  }, [router, redirectTo]);
+  }, [loggedIn, router, redirectTo]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
