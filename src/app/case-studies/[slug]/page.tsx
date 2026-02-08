@@ -373,7 +373,7 @@ export default function CaseStudyDetailPage() {
                 </Link>
 
                 <p className="text-xs text-muted-foreground mt-3">
-                  로그인 후 면접 결과가 자동으로 저장됩니다
+                  로그인 없이 바로 면접을 시작할 수 있습니다
                 </p>
               </div>
             </Card>

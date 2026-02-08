@@ -45,6 +45,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import type { CaseStudy } from "@/types/case-study";
+import { LoginPromptModal } from "@/components/LoginPromptModal";
 
 // localStorage 키
 const getStorageKey = (slug: string) => `casestudy_interview_${slug}`;
@@ -55,6 +56,7 @@ interface LocalProgress {
   currentQuestionIndex: number;
   totalElapsedTime: number;
   savedAt: number;
+  isGuestSession?: boolean;
 }
 
 interface SessionQuestion {
@@ -110,11 +112,14 @@ export default function CaseStudyInterviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const totalTimeRef = useRef(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitialized = useRef(false);
+  const isGuestModeRef = useRef(false);
 
   // localStorage 저장
   const saveToLocal = useCallback(() => {
@@ -125,6 +130,7 @@ export default function CaseStudyInterviewPage() {
       currentQuestionIndex,
       totalElapsedTime: totalTimeRef.current,
       savedAt: Date.now(),
+      isGuestSession: isGuestModeRef.current,
     };
     try {
       localStorage.setItem(getStorageKey(slug), JSON.stringify(progress));
@@ -194,121 +200,245 @@ export default function CaseStudyInterviewPage() {
     }
   }, []);
 
+  // Guest 모드 초기화: seedQuestions로 로컬 세션 구성
+  const initGuestMode = useCallback(
+    (csData: CaseStudy, localProgress: LocalProgress | null) => {
+      setCaseStudy(csData);
+      setIsGuestMode(true);
+      isGuestModeRef.current = true;
+
+      // localStorage에 Guest 세션이 남아있으면 복원
+      if (localProgress?.sessionId && localProgress.isGuestSession) {
+        setSessionId(localProgress.sessionId);
+        // seedQuestions 기반으로 질문 복원
+        const guestQuestions: SessionQuestion[] = csData.seedQuestions.map(
+          (q, i) => ({
+            id: localProgress.sessionId + "_q" + i,
+            content: q.content,
+            hint: q.hint,
+            difficulty: "MEDIUM",
+            categories: {
+              name: q.category.toUpperCase(),
+              display_name: q.category,
+            },
+            order: i + 1,
+            isFavorite: false,
+          }),
+        );
+        setQuestions(guestQuestions);
+
+        // 답변 복원
+        const restoredAnswers: Record<string, string> = {};
+        for (const q of guestQuestions) {
+          restoredAnswers[q.id] = localProgress.answers[q.id] || "";
+        }
+        setAnswers(restoredAnswers);
+        setCurrentQuestionIndex(localProgress.currentQuestionIndex);
+
+        const restoredTime = localProgress.totalElapsedTime;
+        setTotalElapsedTime(restoredTime);
+        totalTimeRef.current = restoredTime;
+
+        setIsRestoredFromLocal(true);
+        setTimeout(() => setIsRestoredFromLocal(false), 3000);
+      } else {
+        // 새 Guest 세션
+        const guestSessionId = crypto.randomUUID();
+        setSessionId(guestSessionId);
+
+        const guestQuestions: SessionQuestion[] = csData.seedQuestions.map(
+          (q, i) => ({
+            id: guestSessionId + "_q" + i,
+            content: q.content,
+            hint: q.hint,
+            difficulty: "MEDIUM",
+            categories: {
+              name: q.category.toUpperCase(),
+              display_name: q.category,
+            },
+            order: i + 1,
+            isFavorite: false,
+          }),
+        );
+        setQuestions(guestQuestions);
+
+        const initialAnswers: Record<string, string> = {};
+        for (const q of guestQuestions) {
+          initialAnswers[q.id] = "";
+        }
+        setAnswers(initialAnswers);
+      }
+
+      setIsLoading(false);
+      startTimer();
+      startAutoSave();
+    },
+    [startTimer, startAutoSave],
+  );
+
+  // 로그인 후 Guest 답변을 API 세션으로 마이그레이션
+  const migrateGuestSession = useCallback(
+    async (csData: CaseStudy, localProgress: LocalProgress) => {
+      try {
+        // API 세션 생성
+        const startResult = await startCaseStudyInterviewApi(slug);
+        const newSessionId = startResult.session.id;
+
+        // 답변 제출
+        for (const q of startResult.questions) {
+          // localProgress의 답변을 매칭 (질문 순서 기반)
+          const guestQuestionId =
+            localProgress.sessionId + "_q" + (q.order - 1);
+          const answer = localProgress.answers[guestQuestionId];
+          if (answer && answer.trim().length > 0) {
+            await submitAnswerApi(newSessionId, q.id, answer, 0);
+          }
+        }
+
+        // 세션 완료
+        await completeSessionApi(newSessionId, localProgress.totalElapsedTime);
+
+        // localStorage 정리
+        clearLocalProgress();
+
+        // 완료 페이지로 이동
+        router.push(`/complete?session=${newSessionId}`);
+      } catch (error) {
+        console.error("Guest 세션 마이그레이션 실패:", error);
+        // 실패 시 일반 로그인 흐름으로 진행
+        clearLocalProgress();
+      }
+    },
+    [slug, router, clearLocalProgress],
+  );
+
   // 초기화
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     const init = async () => {
-      // 인증 확인
-      if (!isLoggedIn()) {
-        router.push(
-          `/auth?redirect=${encodeURIComponent(`/case-studies/${slug}/interview`)}`,
-        );
-        return;
-      }
+      const loggedIn = isLoggedIn();
 
       try {
         // localStorage 확인
         const localProgress = loadFromLocal();
 
-        if (localProgress?.sessionId) {
-          // 기존 세션 복원 시도
-          try {
-            const apiSession = await getSessionByIdApi(localProgress.sessionId);
+        // 로그인 후 돌아온 경우: Guest 데이터가 남아있으면 마이그레이션
+        if (loggedIn && localProgress?.isGuestSession) {
+          const { caseStudy: csData } = await getCaseStudyBySlugApi(slug);
+          setCaseStudy(csData);
+          setIsLoading(true);
+          await migrateGuestSession(csData, localProgress);
+          return;
+        }
 
-            if (apiSession.is_completed) {
-              // 완료된 세션이면 완료 페이지로
-              clearLocalProgress();
-              router.push(`/complete?session=${localProgress.sessionId}`);
+        if (loggedIn) {
+          // 기존 로그인 사용자 흐름
+          if (localProgress?.sessionId && !localProgress.isGuestSession) {
+            // 기존 세션 복원 시도
+            try {
+              const apiSession = await getSessionByIdApi(
+                localProgress.sessionId,
+              );
+
+              if (apiSession.is_completed) {
+                clearLocalProgress();
+                router.push(`/complete?session=${localProgress.sessionId}`);
+                return;
+              }
+
+              const { caseStudy: csData } = await getCaseStudyBySlugApi(slug);
+              setCaseStudy(csData);
+
+              setSessionId(localProgress.sessionId);
+              const restoredQuestions: SessionQuestion[] =
+                apiSession.questions.map((q) => ({
+                  id: q.id,
+                  content: q.content,
+                  hint: q.hint || "",
+                  difficulty: q.difficulty,
+                  categories: q.category,
+                  order: q.order,
+                  isFavorite: q.is_favorited,
+                }));
+              setQuestions(restoredQuestions);
+
+              const mergedAnswers: Record<string, string> = {};
+              for (const q of restoredQuestions) {
+                const localAnswer = localProgress.answers[q.id];
+                const serverAnswer =
+                  apiSession.questions.find((aq) => aq.id === q.id)?.answer
+                    ?.content || "";
+                mergedAnswers[q.id] =
+                  localAnswer !== undefined && localAnswer !== ""
+                    ? localAnswer
+                    : serverAnswer;
+              }
+              setAnswers(mergedAnswers);
+              setCurrentQuestionIndex(localProgress.currentQuestionIndex);
+
+              const restoredTime = Math.max(
+                localProgress.totalElapsedTime,
+                apiSession.total_time,
+              );
+              setTotalElapsedTime(restoredTime);
+              totalTimeRef.current = restoredTime;
+
+              setIsRestoredFromLocal(true);
+              setTimeout(() => setIsRestoredFromLocal(false), 3000);
+
+              setIsLoading(false);
+              startTimer();
+              startAutoSave();
               return;
+            } catch {
+              clearLocalProgress();
             }
-
-            // 케이스 스터디 데이터 로드
-            const { caseStudy: csData } = await getCaseStudyBySlugApi(slug);
-            setCaseStudy(csData);
-
-            // 세션 복원
-            setSessionId(localProgress.sessionId);
-            const restoredQuestions: SessionQuestion[] =
-              apiSession.questions.map((q) => ({
-                id: q.id,
-                content: q.content,
-                hint: q.hint || "",
-                difficulty: q.difficulty,
-                categories: q.category,
-                order: q.order,
-                isFavorite: q.is_favorited,
-              }));
-            setQuestions(restoredQuestions);
-
-            // 답변 병합 (로컬 우선)
-            const mergedAnswers: Record<string, string> = {};
-            for (const q of restoredQuestions) {
-              const localAnswer = localProgress.answers[q.id];
-              const serverAnswer =
-                apiSession.questions.find((aq) => aq.id === q.id)?.answer
-                  ?.content || "";
-              mergedAnswers[q.id] =
-                localAnswer !== undefined && localAnswer !== ""
-                  ? localAnswer
-                  : serverAnswer;
-            }
-            setAnswers(mergedAnswers);
-            setCurrentQuestionIndex(localProgress.currentQuestionIndex);
-
-            const restoredTime = Math.max(
-              localProgress.totalElapsedTime,
-              apiSession.total_time,
-            );
-            setTotalElapsedTime(restoredTime);
-            totalTimeRef.current = restoredTime;
-
-            setIsRestoredFromLocal(true);
-            setTimeout(() => setIsRestoredFromLocal(false), 3000);
-
-            setIsLoading(false);
-            startTimer();
-            startAutoSave();
-            return;
-          } catch {
-            // 세션 복원 실패 시 새 세션 생성
-            clearLocalProgress();
           }
+
+          // 새 세션 생성 (로그인 상태)
+          const [startResult, csResult] = await Promise.all([
+            startCaseStudyInterviewApi(slug),
+            getCaseStudyBySlugApi(slug),
+          ]);
+
+          setCaseStudy(csResult.caseStudy);
+          setSessionId(startResult.session.id);
+
+          const newQuestions: SessionQuestion[] = startResult.questions.map(
+            (q) => ({
+              id: q.id,
+              content: q.content,
+              hint: q.hint,
+              difficulty: q.difficulty,
+              categories: q.categories,
+              order: q.order,
+              isFavorite: false,
+            }),
+          );
+          setQuestions(newQuestions);
+
+          const initialAnswers: Record<string, string> = {};
+          for (const q of newQuestions) {
+            initialAnswers[q.id] = "";
+          }
+          setAnswers(initialAnswers);
+
+          setIsLoading(false);
+          startTimer();
+          startAutoSave();
+        } else {
+          // 비로그인: Guest 모드
+          const { caseStudy: csData } = await getCaseStudyBySlugApi(slug);
+
+          if (csData.seedQuestions.length === 0) {
+            router.push(`/case-studies/${slug}`);
+            return;
+          }
+
+          initGuestMode(csData, localProgress);
         }
-
-        // 새 세션 생성
-        const [startResult, csResult] = await Promise.all([
-          startCaseStudyInterviewApi(slug),
-          getCaseStudyBySlugApi(slug),
-        ]);
-
-        setCaseStudy(csResult.caseStudy);
-        setSessionId(startResult.session.id);
-
-        const newQuestions: SessionQuestion[] = startResult.questions.map(
-          (q) => ({
-            id: q.id,
-            content: q.content,
-            hint: q.hint,
-            difficulty: q.difficulty,
-            categories: q.categories,
-            order: q.order,
-            isFavorite: false,
-          }),
-        );
-        setQuestions(newQuestions);
-
-        // 초기 답변 빈값으로 설정
-        const initialAnswers: Record<string, string> = {};
-        for (const q of newQuestions) {
-          initialAnswers[q.id] = "";
-        }
-        setAnswers(initialAnswers);
-
-        setIsLoading(false);
-        startTimer();
-        startAutoSave();
       } catch (error) {
         console.error("면접 세션 초기화 실패:", error);
         router.push(`/case-studies/${slug}`);
@@ -323,6 +453,8 @@ export default function CaseStudyInterviewPage() {
     clearLocalProgress,
     startTimer,
     startAutoSave,
+    initGuestMode,
+    migrateGuestSession,
   ]);
 
   // beforeunload 저장
@@ -379,6 +511,11 @@ export default function CaseStudyInterviewPage() {
   const handleToggleFavorite = async () => {
     if (!currentQuestion) return;
 
+    if (isGuestMode) {
+      alert("로그인 후 찜하기 기능을 이용할 수 있습니다.");
+      return;
+    }
+
     try {
       const isFav = await toggleFavoriteApi(currentQuestion.id, {
         content: currentQuestion.content,
@@ -398,6 +535,13 @@ export default function CaseStudyInterviewPage() {
 
   const handleSubmit = async () => {
     if (!sessionId || isSubmitting) return;
+
+    // Guest 모드: 로그인 모달 표시
+    if (isGuestMode) {
+      saveToLocal();
+      setShowLoginModal(true);
+      return;
+    }
 
     setIsSubmitting(true);
     stopTimer();
@@ -747,6 +891,18 @@ export default function CaseStudyInterviewPage() {
           </Button>
         </div>
       </div>
+
+      {/* Guest 모드: 로그인 유도 모달 */}
+      <LoginPromptModal
+        open={showLoginModal}
+        onOpenChange={setShowLoginModal}
+        type="interview"
+        onLater={() => {
+          // "나중에 하기": localStorage에만 보존, 상세 페이지로 이동
+          saveToLocal();
+          router.push(`/case-studies/${slug}`);
+        }}
+      />
     </main>
   );
 }
