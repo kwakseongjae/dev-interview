@@ -151,6 +151,7 @@ function JoinContent() {
         <Card className="p-6">
           <div className="text-center mb-6">
             {teamSpace?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={teamSpace.avatar_url}
                 alt={teamSpace.name}

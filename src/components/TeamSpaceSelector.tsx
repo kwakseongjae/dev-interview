@@ -113,6 +113,7 @@ export const TeamSpaceSelector = ({
         {currentTeamSpace ? (
           <>
             {currentTeamSpace.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={currentTeamSpace.avatar_url}
                 alt={currentTeamSpace.name}
@@ -178,6 +179,7 @@ export const TeamSpaceSelector = ({
                     }`}
                   >
                     {teamSpace.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={teamSpace.avatar_url}
                         alt={teamSpace.name}

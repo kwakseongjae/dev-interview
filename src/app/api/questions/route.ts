@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // 기본 쿼리 빌드
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = (supabaseAdmin as any)
+    let query = supabaseAdmin
       .from("questions")
       .select(
         `
@@ -50,7 +49,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (difficulty) {
-      query = query.eq("difficulty", difficulty.toUpperCase());
+      query = query.eq(
+        "difficulty",
+        difficulty.toUpperCase() as "EASY" | "MEDIUM" | "HARD",
+      );
     }
 
     if (search) {
@@ -93,7 +95,8 @@ export async function POST(request: NextRequest) {
     const auth = await getUserOptional();
 
     const body = await request.json();
-    let { content, hint, category_id, subcategory_id, difficulty } = body;
+    const { category_id, subcategory_id } = body;
+    let { content, hint, difficulty } = body;
 
     // 입력 검증 및 길이 제한
     content = content?.slice(0, 2000)?.trim() || null; // 최대 2000자
@@ -123,8 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 질문 생성
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: question, error } = await (supabaseAdmin as any)
+    const { data: question, error } = await supabaseAdmin
       .from("questions")
       .insert({
         content,

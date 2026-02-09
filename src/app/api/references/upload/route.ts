@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const fileBuffer = await file.arrayBuffer();
 
     // 버킷 존재 확인 및 생성 시도
-    const { data: bucket, error: bucketError } = await supabaseAdmin.storage
+    const { error: bucketError } = await supabaseAdmin.storage
       .from("references")
       .list("", { limit: 1 });
 

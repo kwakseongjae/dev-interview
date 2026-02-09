@@ -21,9 +21,10 @@ export async function GET(request: NextRequest) {
     const interviewTypeId = searchParams.get("interview_type_id");
 
     // 세션 목록 조회 (interview_type 포함)
-    let query = (supabaseAdmin as any).from("interview_sessions").select(
+    let query = supabaseAdmin.from("interview_sessions").select(
       `
         id,
+        user_id,
         query,
         total_time,
         is_completed,
@@ -50,8 +51,7 @@ export async function GET(request: NextRequest) {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(teamSpaceId)) {
         // 멤버인지 확인
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: membership } = await (supabaseAdmin as any)
+        const { data: membership } = await supabaseAdmin
           .from("team_space_members")
           .select("id")
           .eq("team_space_id", teamSpaceId)
@@ -60,13 +60,11 @@ export async function GET(request: NextRequest) {
 
         if (membership) {
           // 팀 스페이스 세션 ID 목록 먼저 조회
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: teamSpaceSessions, error: tssError } = await (
-            supabaseAdmin as any
-          )
-            .from("team_space_sessions")
-            .select("session_id")
-            .eq("team_space_id", teamSpaceId);
+          const { data: teamSpaceSessions, error: tssError } =
+            await supabaseAdmin
+              .from("team_space_sessions")
+              .select("session_id")
+              .eq("team_space_id", teamSpaceId);
 
           if (tssError) {
             console.error("팀 스페이스 세션 조회 실패:", tssError);
@@ -79,7 +77,7 @@ export async function GET(request: NextRequest) {
           // 세션 ID 목록이 있으면 필터링, 없으면 빈 배열 반환
           if (teamSpaceSessions && teamSpaceSessions.length > 0) {
             const sessionIds = teamSpaceSessions.map(
-              (tss: any) => tss.session_id,
+              (tss: { session_id: string }) => tss.session_id,
             );
             query = query.in("id", sessionIds);
           } else {
@@ -122,7 +120,6 @@ export async function GET(request: NextRequest) {
       query = query.eq("interview_type_id", interviewTypeId);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const {
       data: sessions,
       error,
@@ -137,10 +134,8 @@ export async function GET(request: NextRequest) {
 
     // 각 세션별 답변 수 및 작성자 정보 조회
     const sessionsWithCounts = await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessions || []).map(async (session: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: answeredCount } = await (supabaseAdmin as any)
+      (sessions || []).map(async (session) => {
+        const { count: answeredCount } = await supabaseAdmin
           .from("answers")
           .select("id", { count: "exact", head: true })
           .eq("session_id", session.id);
@@ -148,8 +143,7 @@ export async function GET(request: NextRequest) {
         let sharedBy = null;
         if (teamSpaceId) {
           // 팀 스페이스 세션인 경우 작성자 정보 조회
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: teamSpaceSession } = await (supabaseAdmin as any)
+          const { data: teamSpaceSession } = await supabaseAdmin
             .from("team_space_sessions")
             .select("shared_by")
             .eq("team_space_id", teamSpaceId)
@@ -157,17 +151,16 @@ export async function GET(request: NextRequest) {
             .single();
 
           if (teamSpaceSession?.shared_by) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data: user } = await (supabaseAdmin as any)
+            const { data: user } = await supabaseAdmin
               .from("users")
-              .select("id, username, nickname")
+              .select("id, email, nickname")
               .eq("id", teamSpaceSession.shared_by)
               .single();
 
             if (user) {
               sharedBy = {
                 id: user.id,
-                username: user.username || "",
+                username: user.email?.split("@")[0] || "",
                 nickname: user.nickname || null,
               };
             }
@@ -258,16 +251,25 @@ export async function POST(request: NextRequest) {
 
     // questions 배열 검증
     if (questionsData && Array.isArray(questionsData)) {
-      questionsData = questionsData.slice(0, 50).map((q: any) => ({
-        content: String(q.content || "").slice(0, 2000), // 최대 2000자
-        hint: String(q.hint || "").slice(0, 1000), // 최대 1000자
-        category: String(q.category || "")
-          .slice(0, 50)
-          .toUpperCase(), // 최대 50자
-        subcategory: q.subcategory
-          ? String(q.subcategory).slice(0, 50).toUpperCase()
-          : undefined,
-      }));
+      questionsData = questionsData
+        .slice(0, 50)
+        .map(
+          (q: {
+            content?: string;
+            hint?: string;
+            category?: string;
+            subcategory?: string;
+          }) => ({
+            content: String(q.content || "").slice(0, 2000), // 최대 2000자
+            hint: String(q.hint || "").slice(0, 1000), // 최대 1000자
+            category: String(q.category || "")
+              .slice(0, 50)
+              .toUpperCase(), // 최대 50자
+            subcategory: q.subcategory
+              ? String(q.subcategory).slice(0, 50).toUpperCase()
+              : undefined,
+          }),
+        );
     }
 
     const questionIdsToUse: string[] = question_ids || [];
@@ -308,8 +310,7 @@ export async function POST(request: NextRequest) {
       for (const q of questionsToProcess) {
         // 카테고리 ID 조회 또는 생성
         let categoryId: string;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: existingCategory } = await (supabaseAdmin as any)
+        const { data: existingCategory } = await supabaseAdmin
           .from("categories")
           .select("id")
           .eq("name", q.category.toUpperCase())
@@ -318,10 +319,7 @@ export async function POST(request: NextRequest) {
         if (existingCategory) {
           categoryId = existingCategory.id;
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: newCategory, error: catError } = await (
-            supabaseAdmin as any
-          )
+          const { data: newCategory, error: catError } = await supabaseAdmin
             .from("categories")
             .insert({
               name: q.category.toUpperCase(),
@@ -341,8 +339,7 @@ export async function POST(request: NextRequest) {
         // 소분류 ID 조회 (있는 경우)
         let subcategoryId: string | null = null;
         if (q.subcategory) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: existingSubcategory } = await (supabaseAdmin as any)
+          const { data: existingSubcategory } = await supabaseAdmin
             .from("subcategories")
             .select("id")
             .eq("category_id", categoryId)
@@ -355,10 +352,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 질문 저장
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: newQuestion, error: qError } = await (
-          supabaseAdmin as any
-        )
+        const { data: newQuestion, error: qError } = await supabaseAdmin
           .from("questions")
           .insert({
             content: q.content,
@@ -388,8 +382,7 @@ export async function POST(request: NextRequest) {
     const sessionTitle = await titlePromise;
 
     // 세션 생성 (interview_type_id 포함)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session, error: sessionError } = await (supabaseAdmin as any)
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from("interview_sessions")
       .insert({
         user_id: auth.sub,
@@ -416,8 +409,7 @@ export async function POST(request: NextRequest) {
       question_order: index + 1,
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: sqError } = await (supabaseAdmin as any)
+    const { error: sqError } = await supabaseAdmin
       .from("session_questions")
       .insert(sessionQuestions);
 
@@ -433,8 +425,7 @@ export async function POST(request: NextRequest) {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(currentTeamSpaceId)) {
         // 멤버인지 확인
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: membership } = await (supabaseAdmin as any)
+        const { data: membership } = await supabaseAdmin
           .from("team_space_members")
           .select("id")
           .eq("team_space_id", currentTeamSpaceId)
@@ -443,8 +434,7 @@ export async function POST(request: NextRequest) {
 
         if (membership) {
           // 이미 공유된 세션인지 확인
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: existing } = await (supabaseAdmin as any)
+          const { data: existing } = await supabaseAdmin
             .from("team_space_sessions")
             .select("id")
             .eq("team_space_id", currentTeamSpaceId)
@@ -453,8 +443,7 @@ export async function POST(request: NextRequest) {
 
           if (!existing) {
             // 자동 공유
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabaseAdmin as any).from("team_space_sessions").insert({
+            await supabaseAdmin.from("team_space_sessions").insert({
               team_space_id: currentTeamSpaceId,
               session_id: session.id,
               shared_by: auth.sub,
@@ -466,8 +455,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 생성된 세션과 질문 정보 반환
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessionQuestionsData } = await (supabaseAdmin as any)
+    const { data: sessionQuestionsData } = await supabaseAdmin
       .from("session_questions")
       .select(
         `
@@ -494,11 +482,15 @@ export async function POST(request: NextRequest) {
           created_at: session.created_at,
         },
         query: session.query,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        questions: sessionQuestionsData?.map((sq: any) => ({
-          ...sq.questions,
-          order: sq.question_order,
-        })),
+        questions: sessionQuestionsData?.map(
+          (sq: {
+            questions: Record<string, unknown>;
+            question_order: number;
+          }) => ({
+            ...sq.questions,
+            order: sq.question_order,
+          }),
+        ),
       },
       { status: 201 },
     );

@@ -3,13 +3,12 @@ import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/user/last-team-space - 마지막 선택한 팀스페이스 조회
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const auth = await requireUser();
 
     // 사용자 정보 조회 (last_selected_team_space_id 포함)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: user, error } = await (supabaseAdmin as any)
+    const { data: user, error } = await supabaseAdmin
       .from("users")
       .select("last_selected_team_space_id")
       .eq("id", auth.sub)
@@ -53,8 +52,7 @@ export async function PUT(request: NextRequest) {
     };
 
     // 사용자 정보 업데이트
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("users")
       .update(updateData)
       .eq("id", auth.sub);

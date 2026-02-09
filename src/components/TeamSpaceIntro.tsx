@@ -19,7 +19,7 @@ import {
 
 export const TeamSpaceIntro = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkIntroStatus = async () => {

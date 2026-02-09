@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +33,6 @@ export const ShareToTeamSpaceDialog = ({
   sessionId,
   favoriteId,
 }: ShareToTeamSpaceDialogProps) => {
-  const router = useRouter();
   const [teamSpaces, setTeamSpaces] = useState<ApiTeamSpace[]>([]);
   const [selectedTeamSpaceId, setSelectedTeamSpaceId] = useState<string>("");
   const [weekNumber, setWeekNumber] = useState<string>("");

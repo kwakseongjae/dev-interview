@@ -26,7 +26,7 @@ import logoTextImage from "@/assets/images/logo-text.png";
 import { v4 as uuidv4 } from "uuid";
 
 import { SEARCH_STEPS } from "@/data/dummy-questions";
-import type { Question, InterviewSession } from "@/types/interview";
+import type { Question } from "@/types/interview";
 import {
   toggleFavoriteApi,
   isLoggedIn,

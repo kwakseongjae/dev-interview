@@ -7,10 +7,6 @@ import { CheckCircle2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import Image from "next/image";
-import logoImage from "@/assets/images/logo.png";
-
 function CreatedContent() {
   const searchParams = useSearchParams();
   const router = useRouter();

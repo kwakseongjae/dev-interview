@@ -18,8 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 찜한 질문인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: favorite } = await (supabaseAdmin as any)
+    const { data: favorite } = await supabaseAdmin
       .from("favorites")
       .select("id")
       .eq("user_id", auth.sub)
@@ -34,8 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 기존 답변 확인 (세션 없이 작성한 답변)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existingAnswer } = await (supabaseAdmin as any)
+    const { data: existingAnswer } = await supabaseAdmin
       .from("answers")
       .select("id")
       .eq("question_id", question_id)
@@ -47,8 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (existingAnswer) {
       // 기존 답변 업데이트
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabaseAdmin as any)
+      const { data, error } = await supabaseAdmin
         .from("answers")
         .update({
           content,
@@ -67,10 +64,7 @@ export async function POST(request: NextRequest) {
       // 여기서는 찜한 질문에 대한 독립적인 답변으로 처리
 
       // 임시 세션 생성 (찜 기반 답변용)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: tempSession, error: sessionError } = await (
-        supabaseAdmin as any
-      )
+      const { data: tempSession, error: sessionError } = await supabaseAdmin
         .from("interview_sessions")
         .insert({
           user_id: auth.sub,
@@ -84,8 +78,7 @@ export async function POST(request: NextRequest) {
         throw new Error("답변 저장 실패");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabaseAdmin as any)
+      const { data, error } = await supabaseAdmin
         .from("answers")
         .insert({
           session_id: tempSession.id,

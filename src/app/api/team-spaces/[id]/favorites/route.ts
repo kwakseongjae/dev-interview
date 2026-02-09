@@ -23,8 +23,7 @@ export async function GET(
     }
 
     // 멤버인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -39,8 +38,7 @@ export async function GET(
     }
 
     // 팀스페이스의 찜한 질문 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sharedFavorites, error } = await (supabaseAdmin as any)
+    const { data: sharedFavorites, error } = await supabaseAdmin
       .from("team_space_favorites")
       .select(
         `
@@ -80,32 +78,49 @@ export async function GET(
 
     // 각 찜한 질문의 작성자 정보 조회
     const favoritesWithUsers = await Promise.all(
-      sharedFavorites.map(async (sf: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: user } = await (supabaseAdmin as any)
-          .from("users")
-          .select("id, username, nickname")
-          .eq("id", sf.shared_by)
-          .single();
+      sharedFavorites.map(
+        async (sf: {
+          id: string;
+          shared_at: string;
+          shared_by: string;
+          favorites: {
+            id: string;
+            question_id: string;
+            created_at: string;
+            questions: {
+              id: string;
+              content: string;
+              hint: string | null;
+              categories: { name: string; display_name: string };
+              subcategories: { name: string; display_name: string } | null;
+            };
+          };
+        }) => {
+          const { data: user } = await supabaseAdmin
+            .from("users")
+            .select("id, email, nickname")
+            .eq("id", sf.shared_by)
+            .single();
 
-        return {
-          favorite_id: sf.favorites.id,
-          question_id: sf.favorites.question_id,
-          content: sf.favorites.questions.content,
-          hint: sf.favorites.questions.hint,
-          category: sf.favorites.questions.categories.display_name,
-          subcategory:
-            sf.favorites.questions.subcategories?.display_name || null,
-          created_at: sf.favorites.created_at,
-          shared_at: sf.shared_at,
-          shared_by: {
-            id: user?.id || sf.shared_by,
-            username: user?.username || "",
-            nickname: user?.nickname || null,
-          },
-          is_mine: sf.shared_by === auth.sub,
-        };
-      }),
+          return {
+            favorite_id: sf.favorites.id,
+            question_id: sf.favorites.question_id,
+            content: sf.favorites.questions.content,
+            hint: sf.favorites.questions.hint,
+            category: sf.favorites.questions.categories.display_name,
+            subcategory:
+              sf.favorites.questions.subcategories?.display_name || null,
+            created_at: sf.favorites.created_at,
+            shared_at: sf.shared_at,
+            shared_by: {
+              id: user?.id || sf.shared_by,
+              username: user?.email?.split("@")[0] || "",
+              nickname: user?.nickname || null,
+            },
+            is_mine: sf.shared_by === auth.sub,
+          };
+        },
+      ),
     );
 
     // question_id로 그룹화하여 중복 제거 및 여러 사용자 정보 수집
@@ -129,51 +144,62 @@ export async function GET(
       }
     >();
 
-    favoritesWithUsers.forEach((fav: any) => {
-      const existing = favoritesMap.get(fav.question_id);
-      if (existing) {
-        // 이미 존재하는 질문이면 사용자 정보만 추가
-        existing.favorited_by.push({
-          id: fav.shared_by.id,
-          username: fav.shared_by.username,
-          nickname: fav.shared_by.nickname,
-          shared_at: fav.shared_at,
-          is_mine: fav.is_mine,
-        });
-        // is_mine이 true인 사용자가 있으면 전체 is_mine도 true
-        if (fav.is_mine) {
-          existing.is_mine = true;
+    favoritesWithUsers.forEach(
+      (fav: {
+        question_id: string;
+        content: string;
+        hint: string | null;
+        category: string;
+        subcategory: string | null;
+        created_at: string;
+        shared_at: string;
+        shared_by: { id: string; username: string; nickname: string | null };
+        is_mine: boolean;
+      }) => {
+        const existing = favoritesMap.get(fav.question_id);
+        if (existing) {
+          // 이미 존재하는 질문이면 사용자 정보만 추가
+          existing.favorited_by.push({
+            id: fav.shared_by.id,
+            username: fav.shared_by.username,
+            nickname: fav.shared_by.nickname,
+            shared_at: fav.shared_at,
+            is_mine: fav.is_mine,
+          });
+          // is_mine이 true인 사용자가 있으면 전체 is_mine도 true
+          if (fav.is_mine) {
+            existing.is_mine = true;
+          }
+        } else {
+          // 새로운 질문이면 추가
+          favoritesMap.set(fav.question_id, {
+            question_id: fav.question_id,
+            content: fav.content,
+            hint: fav.hint,
+            category: fav.category,
+            subcategory: fav.subcategory,
+            created_at: fav.created_at,
+            favorited_by: [
+              {
+                id: fav.shared_by.id,
+                username: fav.shared_by.username,
+                nickname: fav.shared_by.nickname,
+                shared_at: fav.shared_at,
+                is_mine: fav.is_mine,
+              },
+            ],
+            is_mine: fav.is_mine,
+          });
         }
-      } else {
-        // 새로운 질문이면 추가
-        favoritesMap.set(fav.question_id, {
-          question_id: fav.question_id,
-          content: fav.content,
-          hint: fav.hint,
-          category: fav.category,
-          subcategory: fav.subcategory,
-          created_at: fav.created_at,
-          favorited_by: [
-            {
-              id: fav.shared_by.id,
-              username: fav.shared_by.username,
-              nickname: fav.shared_by.nickname,
-              shared_at: fav.shared_at,
-              is_mine: fav.is_mine,
-            },
-          ],
-          is_mine: fav.is_mine,
-        });
-      }
-    });
+      },
+    );
 
     // 각 question_id에 대해 현재 사용자가 찜한 favorite_id 확인
     // (favorited_by에 포함되어 있지만, 실제로는 favorites 테이블에서 확인)
     const questionIds = Array.from(favoritesMap.keys());
     const myFavorites = await Promise.all(
       questionIds.map(async (questionId) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: favorite } = await (supabaseAdmin as any)
+        const { data: favorite } = await supabaseAdmin
           .from("favorites")
           .select("id, question_id")
           .eq("question_id", questionId)
@@ -267,8 +293,7 @@ export async function POST(
     }
 
     // 멤버인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -283,8 +308,7 @@ export async function POST(
     }
 
     // 찜한 질문 소유권 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: favorite } = await (supabaseAdmin as any)
+    const { data: favorite } = await supabaseAdmin
       .from("favorites")
       .select("id")
       .eq("id", favorite_id)
@@ -299,8 +323,7 @@ export async function POST(
     }
 
     // 이미 공유된 찜한 질문인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing } = await (supabaseAdmin as any)
+    const { data: existing } = await supabaseAdmin
       .from("team_space_favorites")
       .select("id")
       .eq("team_space_id", teamSpaceId)
@@ -315,8 +338,7 @@ export async function POST(
     }
 
     // 공유
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sharedFavorite, error } = await (supabaseAdmin as any)
+    const { data: sharedFavorite, error } = await supabaseAdmin
       .from("team_space_favorites")
       .insert({
         team_space_id: teamSpaceId,

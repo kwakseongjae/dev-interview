@@ -8,7 +8,8 @@ export async function POST(request: NextRequest) {
     const auth = await requireUser();
 
     const body = await request.json();
-    let { session_id, question_id, content, time_spent, is_public } = body;
+    const { session_id, question_id } = body;
+    let { content, time_spent, is_public } = body;
 
     // UUID 형식 검증
     const uuidRegex =

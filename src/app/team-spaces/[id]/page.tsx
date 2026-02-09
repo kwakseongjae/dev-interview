@@ -2,11 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   Loader2,
   Calendar as CalendarIcon,
-  Heart,
   Users,
   Clock,
   CheckCircle2,
@@ -214,6 +212,7 @@ function TeamSpaceContent() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             {teamSpace.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={teamSpace.avatar_url}
                 alt={teamSpace.name}

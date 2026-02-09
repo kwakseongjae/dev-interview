@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword } from "@/lib/password";
 
 // GET /api/team-spaces/:id - 팀스페이스 상세 정보
 export async function GET(
@@ -24,8 +24,7 @@ export async function GET(
     }
 
     // 팀스페이스 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: teamSpace, error } = await (supabaseAdmin as any)
+    const { data: teamSpace, error } = await supabaseAdmin
       .from("team_spaces")
       .select("*")
       .eq("id", teamSpaceId)
@@ -39,8 +38,7 @@ export async function GET(
     }
 
     // 멤버인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -121,8 +119,7 @@ export async function PATCH(
     }
 
     // owner 권한 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -136,7 +133,7 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (name !== undefined) {
       if (!name || name.trim().length === 0) {
         return NextResponse.json(
@@ -158,8 +155,7 @@ export async function PATCH(
     }
     updateData.updated_at = new Date().toISOString();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: teamSpace, error } = await (supabaseAdmin as any)
+    const { data: teamSpace, error } = await supabaseAdmin
       .from("team_spaces")
       .update(updateData)
       .eq("id", teamSpaceId)

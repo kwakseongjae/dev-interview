@@ -30,8 +30,7 @@ export async function GET(
     }
 
     // Verify answer ownership
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: answer, error: answerError } = await (supabaseAdmin as any)
+    const { data: answer, error: answerError } = await supabaseAdmin
       .from("answers")
       .select("id, user_id")
       .eq("id", answerId)
@@ -49,10 +48,7 @@ export async function GET(
     }
 
     // Get existing feedback
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: feedback, error: feedbackError } = await (
-      supabaseAdmin as any
-    )
+    const { data: feedback, error: feedbackError } = await supabaseAdmin
       .from("answer_feedback")
       .select("*")
       .eq("answer_id", answerId)
