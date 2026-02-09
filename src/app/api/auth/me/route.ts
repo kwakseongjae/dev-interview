@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const auth = await requireUser();
 
     // 사용자 정보 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: user, error } = await (supabaseAdmin as any)
+    const { data: user, error } = await supabaseAdmin
       .from("users")
       .select("id, email, nickname, avatar_url, created_at, updated_at")
       .eq("id", auth.sub)

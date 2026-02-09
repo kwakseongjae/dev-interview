@@ -238,7 +238,6 @@ export async function checkFavoriteApi(questionId: string): Promise<boolean> {
 
 export async function toggleFavoriteApi(
   questionId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _question: { content: string; hint: string; category: string },
 ): Promise<boolean> {
   const isFav = await checkFavoriteApi(questionId);

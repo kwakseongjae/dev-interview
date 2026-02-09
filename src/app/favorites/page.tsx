@@ -8,11 +8,8 @@ import {
   Heart,
   Loader2,
   Play,
-  Sparkles,
-  Trash2,
   Share2,
   Users,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -56,7 +53,7 @@ export default function FavoritesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
-  const [useApi, setUseApi] = useState(false);
+  const [, setUseApi] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<string | null>(
@@ -595,6 +592,7 @@ export default function FavoritesPage() {
                     }}
                   >
                     {currentTeamSpace.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={currentTeamSpace.avatar_url}
                         alt={currentTeamSpace.name}

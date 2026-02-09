@@ -9,8 +9,7 @@ type Subcategory = Database["public"]["Tables"]["subcategories"]["Row"];
 export async function GET() {
   try {
     // 대분류 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: categories, error: catError } = (await (supabaseAdmin as any)
+    const { data: categories, error: catError } = (await supabaseAdmin
       .from("categories")
       .select("*")
       .order("sort_order", { ascending: true })) as {
@@ -23,10 +22,7 @@ export async function GET() {
     }
 
     // 소분류 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: subcategories, error: subError } = (await (
-      supabaseAdmin as any
-    )
+    const { data: subcategories, error: subError } = (await supabaseAdmin
       .from("subcategories")
       .select("*")
       .order("sort_order", { ascending: true })) as {

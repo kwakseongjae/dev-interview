@@ -158,6 +158,7 @@ export default function NewTeamSpacePage() {
               <div className="flex items-center gap-4">
                 {avatarPreview ? (
                   <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={avatarPreview}
                       alt="프로필 미리보기"

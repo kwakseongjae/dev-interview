@@ -13,7 +13,6 @@ import {
   Heart,
   Loader2,
   Play,
-  Sparkles,
   Trash2,
   Users,
   X,
@@ -46,7 +45,6 @@ import {
   getCurrentUser,
   getInterviewTypesApi,
   type ApiSession,
-  type ApiSessionDetail,
   type ApiTeamSpace,
   type ApiInterviewType,
 } from "@/lib/api";
@@ -60,7 +58,7 @@ export default function ArchivePage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [useApi, setUseApi] = useState(false);
+  const [, setUseApi] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -480,7 +478,6 @@ export default function ArchivePage() {
   const handleToggleQuestionFavorite = async (
     sessionId: string,
     questionId: string,
-    currentIsFavorite: boolean,
   ) => {
     if (!isLoggedIn()) {
       alert("로그인이 필요합니다.");
@@ -690,6 +687,7 @@ export default function ArchivePage() {
                       }}
                     >
                       {currentTeamSpace.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={currentTeamSpace.avatar_url}
                           alt={currentTeamSpace.name}
@@ -1037,7 +1035,6 @@ export default function ArchivePage() {
                                               handleToggleQuestionFavorite(
                                                 session.id,
                                                 question.id,
-                                                question.isFavorite,
                                               );
                                             }}
                                             className="flex-shrink-0 p-1.5 rounded-full hover:bg-muted transition-colors"

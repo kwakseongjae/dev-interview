@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -10,7 +10,6 @@ import {
   Home,
   Loader2,
   RefreshCw,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,19 +38,15 @@ function CompleteContent() {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(true);
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingSession, setPendingSession] = useState<InterviewSession | null>(
-    null,
+  const [windowSize, setWindowSize] = useState(() =>
+    typeof window !== "undefined"
+      ? { width: window.innerWidth, height: window.innerHeight }
+      : { width: 0, height: 0 },
   );
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingSession] = useState<InterviewSession | null>(null);
 
   useEffect(() => {
-    // Get window size for confetti
-    setWindowSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-
     const handleResize = () => {
       setWindowSize({
         width: window.innerWidth,
@@ -132,18 +127,7 @@ function CompleteContent() {
     return () => clearTimeout(timer);
   }, [sessionId]);
 
-  // 로그인 상태 변경 감지하여 세션 저장
-  useEffect(() => {
-    const checkLoginAndSave = async () => {
-      if (isLoggedIn() && pendingSession && !session) {
-        // 로그인 후 세션 저장
-        await handleSaveSession();
-      }
-    };
-    checkLoginAndSave();
-  }, [isLoggedIn, pendingSession, session]);
-
-  const handleSaveSession = async () => {
+  const handleSaveSession = useCallback(async () => {
     if (!pendingSession || !isLoggedIn()) return;
 
     try {
@@ -198,7 +182,18 @@ function CompleteContent() {
       console.error("세션 저장 실패:", error);
       alert("세션 저장에 실패했습니다. 다시 시도해주세요.");
     }
-  };
+  }, [pendingSession]);
+
+  // 로그인 상태 변경 감지하여 세션 저장
+  useEffect(() => {
+    const checkLoginAndSave = async () => {
+      if (isLoggedIn() && pendingSession && !session) {
+        // 로그인 후 세션 저장
+        await handleSaveSession();
+      }
+    };
+    checkLoginAndSave();
+  }, [handleSaveSession, pendingSession, session]);
 
   const handleLater = () => {
     // 하루 동안 모달 안뜨게 설정

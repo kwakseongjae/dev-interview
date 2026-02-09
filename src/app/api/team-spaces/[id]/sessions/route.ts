@@ -31,8 +31,7 @@ export async function GET(
     const endDate = searchParams.get("end_date");
 
     // 멤버인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -47,7 +46,7 @@ export async function GET(
     }
 
     // 팀스페이스의 면접 기록 조회
-    let query = (supabaseAdmin as any)
+    let query = supabaseAdmin
       .from("team_space_sessions")
       .select(
         `
@@ -55,7 +54,7 @@ export async function GET(
         week_number,
         shared_at,
         shared_by,
-        sessions!inner(
+        interview_sessions!inner(
           id,
           query,
           total_time,
@@ -73,9 +72,7 @@ export async function GET(
     // 날짜 범위 필터 (세션의 created_at 기준)
     if (startDate || endDate) {
       // 서브쿼리로 날짜 필터링된 세션 ID만 가져오기
-      let sessionQuery = (supabaseAdmin as any)
-        .from("interview_sessions")
-        .select("id");
+      let sessionQuery = supabaseAdmin.from("interview_sessions").select("id");
       if (startDate) {
         sessionQuery = sessionQuery.gte("created_at", startDate);
       }
@@ -84,10 +81,9 @@ export async function GET(
         endDateObj.setDate(endDateObj.getDate() + 1);
         sessionQuery = sessionQuery.lt("created_at", endDateObj.toISOString());
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: filteredSessions } = await sessionQuery;
       if (filteredSessions && filteredSessions.length > 0) {
-        const sessionIds = filteredSessions.map((s: any) => s.id);
+        const sessionIds = filteredSessions.map((s: { id: string }) => s.id);
         query = query.in("session_id", sessionIds);
       } else {
         // 필터링 결과가 없으면 빈 배열 반환
@@ -99,7 +95,6 @@ export async function GET(
 
     query = query.order("shared_at", { ascending: false });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: sharedSessions, error } = await query;
 
     if (error) {
@@ -118,29 +113,42 @@ export async function GET(
 
     // 각 세션의 작성자 정보 조회
     const sessionsWithUsers = await Promise.all(
-      sharedSessions.map(async (ss: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: user } = await (supabaseAdmin as any)
-          .from("users")
-          .select("id, username, nickname")
-          .eq("id", ss.shared_by)
-          .single();
+      sharedSessions.map(
+        async (ss: {
+          id: string;
+          week_number: number | null;
+          shared_at: string;
+          shared_by: string;
+          interview_sessions: {
+            id: string;
+            query: string;
+            total_time: number | null;
+            is_completed: boolean;
+            created_at: string;
+          };
+        }) => {
+          const { data: user } = await supabaseAdmin
+            .from("users")
+            .select("id, email, nickname")
+            .eq("id", ss.shared_by)
+            .single();
 
-        return {
-          id: ss.sessions.id,
-          query: ss.sessions.query,
-          total_time: ss.sessions.total_time,
-          is_completed: ss.sessions.is_completed,
-          created_at: ss.sessions.created_at,
-          week_number: ss.week_number,
-          shared_at: ss.shared_at,
-          shared_by: {
-            id: user?.id || ss.shared_by,
-            username: user?.username || "",
-            nickname: user?.nickname || null,
-          },
-        };
-      }),
+          return {
+            id: ss.interview_sessions.id,
+            query: ss.interview_sessions.query,
+            total_time: ss.interview_sessions.total_time,
+            is_completed: ss.interview_sessions.is_completed,
+            created_at: ss.interview_sessions.created_at,
+            week_number: ss.week_number,
+            shared_at: ss.shared_at,
+            shared_by: {
+              id: user?.id || ss.shared_by,
+              username: user?.email?.split("@")[0] || "",
+              nickname: user?.nickname || null,
+            },
+          };
+        },
+      ),
     );
 
     return NextResponse.json({
@@ -172,7 +180,8 @@ export async function POST(
 
     const { id: teamSpaceId } = await params;
     const body = await request.json();
-    let { session_id, week_number } = body;
+    const { session_id } = body;
+    let { week_number } = body;
 
     // 입력 검증
     // UUID 형식 검증
@@ -192,8 +201,7 @@ export async function POST(
     }
 
     // 멤버인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabaseAdmin as any)
+    const { data: membership } = await supabaseAdmin
       .from("team_space_members")
       .select("role")
       .eq("team_space_id", teamSpaceId)
@@ -208,8 +216,7 @@ export async function POST(
     }
 
     // 세션 소유권 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session } = await (supabaseAdmin as any)
+    const { data: session } = await supabaseAdmin
       .from("interview_sessions")
       .select("id")
       .eq("id", session_id)
@@ -224,8 +231,7 @@ export async function POST(
     }
 
     // 이미 공유된 세션인지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing } = await (supabaseAdmin as any)
+    const { data: existing } = await supabaseAdmin
       .from("team_space_sessions")
       .select("id")
       .eq("team_space_id", teamSpaceId)
@@ -240,8 +246,7 @@ export async function POST(
     }
 
     // 공유
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sharedSession, error } = await (supabaseAdmin as any)
+    const { data: sharedSession, error } = await supabaseAdmin
       .from("team_space_sessions")
       .insert({
         team_space_id: teamSpaceId,

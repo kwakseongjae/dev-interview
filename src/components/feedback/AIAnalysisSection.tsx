@@ -30,8 +30,6 @@ interface AIAnalysisSectionProps {
   className?: string;
 }
 
-type ActiveSection = "none" | "feedback" | "modelAnswer";
-
 /**
  * AIAnalysisSection - 피드백과 모범 답변을 나란히 버튼으로 제공
  * 두 기능 모두 즉시 발견 가능하고 독립적으로 열 수 있음

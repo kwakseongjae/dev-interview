@@ -23,8 +23,7 @@ export async function GET(
     }
 
     // 세션 조회 (본인 세션이거나 팀스페이스에 공유된 세션)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session, error: sessionError } = await (supabaseAdmin as any)
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from("interview_sessions")
       .select("*")
       .eq("id", sessionId)
@@ -39,8 +38,7 @@ export async function GET(
 
     // 본인 세션이 아니면 팀스페이스에 공유된 세션인지 확인
     if (session.user_id !== auth.sub) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: teamSpaceSession } = await (supabaseAdmin as any)
+      const { data: teamSpaceSession } = await supabaseAdmin
         .from("team_space_sessions")
         .select(
           `
@@ -67,10 +65,7 @@ export async function GET(
     }
 
     // 세션의 질문들 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessionQuestions, error: sqError } = await (
-      supabaseAdmin as any
-    )
+    const { data: sessionQuestions, error: sqError } = await supabaseAdmin
       .from("session_questions")
       .select(
         `
@@ -96,8 +91,7 @@ export async function GET(
 
     // 각 질문별 답변 조회
     const questionsWithAnswers = await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessionQuestions || []).map(async (sq: any) => {
+      (sessionQuestions || []).map(async (sq) => {
         const question = sq.questions as {
           id: string;
           content: string;
@@ -107,8 +101,7 @@ export async function GET(
           subcategories: { name: string; display_name: string } | null;
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: answer } = await (supabaseAdmin as any)
+        const { data: answer } = await supabaseAdmin
           .from("answers")
           .select("id, content, time_spent, ai_score, ai_feedback, created_at")
           .eq("session_id", sessionId)
@@ -116,8 +109,7 @@ export async function GET(
           .single();
 
         // 찜 여부 확인 (이미 찜한 질문인지 확인)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: favorite } = await (supabaseAdmin as any)
+        const { data: favorite } = await supabaseAdmin
           .from("favorites")
           .select("id")
           .eq("user_id", auth.sub)
@@ -183,8 +175,7 @@ export async function DELETE(
     }
 
     // 세션 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session } = await (supabaseAdmin as any)
+    const { data: session } = await supabaseAdmin
       .from("interview_sessions")
       .select("user_id")
       .eq("id", sessionId)
@@ -204,19 +195,17 @@ export async function DELETE(
     let canDelete = isOwner;
     if (!isOwner) {
       // 세션이 공유된 팀스페이스 ID 목록 조회
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: teamSpaceSessions } = await (supabaseAdmin as any)
+      const { data: teamSpaceSessions } = await supabaseAdmin
         .from("team_space_sessions")
         .select("team_space_id")
         .eq("session_id", sessionId);
 
       if (teamSpaceSessions && teamSpaceSessions.length > 0) {
         const teamSpaceIds = teamSpaceSessions.map(
-          (tss: any) => tss.team_space_id,
+          (tss: { team_space_id: string }) => tss.team_space_id,
         );
         // 해당 팀스페이스의 소유자인지 확인
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: ownership } = await (supabaseAdmin as any)
+        const { data: ownership } = await supabaseAdmin
           .from("team_space_members")
           .select("id")
           .in("team_space_id", teamSpaceIds)
@@ -224,7 +213,7 @@ export async function DELETE(
           .eq("role", "owner")
           .limit(1);
 
-        canDelete = ownership && ownership.length > 0;
+        canDelete = !!(ownership && ownership.length > 0);
       }
     }
 
@@ -236,8 +225,7 @@ export async function DELETE(
     }
 
     // 세션 삭제
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("interview_sessions")
       .delete()
       .eq("id", sessionId);

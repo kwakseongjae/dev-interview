@@ -3,12 +3,11 @@ import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET: 팀스페이스 인트로를 봤는지 확인
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const auth = await requireUser();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: user, error } = await (supabaseAdmin as any)
+    const { data: user, error } = await supabaseAdmin
       .from("users")
       .select("has_seen_teamspace_intro")
       .eq("id", auth.sub)
@@ -38,12 +37,11 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: 팀스페이스 인트로를 봤음으로 표시
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const auth = await requireUser();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("users")
       .update({ has_seen_teamspace_intro: true })
       .eq("id", auth.sub);

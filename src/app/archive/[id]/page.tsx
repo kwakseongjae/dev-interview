@@ -119,9 +119,6 @@ export default function ArchiveDetailPage() {
     const question = session.questions.find((q) => q.id === questionId);
     if (!question) return;
 
-    // 이미 찜한 상태인지 확인
-    const currentIsFavorite = question.isFavorite;
-
     try {
       // 현재 찜 상태를 확인하여 토글
       const isFav = await toggleFavoriteApi(questionId, {

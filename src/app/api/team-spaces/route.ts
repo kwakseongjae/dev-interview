@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword } from "@/lib/password";
 
 // GET /api/team-spaces - 내가 참여한 팀스페이스 목록
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const auth = await requireUser();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: memberships, error } = await (supabaseAdmin as any)
+    const { data: memberships, error } = await supabaseAdmin
       .from("team_space_members")
       .select(
         `
@@ -36,15 +35,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const teamSpaces = (memberships || []).map((m: any) => ({
-      id: m.team_spaces.id,
-      name: m.team_spaces.name,
-      avatar_url: m.team_spaces.avatar_url,
-      role: m.role,
-      created_by: m.team_spaces.created_by,
-      created_at: m.team_spaces.created_at,
-      joined_at: m.joined_at,
-    }));
+    const teamSpaces = (memberships || []).map(
+      (m: {
+        team_space_id: string;
+        role: string;
+        joined_at: string;
+        team_spaces: {
+          id: string;
+          name: string;
+          avatar_url: string | null;
+          created_by: string;
+          created_at: string;
+        };
+      }) => ({
+        id: m.team_spaces.id,
+        name: m.team_spaces.name,
+        avatar_url: m.team_spaces.avatar_url,
+        role: m.role,
+        created_by: m.team_spaces.created_by,
+        created_at: m.team_spaces.created_at,
+        joined_at: m.joined_at,
+      }),
+    );
 
     return NextResponse.json({ teamSpaces });
   } catch (error) {
@@ -87,8 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 팀스페이스 생성
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: teamSpace, error: createError } = await (supabaseAdmin as any)
+    const { data: teamSpace, error: createError } = await supabaseAdmin
       .from("team_spaces")
       .insert({
         name: name.trim(),
@@ -108,8 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 생성자를 owner로 추가
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: memberError } = await (supabaseAdmin as any)
+    const { error: memberError } = await supabaseAdmin
       .from("team_space_members")
       .insert({
         team_space_id: teamSpace.id,

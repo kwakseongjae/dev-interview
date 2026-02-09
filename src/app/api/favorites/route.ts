@@ -16,12 +16,11 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // 찜한 질문 목록 조회
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const {
       data: favorites,
       error,
       count,
-    } = await (supabaseAdmin as any)
+    } = await supabaseAdmin
       .from("favorites")
       .select(
         `
@@ -63,12 +62,14 @@ export async function GET(request: NextRequest) {
 
     // 각 질문별 내 답변 조회
     const favoritesWithAnswers = await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (favorites || [])
-        .filter((fav: any) => fav.questions !== null) // questions가 null인 경우 제외
-        .map(async (fav: any) => {
-          try {
-            const question = fav.questions as {
+        .filter((fav: { questions: unknown }) => fav.questions !== null) // questions가 null인 경우 제외
+        .map(
+          async (fav: {
+            id: string;
+            created_at: string;
+            question_id: string;
+            questions: {
               id: string;
               content: string;
               hint: string | null;
@@ -76,48 +77,46 @@ export async function GET(request: NextRequest) {
               categories: { name: string; display_name: string } | null;
               subcategories: { name: string; display_name: string } | null;
             } | null;
+          }) => {
+            try {
+              const question = fav.questions;
 
-            // questions가 없으면 건너뛰기
-            if (!question) {
+              // questions가 없으면 건너뛰기
+              if (!question) {
+                return null;
+              }
+
+              // 내 답변 중 가장 최근 것 조회 (없을 수도 있음)
+              const { error: answerError } = await supabaseAdmin
+                .from("answers")
+                .select("id, content, ai_score")
+                .eq("question_id", question.id)
+                .eq("user_id", auth.sub)
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+              // 답변 조회 에러는 무시 (답변이 없을 수 있음)
+              if (answerError) {
+                console.error("답변 조회 실패:", answerError);
+              }
+
+              return {
+                id: fav.id,
+                question_id: question.id,
+                content: question.content,
+                hint: question.hint,
+                category: question.categories?.display_name || "",
+                subcategory: question.subcategories?.display_name || null,
+                difficulty: "MEDIUM",
+                created_at: fav.created_at,
+              };
+            } catch (err) {
+              console.error("찜한 질문 처리 중 오류:", err);
+              // 개별 항목 처리 실패 시 null 반환하여 필터링
               return null;
             }
-
-            // 내 답변 중 가장 최근 것 조회 (없을 수도 있음)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data: myAnswers, error: answerError } = await (
-              supabaseAdmin as any
-            )
-              .from("answers")
-              .select("id, content, ai_score")
-              .eq("question_id", question.id)
-              .eq("user_id", auth.sub)
-              .order("created_at", { ascending: false })
-              .limit(1);
-
-            // 답변 조회 에러는 무시 (답변이 없을 수 있음)
-            if (answerError) {
-              console.error("답변 조회 실패:", answerError);
-            }
-
-            const myAnswer =
-              myAnswers && myAnswers.length > 0 ? myAnswers[0] : null;
-
-            return {
-              id: fav.id,
-              question_id: question.id,
-              content: question.content,
-              hint: question.hint,
-              category: question.categories?.display_name || "",
-              subcategory: question.subcategories?.display_name || null,
-              difficulty: "MEDIUM",
-              created_at: fav.created_at,
-            };
-          } catch (err) {
-            console.error("찜한 질문 처리 중 오류:", err);
-            // 개별 항목 처리 실패 시 null 반환하여 필터링
-            return null;
-          }
-        }),
+          },
+        ),
     );
 
     // null 값 필터링 (처리 실패한 항목 제외)
@@ -175,8 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 이미 찜했는지 확인
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing } = await (supabaseAdmin as any)
+    const { data: existing } = await supabaseAdmin
       .from("favorites")
       .select("id")
       .eq("user_id", auth.sub)
@@ -191,8 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 찜 추가
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: favorite, error } = await (supabaseAdmin as any)
+    const { data: favorite, error } = await supabaseAdmin
       .from("favorites")
       .insert({
         user_id: auth.sub,
@@ -216,8 +213,7 @@ export async function POST(request: NextRequest) {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(currentTeamSpaceId)) {
         // 멤버인지 확인
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: membership } = await (supabaseAdmin as any)
+        const { data: membership } = await supabaseAdmin
           .from("team_space_members")
           .select("id")
           .eq("team_space_id", currentTeamSpaceId)
@@ -226,8 +222,7 @@ export async function POST(request: NextRequest) {
 
         if (membership) {
           // 이미 공유된 찜한 질문인지 확인
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: existing } = await (supabaseAdmin as any)
+          const { data: existing } = await supabaseAdmin
             .from("team_space_favorites")
             .select("id")
             .eq("team_space_id", currentTeamSpaceId)
@@ -236,8 +231,7 @@ export async function POST(request: NextRequest) {
 
           if (!existing) {
             // 자동 공유
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabaseAdmin as any).from("team_space_favorites").insert({
+            await supabaseAdmin.from("team_space_favorites").insert({
               team_space_id: currentTeamSpaceId,
               favorite_id: favorite.id,
               shared_by: auth.sub,
