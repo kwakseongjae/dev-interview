@@ -2,11 +2,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Agentation } from "agentation";
 import FloatingContactButton from "@/components/FloatingContactButton";
+import {
+  getOrganizationJsonLd,
+  getWebApplicationJsonLd,
+  getFaqJsonLd,
+  SITE_URL,
+  SITE_NAME,
+  SITE_DESCRIPTION,
+} from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
+import { FAQ_DATA } from "@/data/faq";
 
 export const metadata: Metadata = {
   title: "모카번 - AI 기술면접 준비",
-  description:
-    "개발자 기술면접, AI와 함께 준비하세요. 맞춤형 질문 생성과 실전 모의면접을 경험해보세요.",
+  description: SITE_DESCRIPTION,
   keywords: [
     "기술면접",
     "개발자",
@@ -16,8 +25,12 @@ export const metadata: Metadata = {
     "프론트엔드",
     "백엔드",
     "React",
+    "기술면접 준비",
+    "개발자 면접",
+    "AI 면접 질문",
+    "코딩 면접",
   ],
-  authors: [{ name: "모카번" }],
+  authors: [{ name: SITE_NAME }],
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
     other: {
@@ -27,12 +40,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "모카번 - AI 기술면접 준비",
-    description:
-      "개발자 기술면접, AI와 함께 준비하세요. 맞춤형 질문 생성과 실전 모의면접을 경험해보세요.",
+    description: SITE_DESCRIPTION,
     type: "website",
     locale: "ko_KR",
-    url: "https://mochabun.co.kr",
-    siteName: "모카번",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "모카번 - AI 기술면접 준비",
+    description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
@@ -43,7 +60,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://mochabun.co.kr",
+    canonical: SITE_URL,
   },
 };
 
@@ -61,6 +78,10 @@ export default function RootLayout({
           content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net;"
         />
         {/* Note: X-Frame-Options, X-Content-Type-Options, Referrer-Policy are set via HTTP headers in next.config.ts */}
+        {/* JSON-LD: Organization + WebApplication + FAQPage */}
+        <JsonLd data={getOrganizationJsonLd()} />
+        <JsonLd data={getWebApplicationJsonLd()} />
+        <JsonLd data={getFaqJsonLd(FAQ_DATA)} />
       </head>
       <body className="min-h-screen font-body antialiased">
         {children}

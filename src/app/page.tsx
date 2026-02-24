@@ -41,6 +41,7 @@ import {
 } from "@/components/TrendTopicChips";
 import type { TrendTopic } from "@/data/trend-topics";
 import { validateFile, uploadFileWithTimeout } from "@/lib/file-utils";
+import { FaqSection } from "@/components/FaqSection";
 
 const SAMPLE_PROMPTS = [
   "프론트엔드 3년차 개발자를 위한 기술면접",
@@ -982,6 +983,9 @@ export default function Home() {
 
       {/* Team Space Intro */}
       {user && <TeamSpaceIntro />}
+
+      {/* FAQ Section (AEO) */}
+      <FaqSection />
 
       {/* Footer */}
       <footer className="mt-auto py-4 flex items-center justify-center gap-3 text-xs text-muted-foreground/50">

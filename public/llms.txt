@@ -1,0 +1,26 @@
+# 모카번 (mochabun)
+
+> AI 기반 개발자 기술면접 준비 서비스. 경력, 포지션, 기술 스택에 맞는 맞춤형 면접 질문을 AI가 자동 생성하고, 타이머와 힌트 기능으로 실전 연습 환경을 제공합니다.
+
+모카번은 Anthropic Claude AI를 활용하여 프론트엔드, 백엔드, 풀스택 개발자를 위한 기술면접 질문을 생성하는 한국어 기반 플랫폼입니다. 매번 새로운 맞춤형 질문이 생성되어 반복 연습에 효과적이며, 로그인 없이도 바로 시작할 수 있습니다.
+
+## 주요 기능
+
+- [AI 맞춤형 면접 질문 생성](https://www.mochabun.co.kr/interview): 경력 수준과 기술 스택에 맞는 질문 자동 생성
+- [최신 기술 트렌드 질문](https://www.mochabun.co.kr/trends): LLM, RAG, AI Agent 등 2026년 출제율 급상승 토픽
+- [케이스 스터디 면접](https://www.mochabun.co.kr/case-studies): 카카오, 토스, 네이버 등 실제 기업 기술블로그 기반 면접
+- [팀 스페이스](https://www.mochabun.co.kr/team-spaces/new): 팀 협업 학습 지원
+
+## 지원 기술 스택
+
+React, Next.js, TypeScript, JavaScript, Node.js, Python, Java, Spring Boot, Go, Kotlin, Swift, Docker, Kubernetes, AWS, 시스템 디자인, 자료구조/알고리즘
+
+## 지원 포지션
+
+프론트엔드, 백엔드, 풀스택, DevOps, 데이터 엔지니어, AI/ML 엔지니어
+
+## Optional
+
+- [면접 기록 보관](https://www.mochabun.co.kr/archive): 과거 면접 세션 아카이브
+- [즐겨찾기](https://www.mochabun.co.kr/favorites): 중요 질문 저장
+- [개인정보 처리방침](https://www.mochabun.co.kr/privacy): 개인정보 처리방침

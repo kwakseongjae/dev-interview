@@ -214,4 +214,27 @@
 
 ---
 
+### 2026-02-24: [TypeScript] JSX 코드는 반드시 .tsx 파일에 작성
+
+- **실수**: `src/lib/seo.ts`에 JSX 컴포넌트(`JsonLd`)를 포함시켜 `TS1005: '>' expected` 에러 발생
+- **원인**: JSON-LD 유틸리티와 JSX 컴포넌트를 한 파일에 작성하려 함
+- **규칙**:
+  - JSX/TSX 문법이 포함된 코드는 반드시 `.tsx` 확장자 파일에 작성
+  - 유틸리티 함수(순수 TS)와 컴포넌트(JSX)는 파일 분리
+- **참조**: #39, `src/lib/seo.ts` → `src/components/JsonLd.tsx` 분리
+
+---
+
+### 2026-02-24: [SEO] 도메인 URL 생성 시 MEMORY/실제 리다이렉트 확인 필수
+
+- **실수**: `SITE_URL`을 `https://mochabun.co.kr`(non-www)로 설정했으나, Vercel이 실제로 `www.mochabun.co.kr`로 리다이렉트 → canonical/OG URL 불일치
+- **원인**: MEMORY에 "Vercel redirects non-www → www" 기록이 있었으나 확인하지 않음
+- **규칙**:
+  - 도메인 URL 설정 시 MEMORY의 도메인 관련 기록 반드시 확인
+  - canonical URL은 실제 사용자가 도달하는 최종 URL과 일치해야 함
+  - 하드코딩 대신 단일 상수(`SITE_URL`)를 사용하여 변경 시 일괄 반영
+- **참조**: #39, `src/lib/seo.ts`, MEMORY.md
+
+---
+
 **마지막 업데이트**: 2026-02-24
