@@ -25,7 +25,7 @@ import logoImage from "@/assets/images/logo.png";
 import logoTextImage from "@/assets/images/logo-text.png";
 import { v4 as uuidv4 } from "uuid";
 
-import { SEARCH_STEPS } from "@/data/dummy-questions";
+import { SEARCH_STEPS, DEMO_QUESTIONS } from "@/data/dummy-questions";
 import type { Question } from "@/types/interview";
 import {
   toggleFavoriteApi,
@@ -55,6 +55,7 @@ function SearchContent() {
   const interviewTypeCode = searchParams.get("interview_type") || null;
   const interviewTypeId = searchParams.get("interview_type_id") || null;
   const trendTopicParam = searchParams.get("trend_topic") || null;
+  const isDemoMode = searchParams.get("demo") === "true";
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSearching, setIsSearching] = useState(true);
@@ -251,7 +252,9 @@ function SearchContent() {
       let step = 0;
       let apiDone = false;
 
-      // 2초 간격으로 단계 진행, 마지막 전 단계까지만 자동 진행
+      // 데모 모드: 빠른 진행 (300ms 간격), 일반 모드: 2초 간격
+      const stepInterval = isDemoMode ? 300 : 2000;
+
       const interval = setInterval(() => {
         if (apiDone) {
           clearInterval(interval);
@@ -261,11 +264,24 @@ function SearchContent() {
           step++;
           setCurrentStep(step);
         }
-      }, 2000);
+      }, stepInterval);
 
       try {
-        // API 호출 (파싱된 레퍼런스 URL 전달)
-        const result = await fetchQuestions([], parsedReferenceUrls);
+        // 데모 모드: 더미 질문 즉시 반환 (API 호출 없음)
+        const result = isDemoMode
+          ? await (async () => {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+              return {
+                questions: DEMO_QUESTIONS.map((q) => ({
+                  content: q.content,
+                  hint: q.hint,
+                  category: q.category,
+                })),
+                referenceUsed: false,
+                referenceMessage: undefined,
+              };
+            })()
+          : await fetchQuestions([], parsedReferenceUrls);
         apiDone = true;
         clearInterval(interval);
 

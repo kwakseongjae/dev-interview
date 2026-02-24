@@ -158,6 +158,75 @@ export function createQuestionsFromTemplates(
   }));
 }
 
+// 데모 모드용 시스템 설계 더미 질문 (대용량 트래픽 주제)
+export const DEMO_QUESTIONS: Question[] = [
+  {
+    id: "demo-q1",
+    content:
+      "대용량 트래픽을 처리하기 위한 수평 확장(Scale-Out) 전략을 설명하고, 로드 밸런서 선택 시 고려해야 할 요소를 말씀해 주세요.",
+    hint: "L4/L7 로드 밸런서의 차이, 세션 유지(Sticky Session), 헬스체크, Round Robin / Least Connection 알고리즘을 중심으로 설명해 보세요.",
+    category: "SYSTEM_DESIGN",
+    answer: "",
+    timeSpent: 0,
+    isAnswered: false,
+    isFavorite: false,
+    isReferenceBased: false,
+    isTrending: false,
+  },
+  {
+    id: "demo-q2",
+    content:
+      "Redis를 캐시 레이어로 도입할 때 Cache Aside 패턴과 Write-Through 패턴의 차이점과 각각의 적합한 사용 사례를 설명해 주세요.",
+    hint: "캐시 히트율, 데이터 정합성, 캐시 무효화(Invalidation) 시점, 콜드 스타트 문제를 중심으로 비교해 보세요.",
+    category: "SYSTEM_DESIGN",
+    answer: "",
+    timeSpent: 0,
+    isAnswered: false,
+    isFavorite: false,
+    isReferenceBased: false,
+    isTrending: false,
+  },
+  {
+    id: "demo-q3",
+    content:
+      "메시지 큐(Kafka, RabbitMQ 등)를 활용한 비동기 처리 아키텍처를 설계할 때, 메시지 유실 방지와 중복 처리를 어떻게 보장하시겠습니까?",
+    hint: "At-least-once vs Exactly-once 전달 보장, Consumer Group, Dead Letter Queue, 멱등성(Idempotency) 개념을 활용해 설명해 보세요.",
+    category: "SYSTEM_DESIGN",
+    answer: "",
+    timeSpent: 0,
+    isAnswered: false,
+    isFavorite: false,
+    isReferenceBased: false,
+    isTrending: false,
+  },
+  {
+    id: "demo-q4",
+    content:
+      "데이터베이스 샤딩(Sharding) 전략을 선택할 때 해시 기반 샤딩과 범위 기반 샤딩의 트레이드오프를 비교하고, 핫스팟(Hotspot) 문제를 어떻게 해결하겠습니까?",
+    hint: "Consistent Hashing, 샤드 재분배(Resharding) 비용, Read Replica, CQRS 패턴을 함께 언급하면 좋습니다.",
+    category: "SYSTEM_DESIGN",
+    answer: "",
+    timeSpent: 0,
+    isAnswered: false,
+    isFavorite: false,
+    isReferenceBased: false,
+    isTrending: false,
+  },
+  {
+    id: "demo-q5",
+    content:
+      "CDN(Content Delivery Network)을 도입할 때 캐시 전략을 어떻게 설계하시겠습니까? 동적 콘텐츠와 정적 콘텐츠 처리 방식의 차이점도 설명해 주세요.",
+    hint: "Cache-Control 헤더, TTL 설정, Edge 캐시 무효화(Purge), Origin Shield, 동적 콘텐츠를 위한 ESI(Edge Side Includes)를 중심으로 설명해 보세요.",
+    category: "SYSTEM_DESIGN",
+    answer: "",
+    timeSpent: 0,
+    isAnswered: false,
+    isFavorite: false,
+    isReferenceBased: false,
+    isTrending: false,
+  },
+];
+
 // 검색 진행 단계
 export const SEARCH_STEPS = [
   { step: 1, label: "검색어를 분석하고 있어요" },

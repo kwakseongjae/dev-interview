@@ -52,6 +52,10 @@ const SAMPLE_PROMPTS = [
 
 export default function Home() {
   const router = useRouter();
+  const [isDemoMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("demo") === "true";
+  });
   const { loggedIn } = useAuth();
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<{ nickname: string | null } | null>(null);
@@ -429,6 +433,11 @@ export default function Home() {
       // 트렌드 토픽이 선택되어 있으면 전달
       if (selectedTrendTopic) {
         params.append("trend_topic", selectedTrendTopic.id);
+      }
+
+      // 데모 모드면 파라미터 전달
+      if (isDemoMode) {
+        params.append("demo", "true");
       }
 
       router.push(`/search?${params.toString()}`);

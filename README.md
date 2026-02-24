@@ -2,6 +2,10 @@
 
 > AI 기반 개발자 기술면접 준비 서비스
 
+<p align="center">
+  <img src="https://github.com/kwakseongjae/dev-interview/releases/download/v1.0.0/demo-small.gif" width="100%" alt="mochabun Demo - AI 기술면접 준비 서비스" />
+</p>
+
 개발자가 기술면접을 효과적으로 준비할 수 있도록 AI가 맞춤형 질문을 생성하고, 실전과 유사한 환경에서 연습할 수 있는 서비스입니다.
 
 ## 주요 기능

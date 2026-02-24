@@ -1,0 +1,166 @@
+name: "mochabun Demo"
+description: "AI 기반 기술면접 준비 서비스 데모"
+
+viewport:
+  width: 1280
+  height: 800
+
+effects:
+  cursor:
+    enabled: true
+    size: 18
+    speed: "fast"
+    clickEffect: true
+    clickColor: "rgba(59, 130, 246, 0.3)"
+    highlight: true
+    highlightRadius: 30
+  background:
+    type: gradient
+    value: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+    padding: 40
+    borderRadius: 12
+    shadow: true
+  deviceFrame:
+    enabled: true
+    type: browser
+    darkMode: true
+
+output:
+  format: mp4
+  width: 1280
+  height: 800
+  fps: 24
+  quality: 80
+
+steps:
+  # ===== Auto Login (demo mode) =====
+  - name: "Auto login for demo"
+    actions:
+      - action: navigate
+        url: "http://localhost:3000/api/demo-auth?next=/%3Fdemo%3Dtrue"
+        waitUntil: "networkidle"
+      - action: wait
+        duration: 1500
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== Homepage =====
+  - name: "Wait for homepage"
+    actions:
+      - action: waitForSelector
+        selector: ".grid-cols-3 button"
+        state: visible
+        timeout: 15000
+    captureDelay: 100
+    holdDuration: 300
+
+  - name: "Select system design category"
+    actions:
+      - action: click
+        selector: ".grid-cols-3 button:nth-child(3)"
+        timeout: 10000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 600
+
+  - name: "Type interview query"
+    actions:
+      - action: click
+        selector: "textarea[aria-label='면접 유형 검색']"
+        timeout: 5000
+      - action: type
+        selector: "textarea[aria-label='면접 유형 검색']"
+        text: "대용량 트래픽 처리 면접 준비해줘."
+        delay: 40
+    captureDelay: 100
+    holdDuration: 600
+
+  - name: "Submit query"
+    actions:
+      - action: click
+        selector: "button[type='submit']"
+        timeout: 5000
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== Search Results Page (demo mode: no AI call) =====
+  - name: "Wait for search page"
+    actions:
+      - action: waitForURL
+        url: "**/search**"
+        timeout: 15000
+    captureDelay: 100
+    holdDuration: 200
+
+  - name: "Wait for questions to appear"
+    actions:
+      - action: waitForSelector
+        selector: ".divide-y"
+        state: visible
+        timeout: 10000
+      - action: wait
+        duration: 500
+    captureDelay: 200
+    holdDuration: 2000
+
+  - name: "Scroll to see questions"
+    actions:
+      - action: scroll
+        y: 250
+        smooth: true
+    captureDelay: 200
+    holdDuration: 1200
+
+  - name: "Scroll to start button"
+    actions:
+      - action: waitForFunction
+        expression: "document.querySelector('button.bg-gold')?.scrollIntoView({behavior:'smooth',block:'center'}) || true"
+        timeout: 10000
+      - action: wait
+        duration: 800
+    captureDelay: 200
+    holdDuration: 600
+
+  - name: "Click start interview"
+    actions:
+      - action: click
+        selector: "button.bg-gold"
+        timeout: 5000
+        delay: 200
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== Interview Page =====
+  - name: "Wait for interview page"
+    actions:
+      - action: waitForURL
+        url: "**/interview**"
+        timeout: 30000
+      - action: waitForSelector
+        selector: "textarea[placeholder='답변을 입력해주세요...']"
+        state: visible
+        timeout: 30000
+    captureDelay: 300
+    holdDuration: 1000
+
+  - name: "Write answer"
+    actions:
+      - action: click
+        selector: "textarea[placeholder='답변을 입력해주세요...']"
+        timeout: 5000
+      - action: type
+        selector: "textarea[placeholder='답변을 입력해주세요...']"
+        text: "로드 밸런서로 트래픽 분산, Redis 캐시로 DB 부하 감소, CDN으로 정적 리소스 엣지 제공, Kafka 메시지 큐로 비동기 처리를 구현합니다."
+        delay: 25
+    captureDelay: 100
+    holdDuration: 800
+
+  - name: "Show hint"
+    actions:
+      - action: click
+        selector: "button[aria-controls='hint-content']"
+        timeout: 5000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 2000
+    transition: fade
