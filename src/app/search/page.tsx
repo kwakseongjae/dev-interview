@@ -55,7 +55,9 @@ function SearchContent() {
   const interviewTypeCode = searchParams.get("interview_type") || null;
   const interviewTypeId = searchParams.get("interview_type_id") || null;
   const trendTopicParam = searchParams.get("trend_topic") || null;
-  const isDemoMode = searchParams.get("demo") === "true";
+  const isDemoMode =
+    searchParams.get("demo") === "true" &&
+    process.env.NODE_ENV !== "production";
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSearching, setIsSearching] = useState(true);

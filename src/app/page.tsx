@@ -54,7 +54,10 @@ export default function Home() {
   const router = useRouter();
   const [isDemoMode] = useState(() => {
     if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("demo") === "true";
+    return (
+      new URLSearchParams(window.location.search).get("demo") === "true" &&
+      process.env.NODE_ENV !== "production"
+    );
   });
   const { loggedIn } = useAuth();
   const [query, setQuery] = useState("");
