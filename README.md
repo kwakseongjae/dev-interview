@@ -4,7 +4,7 @@
 
 <p align="center">
   <video
-    src="https://github.com/kwakseongjae/mochabun/releases/download/v1.0.0/clipwise-recording.mp4"
+    src="https://github.com/user-attachments/assets/7cd50b9f-b0a7-45ce-a7e5-7da087bd3ecf"
     width="100%"
     controls
     autoplay
