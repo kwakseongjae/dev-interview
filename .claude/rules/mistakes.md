@@ -247,3 +247,24 @@
 - **원인**: eslint 디렉티브가 `as any` 줄보다 위에 있어도, 실제 `any` 사용 위치가 다음 줄 인자 내부여서 디렉티브가 적용되지 않음
 - **규칙**: supabaseAdmin 타입 오류 우회 시 반드시 `(supabaseAdmin as any).from(...)` 패턴 사용 (클라이언트 자체를 캐스팅). 이 프로젝트의 다른 API 파일들도 동일 패턴 적용 중
 - **참조**: #45, `src/app/api/sessions/[id]/claim/route.ts`
+
+---
+
+### 2026-03-04: [GitHub] video 태그 — 릴리즈 에셋 URL 렌더링 불가
+
+- **실수**: GitHub README의 `<video src>` 에 릴리즈 에셋 URL(`/releases/download/...`) 사용 시도
+- **원인**: GitHub sanitizer는 `<video>` 태그의 src로 `user-attachments/assets/` URL만 허용함. 릴리즈 에셋 URL은 스트립됨
+- **규칙**:
+  - README `<video>` 태그는 반드시 `https://github.com/user-attachments/assets/{UUID}` URL 사용
+  - 파일이 10MB 초과 시 ffmpeg으로 압축 후 이슈/PR 코멘트 에디터에 drag-and-drop 업로드
+  - 릴리즈 에셋 URL, 외부 CDN URL(Supabase 포함)은 GitHub README video 태그에서 동작하지 않음
+- **참조**: #47
+
+---
+
+### 2026-03-04: [UX] 기능 변경 시 연관된 하드코딩 텍스트 일괄 확인 필수
+
+- **실수**: 타이머 기본값 3분 → 5분으로 변경 후 `search/page.tsx`의 "각 질문당 3분씩" CTA 텍스트를 놓침
+- **원인**: 로직(useTimer.ts) 변경 시 UI 텍스트에 하드코딩된 동일 값을 함께 확인하지 않음
+- **규칙**: 기본값/상수 변경 시 반드시 `grep`으로 관련 텍스트 문자열도 검색하여 일괄 수정
+- **참조**: #47, `src/app/search/page.tsx`

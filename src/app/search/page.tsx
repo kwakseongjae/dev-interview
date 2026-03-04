@@ -901,7 +901,7 @@ function SearchContent() {
                         이 질문으로 기술면접을 준비할까요?
                       </h3>
                       <p className="text-primary-foreground/70 text-sm">
-                        각 질문당 3분씩, 총 {questions.length * 3}분 소요 예상
+                        각 질문당 5분씩, 총 {questions.length * 5}분 소요 예상
                       </p>
                     </div>
                     <Button
