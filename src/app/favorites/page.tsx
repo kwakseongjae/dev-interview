@@ -42,7 +42,6 @@ import {
   type ApiTeamSpace,
 } from "@/lib/api";
 import { cache, createCacheKey } from "@/lib/cache";
-import { LoginPromptModal } from "@/components/LoginPromptModal";
 import { ShareToTeamSpaceDialog } from "@/components/ShareToTeamSpaceDialog";
 import { useRouter } from "next/navigation";
 import { HintSection } from "@/components/feedback/HintSection";
@@ -54,7 +53,6 @@ export default function FavoritesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [, setUseApi] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<string | null>(
     null,
@@ -272,32 +270,6 @@ export default function FavoritesPage() {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [loadFavorites]);
-
-  // 비로그인 상태이고 찜한 질문이 없으면 로그인 유도 모달 표시
-  useEffect(() => {
-    if (!isLoading && !isLoggedIn() && favorites.length === 0) {
-      const dismissedUntil = localStorage.getItem(
-        "loginPrompt_archive_dismissedUntil",
-      );
-      if (dismissedUntil) {
-        const dismissedDate = new Date(dismissedUntil);
-        if (dismissedDate > new Date()) {
-          return;
-        }
-      }
-      setTimeout(() => setShowLoginModal(true), 1000);
-    }
-  }, [isLoading, favorites.length]);
-
-  const handleLater = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    localStorage.setItem(
-      "loginPrompt_archive_dismissedUntil",
-      tomorrow.toISOString(),
-    );
-    setShowLoginModal(false);
-  };
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -616,6 +588,27 @@ export default function FavoritesPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
+        ) : !isLoggedIn() ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mb-6">
+              <Heart className="w-8 h-8 text-gold" />
+            </div>
+            <h2 className="font-display text-xl font-semibold mb-2">
+              찜한 질문
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+              로그인하면 마음에 드는 질문을 저장하고 언제든 다시 연습할 수
+              있어요.
+            </p>
+            <Button
+              className="bg-navy hover:bg-navy-light"
+              onClick={() => {
+                window.location.href = "/auth?redirect=/favorites";
+              }}
+            >
+              로그인하기
+            </Button>
+          </div>
         ) : favorites.length === 0 ? (
           <Card className="p-12 text-center">
             <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -866,14 +859,6 @@ export default function FavoritesPage() {
           </>
         )}
       </div>
-
-      {/* Login Prompt Modal */}
-      <LoginPromptModal
-        open={showLoginModal}
-        onOpenChange={setShowLoginModal}
-        type="archive"
-        onLater={handleLater}
-      />
 
       {/* Share Dialog */}
       {isLoggedIn() && selectedFavoriteId && (

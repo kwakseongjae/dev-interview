@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/supabase/auth-helpers";
+import { requireUser, getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateQuestions, summarizeQueryToTitle } from "@/lib/claude";
 
@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
 // POST /api/sessions - 새 면접 세션 생성
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser();
+    const auth = await getUserOptional();
 
     const body = await request.json();
     let { query, question_ids, questions: questionsData } = body;
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
             subcategory_id: subcategoryId,
             difficulty: "MEDIUM",
             is_verified: false,
-            created_by: auth.sub,
+            created_by: auth?.sub ?? null,
             is_trending: q.isTrending || false,
             trend_topic: q.trendTopic || null,
           })
@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
     const { data: session, error: sessionError } = await supabaseAdmin
       .from("interview_sessions")
       .insert({
-        user_id: auth.sub,
+        user_id: (auth?.sub ?? null) as string,
         query: sessionTitle,
         total_time: 0,
         is_completed: false,
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
           .from("team_space_members")
           .select("id")
           .eq("team_space_id", currentTeamSpaceId)
-          .eq("user_id", auth.sub)
+          .eq("user_id", auth?.sub ?? "")
           .single();
 
         if (membership) {
@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
             await supabaseAdmin.from("team_space_sessions").insert({
               team_space_id: currentTeamSpaceId,
               session_id: session.id,
-              shared_by: auth.sub,
+              shared_by: (auth?.sub ?? null) as string,
               week_number: null, // 주차는 나중에 설정 가능
             });
           }

@@ -237,4 +237,13 @@
 
 ---
 
-**마지막 업데이트**: 2026-02-24
+**마지막 업데이트**: 2026-03-04
+
+---
+
+### 2026-03-04: [TypeScript] supabaseAdmin `as any` 캐스팅 위치 — 클라이언트 객체에 적용
+
+- **실수**: `supabaseAdmin.from(...).update({ user_id: auth.sub } as any)` 처럼 update 인자에 `as any` 사용하고 eslint-disable 디렉티브 추가했으나, eslint가 "Unused directive" 경고 + "Unexpected any" 에러 동시 발생
+- **원인**: eslint 디렉티브가 `as any` 줄보다 위에 있어도, 실제 `any` 사용 위치가 다음 줄 인자 내부여서 디렉티브가 적용되지 않음
+- **규칙**: supabaseAdmin 타입 오류 우회 시 반드시 `(supabaseAdmin as any).from(...)` 패턴 사용 (클라이언트 자체를 캐스팅). 이 프로젝트의 다른 API 파일들도 동일 패턴 적용 중
+- **참조**: #45, `src/app/api/sessions/[id]/claim/route.ts`

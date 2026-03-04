@@ -1,8 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { HelpCircle } from "lucide-react";
-import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -12,28 +10,15 @@ import {
 import { FormattedText } from "@/components/feedback/FormattedText";
 import { FAQ_DATA } from "@/data/faq";
 
-interface FaqSectionProps {
-  limit?: number;
-}
-
-export function FaqSection({ limit }: FaqSectionProps) {
-  const items = limit ? FAQ_DATA.slice(0, limit) : FAQ_DATA;
-  const hasMore = limit !== undefined && FAQ_DATA.length > limit;
-
+export function FaqAccordion() {
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="w-full max-w-2xl mx-auto mt-12 px-4"
+      transition={{ delay: 0.2 }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <HelpCircle className="w-5 h-5 text-gold" />
-        <h2 className="font-display text-lg font-semibold">자주 묻는 질문</h2>
-      </div>
-
       <Accordion type="single" collapsible className="w-full">
-        {items.map((faq, index) => (
+        {FAQ_DATA.map((faq, index) => (
           <AccordionItem key={index} value={`faq-${index}`}>
             <AccordionTrigger className="text-left text-sm font-medium hover:text-gold">
               {faq.question}
@@ -47,17 +32,6 @@ export function FaqSection({ limit }: FaqSectionProps) {
           </AccordionItem>
         ))}
       </Accordion>
-
-      {hasMore && (
-        <div className="mt-4 text-right">
-          <Link
-            href="/faq"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            모든 질문 보기 →
-          </Link>
-        </div>
-      )}
-    </motion.section>
+    </motion.div>
   );
 }

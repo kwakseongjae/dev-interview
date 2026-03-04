@@ -482,13 +482,6 @@ function SearchContent() {
     // 이미 시작 중이면 무시
     if (isStartingInterview) return;
 
-    // 로그인 상태 확인
-    if (!isLoggedIn()) {
-      alert("로그인이 필요합니다.");
-      router.push("/auth");
-      return;
-    }
-
     setIsStartingInterview(true);
 
     try {

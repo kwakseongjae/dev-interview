@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/supabase/auth-helpers";
+import { requireUser, getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/sessions/:id - 세션 상세 조회
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireUser();
+    const auth = await getUserOptional();
 
     const { id: sessionId } = await params;
 
@@ -36,8 +36,9 @@ export async function GET(
       );
     }
 
-    // 본인 세션이 아니면 팀스페이스에 공유된 세션인지 확인
-    if (session.user_id !== auth.sub) {
+    // 게스트 세션(user_id가 null)은 세션 ID 소유로 접근 허용
+    // 로그인 세션은 본인 세션이거나 팀스페이스에 공유된 세션인지 확인
+    if (session.user_id !== null && auth?.sub !== session.user_id) {
       const { data: teamSpaceSession } = await supabaseAdmin
         .from("team_space_sessions")
         .select(
@@ -53,7 +54,7 @@ export async function GET(
         `,
         )
         .eq("session_id", sessionId)
-        .eq("team_spaces.team_space_members.user_id", auth.sub)
+        .eq("team_spaces.team_space_members.user_id", auth?.sub ?? "")
         .maybeSingle();
 
       if (!teamSpaceSession) {
@@ -108,13 +109,17 @@ export async function GET(
           .eq("question_id", question.id)
           .single();
 
-        // 찜 여부 확인 (이미 찜한 질문인지 확인)
-        const { data: favorite } = await supabaseAdmin
-          .from("favorites")
-          .select("id")
-          .eq("user_id", auth.sub)
-          .eq("question_id", question.id)
-          .maybeSingle();
+        // 찜 여부 확인 (로그인한 경우만)
+        let favorite = null;
+        if (auth?.sub) {
+          const { data } = await supabaseAdmin
+            .from("favorites")
+            .select("id")
+            .eq("user_id", auth.sub)
+            .eq("question_id", question.id)
+            .maybeSingle();
+          favorite = data;
+        }
 
         return {
           id: question.id,

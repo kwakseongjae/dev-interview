@@ -9,6 +9,7 @@ import {
   Eye,
   Home,
   Loader2,
+  Lock,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -90,34 +91,18 @@ function CompleteContent() {
         return;
       }
 
-      // 로그인 상태면 API에서 먼저 조회 시도
-      if (isLoggedIn()) {
-        try {
-          const apiSession = await getSessionByIdApi(sessionId);
-          setSession(convertApiSession(apiSession));
-          setIsLoading(false);
-          return;
-        } catch (error) {
-          console.error("API 조회 실패, 로컬 스토리지 폴백:", error);
-        }
+      // 로그인 여부 관계없이 API에서 세션 조회 (게스트 세션도 접근 가능)
+      try {
+        const apiSession = await getSessionByIdApi(sessionId);
+        setSession(convertApiSession(apiSession));
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error("API 조회 실패:", error);
       }
 
-      // 로그인하지 않은 경우
       setSession(null);
       setIsLoading(false);
-
-      // 로그인 유도 모달 표시
-      const dismissedUntil = localStorage.getItem(
-        "loginPrompt_complete_dismissedUntil",
-      );
-      if (dismissedUntil) {
-        const dismissedDate = new Date(dismissedUntil);
-        if (dismissedDate > new Date()) {
-          // 아직 하루가 지나지 않음
-          return;
-        }
-      }
-      setTimeout(() => setShowLoginModal(true), 1000);
     };
 
     loadSession();
@@ -311,6 +296,40 @@ function CompleteContent() {
           </Card>
         </motion.div>
 
+        {/* 게스트 로그인 유도 배너 */}
+        {!isLoggedIn() && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="mb-6 p-4 rounded-xl border border-gold/30 bg-gold/5"
+          >
+            <div className="flex items-start gap-3">
+              <Lock className="w-4 h-4 text-gold mt-0.5 shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-medium text-foreground">
+                  AI 피드백 및 아카이브 저장
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  로그인하면 답변 분석, AI 피드백, 아카이브 저장이 가능해요.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-gold hover:bg-gold/90 text-white h-8 px-3 text-xs shrink-0"
+                onClick={() => {
+                  if (sessionId) {
+                    localStorage.setItem("guestSessionId", sessionId);
+                  }
+                  window.location.href = `/auth?redirect=/archive/${sessionId}`;
+                }}
+              >
+                로그인
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -318,15 +337,31 @@ function CompleteContent() {
           transition={{ delay: 0.6 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3"
         >
-          <Link href={`/archive/${sessionId}`}>
+          {isLoggedIn() ? (
+            <Link href={`/archive/${sessionId}`}>
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-navy hover:bg-navy-light"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                결과 보기
+              </Button>
+            </Link>
+          ) : (
             <Button
               size="lg"
               className="w-full sm:w-auto bg-navy hover:bg-navy-light"
+              onClick={() => {
+                if (sessionId) {
+                  localStorage.setItem("guestSessionId", sessionId);
+                }
+                window.location.href = `/auth?redirect=/archive/${sessionId}`;
+              }}
             >
-              <Eye className="w-4 h-4 mr-2" />
-              결과 보기
+              <Lock className="w-4 h-4 mr-2" />
+              로그인하고 결과 보기
             </Button>
-          </Link>
+          )}
           <Link
             href={`/search?q=${encodeURIComponent(session?.query || "")}${
               session?.questions.some((q) => q.trendTopic)
@@ -354,7 +389,9 @@ function CompleteContent() {
           transition={{ delay: 0.8 }}
           className="mt-12 text-sm text-muted-foreground"
         >
-          수고하셨습니다! 아카이브에서 답변을 다시 확인하실 수 있습니다.
+          {isLoggedIn()
+            ? "수고하셨습니다! 아카이브에서 답변을 다시 확인하실 수 있습니다."
+            : "수고하셨습니다! 로그인하면 AI 피드백과 함께 다시 확인할 수 있어요."}
         </motion.p>
       </motion.div>
 

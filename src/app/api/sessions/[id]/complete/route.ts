@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/supabase/auth-helpers";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // PATCH /api/sessions/:id/complete - 세션 완료 처리
@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireUser();
+    const auth = await getUserOptional();
 
     const { id: sessionId } = await params;
 
@@ -32,14 +32,18 @@ export async function PATCH(
       ); // 0-86400초(24시간) 범위로 제한
     }
 
-    // 세션 소유권 확인
+    // 세션 소유권 확인 (로그인 유저는 본인 세션, 게스트는 user_id=null인 세션)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existingSession } = await (supabaseAdmin as any)
+    const sessionQuery = (supabaseAdmin as any)
       .from("interview_sessions")
       .select("id")
-      .eq("id", sessionId)
-      .eq("user_id", auth.sub)
-      .single();
+      .eq("id", sessionId);
+    if (auth?.sub) {
+      sessionQuery.eq("user_id", auth.sub);
+    } else {
+      sessionQuery.is("user_id", null);
+    }
+    const { data: existingSession } = await sessionQuery.single();
 
     if (!existingSession) {
       return NextResponse.json(
@@ -69,9 +73,9 @@ export async function PATCH(
       );
     }
 
-    // 현재 선택된 팀 스페이스가 있으면 자동으로 공유 (아직 공유되지 않은 경우)
+    // 현재 선택된 팀 스페이스가 있으면 자동으로 공유 (로그인한 경우만)
     const currentTeamSpaceId = request.headers.get("X-Current-Team-Space-Id");
-    if (currentTeamSpaceId) {
+    if (currentTeamSpaceId && auth?.sub) {
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(currentTeamSpaceId)) {
@@ -81,7 +85,7 @@ export async function PATCH(
           .from("team_space_members")
           .select("id")
           .eq("team_space_id", currentTeamSpaceId)
-          .eq("user_id", auth.sub)
+          .eq("user_id", auth.sub!)
           .single();
 
         if (membership) {
@@ -100,7 +104,7 @@ export async function PATCH(
             await (supabaseAdmin as any).from("team_space_sessions").insert({
               team_space_id: currentTeamSpaceId,
               session_id: sessionId,
-              shared_by: auth.sub,
+              shared_by: auth!.sub,
               week_number: null, // 주차는 나중에 설정 가능
             });
           }

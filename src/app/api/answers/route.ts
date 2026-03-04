@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/supabase/auth-helpers";
+import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // POST /api/answers - 답변 저장
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser();
+    const auth = await getUserOptional();
 
     const body = await request.json();
     const { session_id, question_id } = body;
@@ -41,13 +41,17 @@ export async function POST(request: NextRequest) {
     ); // 0-86400초 범위
     is_public = Boolean(is_public); // boolean으로 강제 변환
 
-    // 세션 소유권 확인
-    const { data: session } = await supabaseAdmin
+    // 세션 소유권 확인 (로그인 유저는 본인 세션, 게스트는 user_id=null인 세션)
+    const sessionQuery = supabaseAdmin
       .from("interview_sessions")
       .select("id")
-      .eq("id", session_id)
-      .eq("user_id", auth.sub)
-      .single();
+      .eq("id", session_id);
+    if (auth?.sub) {
+      sessionQuery.eq("user_id", auth.sub);
+    } else {
+      sessionQuery.is("user_id", null);
+    }
+    const { data: session } = await sessionQuery.single();
 
     if (!session) {
       return NextResponse.json(
@@ -58,13 +62,17 @@ export async function POST(request: NextRequest) {
 
     // 기존 답변 확인 (이미 있으면 업데이트)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existingAnswer } = await (supabaseAdmin as any)
+    const existingQuery = (supabaseAdmin as any)
       .from("answers")
       .select("id")
       .eq("session_id", session_id)
-      .eq("question_id", question_id)
-      .eq("user_id", auth.sub)
-      .single();
+      .eq("question_id", question_id);
+    if (auth?.sub) {
+      existingQuery.eq("user_id", auth.sub);
+    } else {
+      existingQuery.is("user_id", null);
+    }
+    const { data: existingAnswer } = await existingQuery.single();
 
     let answer;
 
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
         .insert({
           session_id,
           question_id,
-          user_id: auth.sub,
+          user_id: auth?.sub ?? null,
           content,
           time_spent: time_spent || 0,
           is_public: is_public ?? false,

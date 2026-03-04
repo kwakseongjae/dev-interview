@@ -5,13 +5,11 @@ import FloatingContactButton from "@/components/FloatingContactButton";
 import {
   getOrganizationJsonLd,
   getWebApplicationJsonLd,
-  getFaqJsonLd,
   SITE_URL,
   SITE_NAME,
   SITE_DESCRIPTION,
 } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
-import { FAQ_DATA } from "@/data/faq";
 
 export const metadata: Metadata = {
   title: "모카번 - AI 기술면접 준비",
@@ -78,10 +76,9 @@ export default function RootLayout({
           content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net;"
         />
         {/* Note: X-Frame-Options, X-Content-Type-Options, Referrer-Policy are set via HTTP headers in next.config.ts */}
-        {/* JSON-LD: Organization + WebApplication + FAQPage */}
+        {/* JSON-LD: Organization + WebApplication */}
         <JsonLd data={getOrganizationJsonLd()} />
         <JsonLd data={getWebApplicationJsonLd()} />
-        <JsonLd data={getFaqJsonLd(FAQ_DATA)} />
       </head>
       <body className="min-h-screen font-body antialiased">
         {children}

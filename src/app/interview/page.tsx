@@ -10,7 +10,11 @@ import {
   CloudCheck,
   Heart,
   Loader2,
+  Pause,
+  Play,
+  RotateCcw,
   Send,
+  Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,8 +35,7 @@ import {
   getSessionByIdApi,
   type ApiSessionDetail,
 } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
-import { formatSeconds } from "@/hooks/useTimer";
+import { useTimer, formatSeconds } from "@/hooks/useTimer";
 import { HintSection } from "@/components/feedback/HintSection";
 
 // 로컬 스토리지 키 생성
@@ -65,6 +68,15 @@ function InterviewContent() {
   const totalTimeRef = useRef(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 질문별 카운트다운 타이머 (3분)
+  const questionTimer = useTimer({ initialTime: 180 });
+  const timerColor =
+    questionTimer.time > 60
+      ? "text-timer-safe"
+      : questionTimer.time > 30
+        ? "text-timer-warning"
+        : "text-timer-danger";
 
   // 로컬 스토리지에 진행상황 저장
   const saveToLocal = useCallback(() => {
@@ -154,11 +166,6 @@ function InterviewContent() {
         return;
       }
 
-      if (!isLoggedIn()) {
-        router.push("/");
-        return;
-      }
-
       try {
         const apiSession = await getSessionByIdApi(sessionId);
         const loadedSession = convertApiSession(apiSession);
@@ -221,6 +228,12 @@ function InterviewContent() {
 
     loadSession();
   }, [sessionId, router, loadFromLocal]);
+
+  // 질문 변경 시 카운트다운 타이머 리셋
+  useEffect(() => {
+    questionTimer.reset(180);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionIndex]);
 
   // Track total time - 안정적인 타이머 로직
   useEffect(() => {
@@ -374,19 +387,6 @@ function InterviewContent() {
     if (!session || isSubmitting) return;
 
     setIsSubmitting(true);
-
-    // 비동기로 실제 인증 상태 확인 (race condition 방지)
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setIsSubmitting(false);
-      alert("로그인이 필요합니다.");
-      router.push("/auth");
-      return;
-    }
 
     // 타이머 및 자동저장 정지
     if (timerIntervalRef.current) {
@@ -636,6 +636,63 @@ function InterviewContent() {
                       }`}
                     />
                   </button>
+                </div>
+
+                {/* Question Timer */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <Timer className={`w-4 h-4 ${timerColor}`} />
+                    <span
+                      className={`font-mono text-lg font-semibold tabular-nums ${timerColor} ${
+                        questionTimer.time <= 30 && questionTimer.isRunning
+                          ? "timer-pulse"
+                          : ""
+                      }`}
+                    >
+                      {questionTimer.formatTime()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={
+                        questionTimer.isRunning
+                          ? questionTimer.pause
+                          : questionTimer.start
+                      }
+                      className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      aria-label={
+                        questionTimer.isRunning
+                          ? "타이머 일시정지"
+                          : "타이머 시작"
+                      }
+                    >
+                      {questionTimer.isRunning ? (
+                        <Pause className="w-3.5 h-3.5" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => questionTimer.reset(180)}
+                      className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      aria-label="타이머 초기화"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ${
+                        questionTimer.time > 60
+                          ? "bg-timer-safe"
+                          : questionTimer.time > 30
+                            ? "bg-timer-warning"
+                            : "bg-timer-danger"
+                      }`}
+                      style={{ width: `${questionTimer.percentage}%` }}
+                    />
+                  </div>
                 </div>
 
                 {/* Answer Textarea */}

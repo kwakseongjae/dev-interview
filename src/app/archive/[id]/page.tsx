@@ -89,8 +89,19 @@ export default function ArchiveDetailPage() {
   useEffect(() => {
     const loadSession = async () => {
       if (!isLoggedIn()) {
-        setIsLoading(false);
+        router.replace(`/auth?redirect=/archive/${sessionId}`);
         return;
+      }
+
+      // 게스트 세션 클레임: localStorage에 저장된 guestSessionId가 현재 세션이면 귀속 처리
+      const guestSessionId = localStorage.getItem("guestSessionId");
+      if (guestSessionId === sessionId) {
+        try {
+          await fetch(`/api/sessions/${sessionId}/claim`, { method: "PATCH" });
+          localStorage.removeItem("guestSessionId");
+        } catch {
+          // 이미 귀속된 세션이거나 실패 시 무시하고 계속
+        }
       }
 
       try {
@@ -105,7 +116,7 @@ export default function ArchiveDetailPage() {
     };
 
     loadSession();
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   const handleToggleFavorite = async (questionId: string) => {
     if (!session) return;

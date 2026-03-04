@@ -972,7 +972,7 @@ export default function Home() {
       {user && <TeamSpaceIntro />}
 
       {/* FAQ Section (AEO) */}
-      <FaqSection />
+      <FaqSection limit={4} />
 
       {/* Footer */}
       <footer className="mt-auto py-4 flex items-center justify-center gap-3 text-xs text-muted-foreground/50">
