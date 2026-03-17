@@ -17,6 +17,7 @@
 
 import { generateEmbeddings } from "./embedding";
 import type { GeneratedQuestion } from "./claude";
+import { normalizeQuestionContent } from "./question-utils";
 
 // 중복 차단 임계값: "같은 질문을 다르게 표현한 것" 저장 방지
 const DEDUP_THRESHOLD = 0.92;
@@ -368,9 +369,7 @@ export async function storeQuestionsWithEmbeddings(
 
       uniqueRows.push({
         content: questions[i].content,
-        content_normalized: questions[i].content
-          .toLowerCase()
-          .replace(/[^a-z0-9가-힣\s]/g, ""),
+        content_normalized: normalizeQuestionContent(questions[i].content),
         hint: questions[i].hint || null,
         category_id:
           categoryMap.get(questions[i].category.toUpperCase()) ||
@@ -387,20 +386,30 @@ export async function storeQuestionsWithEmbeddings(
       return { stored: 0, duplicates: duplicateCount };
     }
 
+    // upsert: content_hash UNIQUE 제약으로 RPC 중복 체크 누락분도 DB 레벨에서 차단
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabaseAdmin as any)
+    const { data: inserted, error } = await (supabaseAdmin as any)
       .from("questions")
-      .insert(uniqueRows);
+      .upsert(uniqueRows, {
+        onConflict: "content_hash",
+        ignoreDuplicates: true,
+      })
+      .select("id");
 
     if (error) {
       console.error("질문 DB 저장 실패:", error);
       return { stored: 0, duplicates: duplicateCount };
     }
 
+    const storedCount = inserted?.length ?? 0;
+    const dbDuplicates = uniqueRows.length - storedCount;
     console.log(
-      `질문 저장: ${uniqueRows.length}개 저장, ${duplicateCount}개 중복 스킵`,
+      `질문 저장: ${storedCount}개 저장, ${duplicateCount + dbDuplicates}개 중복 스킵 (RPC: ${duplicateCount}, DB: ${dbDuplicates})`,
     );
-    return { stored: uniqueRows.length, duplicates: duplicateCount };
+    return {
+      stored: storedCount,
+      duplicates: duplicateCount + dbDuplicates,
+    };
   } catch (error) {
     console.error("질문 저장 실패 (무시됨):", error);
     return { stored: 0, duplicates: 0 };

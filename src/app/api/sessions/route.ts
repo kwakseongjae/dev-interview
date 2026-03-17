@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser, getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateQuestions, summarizeQueryToTitle } from "@/lib/claude";
+import { normalizeQuestionContent } from "@/lib/question-utils";
 
 // GET /api/sessions - 내 면접 세션 목록
 export async function GET(request: NextRequest) {
@@ -362,30 +363,47 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 질문 저장
-        const { data: newQuestion, error: qError } = await supabaseAdmin
+        // 질문 저장 (중복 시 기존 질문 재사용)
+        const contentNormalized = normalizeQuestionContent(q.content);
+
+        // upsert: content_hash UNIQUE 제약으로 중복 차단
+        const { data: upserted, error: qError } = await supabaseAdmin
           .from("questions")
-          .insert({
-            content: q.content,
-            content_normalized: q.content.toLowerCase(),
-            hint: q.hint,
-            category_id: categoryId,
-            subcategory_id: subcategoryId,
-            difficulty: "MEDIUM",
-            is_verified: false,
-            created_by: auth?.sub ?? null,
-            is_trending: q.isTrending || false,
-            trend_topic: q.trendTopic || null,
-          })
+          .upsert(
+            {
+              content: q.content,
+              content_normalized: contentNormalized,
+              hint: q.hint,
+              category_id: categoryId,
+              subcategory_id: subcategoryId,
+              difficulty: "MEDIUM",
+              is_verified: false,
+              created_by: auth?.sub ?? null,
+              is_trending: q.isTrending || false,
+              trend_topic: q.trendTopic || null,
+            },
+            { onConflict: "content_hash", ignoreDuplicates: true },
+          )
           .select("id")
           .single();
 
-        if (qError || !newQuestion) {
-          console.error("질문 저장 실패:", qError);
-          continue; // 질문 저장 실패 시 해당 질문 건너뛰기
-        }
+        if (upserted) {
+          questionIdsToUse.push(upserted.id);
+        } else {
+          // ignoreDuplicates: true → 중복 시 빈 응답, 기존 질문 ID 조회
+          const { data: existing } = await supabaseAdmin
+            .from("questions")
+            .select("id")
+            .eq("content_normalized", contentNormalized)
+            .single();
 
-        questionIdsToUse.push(newQuestion.id);
+          if (existing) {
+            questionIdsToUse.push(existing.id);
+          } else if (qError) {
+            console.error("질문 저장 실패:", qError);
+            continue;
+          }
+        }
       }
     }
 
