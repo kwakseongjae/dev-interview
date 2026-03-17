@@ -295,6 +295,11 @@ export async function searchCachedQuestions(
   }
 }
 
+export interface StoreQuestionsResult {
+  stored: number;
+  duplicates: number;
+}
+
 /**
  * 새로 생성된 질문을 중복 체크 후 DB에 저장
  * - 각 질문의 임베딩을 생성
@@ -303,9 +308,9 @@ export async function searchCachedQuestions(
  */
 export async function storeQuestionsWithEmbeddings(
   questions: GeneratedQuestion[],
-): Promise<void> {
+): Promise<StoreQuestionsResult> {
   try {
-    if (questions.length === 0) return;
+    if (questions.length === 0) return { stored: 0, duplicates: 0 };
 
     const { supabaseAdmin } = await import("@/lib/supabase");
 
@@ -330,7 +335,7 @@ export async function storeQuestionsWithEmbeddings(
     const defaultCategoryId = categories?.[0]?.id;
     if (!defaultCategoryId) {
       console.error("카테고리를 찾을 수 없어 질문 저장을 건너뜁니다.");
-      return;
+      return { stored: 0, duplicates: 0 };
     }
 
     // 3. 각 질문별 중복 체크 후 유니크한 것만 저장
@@ -379,7 +384,7 @@ export async function storeQuestionsWithEmbeddings(
 
     if (uniqueRows.length === 0) {
       console.log(`모든 질문이 중복 (${duplicateCount}개 스킵)`);
-      return;
+      return { stored: 0, duplicates: duplicateCount };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -389,13 +394,16 @@ export async function storeQuestionsWithEmbeddings(
 
     if (error) {
       console.error("질문 DB 저장 실패:", error);
-    } else {
-      console.log(
-        `질문 저장: ${uniqueRows.length}개 저장, ${duplicateCount}개 중복 스킵`,
-      );
+      return { stored: 0, duplicates: duplicateCount };
     }
+
+    console.log(
+      `질문 저장: ${uniqueRows.length}개 저장, ${duplicateCount}개 중복 스킵`,
+    );
+    return { stored: uniqueRows.length, duplicates: duplicateCount };
   } catch (error) {
     console.error("질문 저장 실패 (무시됨):", error);
+    return { stored: 0, duplicates: 0 };
   }
 }
 
