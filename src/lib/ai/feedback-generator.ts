@@ -1,6 +1,6 @@
 /**
  * AI Feedback Generator
- * Uses Haiku for quick feedback (cost-optimized), Sonnet for detailed analysis
+ * Sonnet 4.6 모델 통일 사용
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -43,8 +43,7 @@ const anthropic = new Anthropic({
 });
 
 // Model configuration
-const HAIKU_MODEL = "claude-3-5-haiku-20241022";
-const SONNET_MODEL = "claude-sonnet-4-20250514";
+const SONNET_MODEL = "claude-sonnet-4-6";
 
 /**
  * Parse JSON from Claude response, handling markdown code blocks
@@ -64,9 +63,8 @@ function parseJsonResponse<T>(text: string): T {
 }
 
 /**
- * Generate quick feedback using Haiku model
+ * Generate quick feedback
  * Returns: keywords, score (1-5), summary
- * Cost: ~$0.0001-0.0002 per request
  */
 export async function generateQuickFeedback(
   question: string,
@@ -82,7 +80,7 @@ export async function generateQuickFeedback(
   });
 
   const response = await anthropic.messages.create({
-    model: HAIKU_MODEL,
+    model: SONNET_MODEL,
     max_tokens: 256,
     messages: [
       {
@@ -406,7 +404,7 @@ export async function generateModelAnswer(
  */
 export function getModelInfo() {
   return {
-    quickModel: HAIKU_MODEL,
+    quickModel: SONNET_MODEL,
     detailModel: SONNET_MODEL,
   };
 }

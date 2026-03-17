@@ -24,7 +24,16 @@ const SUGGESTION_EXAMPLES = [
 export function validateInterviewInput(query: string): InputValidationResult {
   const trimmedQuery = query.trim();
 
-  // 1. 너무 짧은 입력 (3글자 미만)
+  // 1-a. 너무 긴 입력 (500자 초과) - 토큰 남용 방지
+  if (trimmedQuery.length > 500) {
+    return {
+      isValid: false,
+      category: "too_short",
+      suggestion: "검색어가 너무 깁니다. 500자 이내로 입력해주세요.",
+    };
+  }
+
+  // 1-b. 너무 짧은 입력 (3글자 미만)
   if (trimmedQuery.length < 3) {
     return {
       isValid: false,

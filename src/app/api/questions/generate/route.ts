@@ -9,6 +9,11 @@ import {
   generateReferenceFingerprint,
   buildDiversityPrompt,
 } from "@/lib/question-history";
+import {
+  searchCachedQuestions,
+  storeQuestionsWithEmbeddings,
+  mapCachedToGenerated,
+} from "@/lib/question-cache";
 import type { InterviewTypeCode } from "@/types/interview";
 
 // POST /api/questions/generate - Claude로 질문 생성 (세션 저장 없이)
@@ -57,11 +62,13 @@ export async function POST(request: NextRequest) {
     const auth = await getUserOptional();
     const userId = auth?.sub;
 
-    // 제외할 질문 내용 목록 (이미 추천된 질문들)
-    let excludeQuestions: string[] = exclude_questions || [];
+    // 제외할 질문 내용 목록 (이미 추천된 질문들) - 최대 50개, 각 200자 제한
+    let excludeQuestions: string[] = (exclude_questions || [])
+      .slice(0, 50)
+      .map((q: string) => (typeof q === "string" ? q.slice(0, 200) : ""));
 
-    // 생성할 질문 수 (기본값: 5)
-    const questionCount: number = count || 5;
+    // 생성할 질문 수 (기본값: 5, 최대 20) - 비용 폭주 방지
+    const questionCount: number = Math.min(Math.max(count || 5, 1), 20);
 
     // 다양성 프롬프트 및 레퍼런스 핑거프린트 초기화
     let diversityPrompt = "";
@@ -78,7 +85,125 @@ export async function POST(request: NextRequest) {
       hasUser: !!userId,
     });
 
-    // Claude로 질문 생성 (레퍼런스 URL, 면접 범주, 트렌드 토픽 포함)
+    // ============================================
+    // 시맨틱 캐싱: 레퍼런스가 없는 경우 DB 벡터 검색 우선 시도
+    // ============================================
+    const hasReference = reference_urls && reference_urls.length > 0;
+
+    if (!hasReference) {
+      console.log("시맨틱 캐시 검색 시작:", { query, count: questionCount });
+
+      const cachedQuestions = await searchCachedQuestions(query, questionCount);
+
+      if (cachedQuestions.length >= questionCount) {
+        // 캐시 히트: 충분한 질문이 있으므로 Claude API 호출 없이 반환
+        const questions = mapCachedToGenerated(
+          cachedQuestions.slice(0, questionCount),
+        );
+
+        console.log("시맨틱 캐시 히트:", {
+          cachedCount: cachedQuestions.length,
+          returnedCount: questions.length,
+          avgSimilarity:
+            cachedQuestions
+              .slice(0, questionCount)
+              .reduce((sum, q) => sum + q.similarity, 0) / questionCount,
+        });
+
+        // 로그인 사용자의 경우 이력 저장
+        if (userId) {
+          saveQuestionHistory(
+            userId,
+            questions,
+            null,
+            interview_type
+              ? await getInterviewTypeId(interview_type)
+              : undefined,
+          ).catch((err) => {
+            console.error("질문 이력 저장 실패 (무시됨):", err);
+          });
+        }
+
+        return NextResponse.json({
+          questions,
+          query,
+          referenceUsed: false,
+          diversityApplied: false,
+          cacheHit: true,
+        });
+      }
+
+      // 캐시 부분 히트: 부족분만 Claude로 생성
+      const cachedCount = cachedQuestions.length;
+      const neededCount = questionCount - cachedCount;
+
+      if (cachedCount > 0) {
+        console.log("시맨틱 캐시 부분 히트:", {
+          cachedCount,
+          neededCount,
+        });
+
+        // 캐시된 질문을 exclude 목록에 추가하여 중복 방지
+        const cachedContents = cachedQuestions.map((q) => q.content);
+        excludeQuestions = [
+          ...new Set([...excludeQuestions, ...cachedContents]),
+        ];
+      }
+
+      // 부족분 또는 전체를 Claude로 생성
+      const generateCount = cachedCount > 0 ? neededCount : questionCount;
+      const result = await generateQuestions(
+        query,
+        excludeQuestions,
+        generateCount,
+        undefined,
+        interview_type,
+        diversityPrompt,
+        trend_topic,
+      );
+
+      // 새로 생성된 질문을 DB에 비동기 저장 (중복 체크 포함)
+      storeQuestionsWithEmbeddings(result.questions).catch((err) => {
+        console.error("질문 임베딩 저장 실패 (무시됨):", err);
+      });
+
+      // 캐시 질문 + 새 질문 합치기
+      const cachedGenerated = mapCachedToGenerated(cachedQuestions);
+      const allQuestions = [...cachedGenerated, ...result.questions].slice(
+        0,
+        questionCount,
+      );
+
+      // 로그인 사용자의 경우 이력 저장
+      if (userId) {
+        saveQuestionHistory(
+          userId,
+          allQuestions,
+          null,
+          interview_type ? await getInterviewTypeId(interview_type) : undefined,
+        ).catch((err) => {
+          console.error("질문 이력 저장 실패 (무시됨):", err);
+        });
+      }
+
+      console.log("질문 생성 완료 (캐시+생성):", {
+        cachedCount,
+        generatedCount: result.questions.length,
+        totalCount: allQuestions.length,
+      });
+
+      return NextResponse.json({
+        questions: allQuestions,
+        query,
+        referenceUsed: false,
+        diversityApplied: false,
+        cacheHit: cachedCount > 0,
+      });
+    }
+
+    // ============================================
+    // 레퍼런스 있는 경우: 기존 플로우 유지
+    // ============================================
     const result = await generateQuestions(
       query,
       excludeQuestions,
