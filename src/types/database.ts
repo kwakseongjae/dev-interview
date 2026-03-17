@@ -115,6 +115,7 @@ export interface Database {
           id: string;
           content: string;
           content_normalized: string;
+          content_hash: string;
           hint: string | null;
           category_id: string;
           subcategory_id: string | null;

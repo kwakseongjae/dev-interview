@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
+import { normalizeQuestionContent } from "@/lib/question-utils";
 
 // GET /api/questions - 질문 목록 조회
 export async function GET(request: NextRequest) {
@@ -125,19 +126,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 질문 생성
+    // 질문 생성 (중복 시 기존 질문 반환)
+    const contentNormalized = normalizeQuestionContent(content);
+
     const { data: question, error } = await supabaseAdmin
       .from("questions")
-      .insert({
-        content,
-        content_normalized: content.toLowerCase(),
-        hint: hint || null,
-        category_id,
-        subcategory_id: subcategory_id || null,
-        difficulty: difficulty || "MEDIUM",
-        is_verified: false,
-        created_by: auth?.sub || null,
-      })
+      .upsert(
+        {
+          content,
+          content_normalized: contentNormalized,
+          hint: hint || null,
+          category_id,
+          subcategory_id: subcategory_id || null,
+          difficulty: difficulty || "MEDIUM",
+          is_verified: false,
+          created_by: auth?.sub || null,
+        },
+        { onConflict: "content_hash", ignoreDuplicates: true },
+      )
       .select(
         `
         id,
@@ -153,15 +159,38 @@ export async function POST(request: NextRequest) {
       )
       .single();
 
-    if (error) {
-      console.error("질문 생성 실패:", error);
-      return NextResponse.json(
-        { error: "질문 생성에 실패했습니다" },
-        { status: 500 },
-      );
+    if (question) {
+      return NextResponse.json({ question }, { status: 201 });
     }
 
-    return NextResponse.json({ question }, { status: 201 });
+    // 중복 시 기존 질문 조회하여 반환
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("questions")
+      .select(
+        `
+        id,
+        content,
+        hint,
+        difficulty,
+        favorite_count,
+        is_verified,
+        created_at,
+        categories!inner(id, name, display_name),
+        subcategories(id, name, display_name)
+      `,
+      )
+      .eq("content_normalized", contentNormalized)
+      .single();
+
+    if (existing) {
+      return NextResponse.json({ question: existing, duplicate: true });
+    }
+
+    console.error("질문 생성 실패:", error || fetchError);
+    return NextResponse.json(
+      { error: "질문 생성에 실패했습니다" },
+      { status: 500 },
+    );
   } catch (error) {
     // 보안: 상세한 에러 메시지 노출 방지
     console.error("질문 생성 실패:", error);

@@ -5,6 +5,7 @@ import {
   getCaseStudyBySlug,
   incrementInterviewCount,
 } from "@/lib/case-studies";
+import { normalizeQuestionContent } from "@/lib/question-utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -76,28 +77,44 @@ export async function POST(
         categoryId = newCategory.id;
       }
 
-      // 질문 저장
-      const { data: newQuestion, error: qError } = await db
+      // 질문 저장 (중복 시 기존 질문 재사용)
+      const contentNormalized = normalizeQuestionContent(q.content);
+
+      const { data: upserted, error: qError } = await db
         .from("questions")
-        .insert({
-          content: q.content,
-          content_normalized: q.content.toLowerCase(),
-          hint: q.hint,
-          category_id: categoryId,
-          subcategory_id: null,
-          difficulty: "MEDIUM",
-          is_verified: false,
-          created_by: auth.sub,
-        })
+        .upsert(
+          {
+            content: q.content,
+            content_normalized: contentNormalized,
+            hint: q.hint,
+            category_id: categoryId,
+            subcategory_id: null,
+            difficulty: "MEDIUM",
+            is_verified: false,
+            created_by: auth.sub,
+          },
+          { onConflict: "content_hash", ignoreDuplicates: true },
+        )
         .select("id")
         .single();
 
-      if (qError || !newQuestion) {
-        console.error("질문 저장 실패:", qError);
-        continue;
-      }
+      if (upserted) {
+        questionIdsToUse.push(upserted.id);
+      } else {
+        // 중복 시 기존 질문 ID 조회
+        const { data: existing } = await db
+          .from("questions")
+          .select("id")
+          .eq("content_normalized", contentNormalized)
+          .single();
 
-      questionIdsToUse.push(newQuestion.id);
+        if (existing) {
+          questionIdsToUse.push(existing.id);
+        } else if (qError) {
+          console.error("질문 저장 실패:", qError);
+          continue;
+        }
+      }
     }
 
     if (questionIdsToUse.length === 0) {
