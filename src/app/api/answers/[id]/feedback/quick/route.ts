@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai/feedback-generator";
 
 /**
- * POST /api/answers/:id/feedback/quick - Generate quick feedback using Haiku
+ * POST /api/answers/:id/feedback/quick - Generate quick feedback
  * Creates or updates feedback with keywords, score, summary
  */
 export async function POST(
@@ -90,7 +90,7 @@ export async function POST(
       trend_topic: string | null;
     };
 
-    // Generate quick feedback using Haiku
+    // Generate quick feedback
     const quickFeedback = await generateQuickFeedback(
       question.content,
       question.hint,

@@ -195,7 +195,7 @@ async function validateReferenceContent(
 
   // Claude를 사용해 레퍼런스 유효성 검증
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 256,
     messages: [
       {
@@ -296,7 +296,7 @@ async function extractTextFromReference(
           };
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 4096,
       messages: [
         {
@@ -497,10 +497,18 @@ ${
     .replace("{question_count}", count.toString());
 
   // temperature 0.7로 설정하여 질문 다양성 향상
+  // Prompt Caching: 시스템 프롬프트에 cache_control 적용하여 입력 토큰 비용 절감
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 2048,
     temperature: 0.7,
+    system: [
+      {
+        type: "text",
+        text: "당신은 개발자 기술면접 전문가입니다. 사용자의 요청에 맞는 기술면접 질문을 생성합니다.",
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     messages: [
       {
         role: "user",
@@ -578,7 +586,7 @@ export async function summarizeQueryToTitle(query: string): Promise<string> {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 100,
       messages: [
         {
@@ -631,7 +639,7 @@ export async function evaluateAnswer(
     .replace("{answer}", answer);
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     messages: [
       {

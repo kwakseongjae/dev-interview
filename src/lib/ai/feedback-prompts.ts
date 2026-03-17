@@ -1,12 +1,11 @@
 /**
  * AI Feedback Prompt Templates
- * Quick feedback uses Haiku (fast, cheap), Detailed uses Sonnet (thorough)
+ * 모든 피드백에 Sonnet 4.6 모델 사용
  */
 
 /**
- * Quick Feedback Prompt (Haiku - Pre-generated)
+ * Quick Feedback Prompt
  * Generates: keywords, score (1-5), summary
- * Cost-optimized: ~100-200 tokens output
  */
 export const QUICK_FEEDBACK_PROMPT = `당신은 기술면접 피드백 전문가입니다.
 다음 기술면접 질문과 답변을 분석하여 간단한 피드백을 생성해주세요.
