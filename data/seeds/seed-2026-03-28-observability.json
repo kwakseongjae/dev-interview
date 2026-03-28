@@ -1,0 +1,47 @@
+[
+  {
+    "content": "옵저버빌리티(Observability)의 세 가지 축인 메트릭, 로그, 트레이스의 차이를 설명하고, 각각의 활용 사례를 제시해주세요.",
+    "hint": "RED 메트릭, 구조화된 로그, 분산 트레이싱, 상관 관계, Grafana/Prometheus/Jaeger, 알림 설정",
+    "category": "DEVOPS",
+    "subcategory": "OBSERVABILITY",
+    "difficulty": "EASY",
+    "is_trending": true,
+    "trend_topic": "observability"
+  },
+  {
+    "content": "OpenTelemetry의 아키텍처를 설명하고, SDK와 Collector의 역할을 비교하며 계측(Instrumentation) 전략을 제시해주세요.",
+    "hint": "자동 계측, 수동 계측, OTLP 프로토콜, Collector 파이프라인(receiver/processor/exporter), 샘플링",
+    "category": "DEVOPS",
+    "subcategory": "OBSERVABILITY",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "observability"
+  },
+  {
+    "content": "SLI, SLO, SLA의 개념을 각각 설명하고, 실제 서비스에서 에러 버짓(Error Budget)을 활용한 운영 전략을 설계해주세요.",
+    "hint": "가용성 SLI, 지연 시간 SLI, 에러 버짓 소진율, 번다운 알림, 릴리스 속도 조절, 사후 분석(postmortem)",
+    "category": "DEVOPS",
+    "subcategory": "OBSERVABILITY",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "observability"
+  },
+  {
+    "content": "마이크로서비스 환경에서 분산 트레이싱을 구현할 때 컨텍스트 전파(Context Propagation) 메커니즘을 설명하고, 트레이스 샘플링 전략을 비교해주세요.",
+    "hint": "W3C Trace Context, B3 헤더, head-based vs tail-based 샘플링, trace ID/span ID, baggage, 성능 오버헤드",
+    "category": "DEVOPS",
+    "subcategory": "OBSERVABILITY",
+    "difficulty": "HARD",
+    "is_trending": true,
+    "trend_topic": "observability"
+  },
+  {
+    "content": "대규모 로그 파이프라인을 설계할 때 로그 수집, 처리, 저장, 분석 단계별 아키텍처를 설명하고, 비용 최적화 전략을 제시해주세요.",
+    "hint": "Fluentd/Fluent Bit, Kafka 버퍼, 로그 레벨 필터링, 콜드/핫 스토리지, 인덱싱 전략, 로그 로테이션, 샘플링",
+    "category": "DEVOPS",
+    "subcategory": "OBSERVABILITY",
+    "difficulty": "HARD",
+    "is_trending": true,
+    "trend_topic": "observability"
+  }
+]

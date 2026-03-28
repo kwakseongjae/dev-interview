@@ -1,0 +1,107 @@
+[
+  {
+    "content": "OAuth 2.0의 Authorization Code Grant와 PKCE(Proof Key for Code Exchange)의 차이점을 설명하고, SPA에서 PKCE가 필수인 이유를 보안 관점에서 설명해주세요.",
+    "hint": "Authorization Code Grant, PKCE, code_verifier, code_challenge, SPA 보안, 인터셉트 공격 방지",
+    "category": "SECURITY",
+    "subcategory": "OAUTH",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "JWT 토큰 탈취 시나리오별 대응 전략을 설명해주세요. Access Token과 Refresh Token 각각에 대해 어떤 방어 메커니즘을 적용하시겠습니까?",
+    "hint": "토큰 만료 시간, Refresh Token Rotation, 블랙리스트, HttpOnly 쿠키, Secure 플래그, SameSite",
+    "category": "SECURITY",
+    "subcategory": "JWT",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "XSS(Cross-Site Scripting)의 세 가지 유형(Stored, Reflected, DOM-based)을 각각 설명하고, React 애플리케이션에서의 방어 전략을 서술해주세요.",
+    "hint": "Stored XSS, Reflected XSS, DOM-based XSS, dangerouslySetInnerHTML, CSP, 입력 검증, 출력 인코딩",
+    "category": "SECURITY",
+    "subcategory": "XSS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CSRF(Cross-Site Request Forgery) 공격의 동작 원리를 설명하고, SameSite 쿠키 속성만으로 완전한 방어가 가능한지 논의해주세요.",
+    "hint": "CSRF 토큰, SameSite=Strict/Lax/None, Double Submit Cookie, Origin 헤더 검증, 브라우저 호환성",
+    "category": "SECURITY",
+    "subcategory": "CSRF",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "SQL Injection 방어에서 Prepared Statement만으로 충분하지 않은 경우를 예시와 함께 설명해주세요.",
+    "hint": "동적 테이블명/컬럼명, ORDER BY 절, 화이트리스트 검증, ORM 바이패스, 2차 인젝션",
+    "category": "SECURITY",
+    "subcategory": "SQL_INJECTION",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "HTTPS의 TLS 핸드셰이크 과정을 단계별로 설명하고, TLS 1.2와 1.3의 주요 차이점을 성능과 보안 관점에서 비교해주세요.",
+    "hint": "ClientHello, ServerHello, 인증서 검증, 키 교환, 0-RTT, 1-RTT, Forward Secrecy, 암호 스위트 축소",
+    "category": "SECURITY",
+    "subcategory": "TLS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Content Security Policy(CSP)란 무엇이며, 실무에서 CSP를 도입할 때 겪는 주요 어려움과 해결 방법을 설명해주세요.",
+    "hint": "script-src, style-src, nonce, hash, report-uri, 인라인 스크립트 제한, 서드파티 라이브러리 호환성",
+    "category": "SECURITY",
+    "subcategory": "CSP",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "비밀번호 해싱에서 bcrypt, scrypt, Argon2의 차이점을 비교하고, 각각의 적합한 사용 시나리오를 설명해주세요.",
+    "hint": "salt, work factor, 메모리 하드 함수, GPU 공격 저항성, 병렬 처리 비용, OWASP 권장",
+    "category": "SECURITY",
+    "subcategory": "CRYPTOGRAPHY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Zero Trust Architecture의 핵심 원칙을 설명하고, 기존 경계 기반 보안 모델과 비교하여 마이크로서비스 환경에서의 장점을 논의해주세요.",
+    "hint": "Never Trust Always Verify, 최소 권한, 마이크로 세그멘테이션, mTLS, 서비스 메시, Identity-Aware Proxy",
+    "category": "SECURITY",
+    "subcategory": "ARCHITECTURE",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "CORS(Cross-Origin Resource Sharing)의 Preflight 요청이 발생하는 조건과, CORS 설정 실수로 인한 보안 취약점 사례를 설명해주세요.",
+    "hint": "Simple Request, Preflight OPTIONS, Access-Control-Allow-Origin 와일드카드, credentials 모드, 오리진 반사 취약점",
+    "category": "SECURITY",
+    "subcategory": "CORS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "API Rate Limiting을 구현할 때 Token Bucket과 Sliding Window 알고리즘의 차이점과 트레이드오프를 설명해주세요.",
+    "hint": "Token Bucket, Sliding Window Log, Fixed Window Counter, 버스트 트래픽, 메모리 사용량, Redis 구현",
+    "category": "SECURITY",
+    "subcategory": "API_SECURITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "서버 사이드 요청 위조(SSRF)의 공격 벡터를 설명하고, 클라우드 환경(AWS/GCP)에서의 특수한 위험성과 방어 방법을 설명해주세요.",
+    "hint": "메타데이터 서비스(169.254.169.254), IMDSv2, URL 검증, 화이트리스트, DNS 리바인딩, 내부 네트워크 접근",
+    "category": "SECURITY",
+    "subcategory": "SSRF",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "쿠키 보안 속성(HttpOnly, Secure, SameSite, Domain, Path)의 각 역할과, 세션 관리에서 올바르게 조합하는 방법을 설명해주세요.",
+    "hint": "HttpOnly로 JS 접근 차단, Secure로 HTTPS 전용, SameSite로 CSRF 방어, 도메인 범위 제한",
+    "category": "SECURITY",
+    "subcategory": "SESSION",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "OWASP Top 10 (2025) 중 'Broken Access Control'이 1위인 이유와, IDOR(Insecure Direct Object Reference) 취약점의 실무 방어 패턴을 설명해주세요.",
+    "hint": "수평적/수직적 권한 상승, UUID vs 순차 ID, 서버 측 권한 검증, 리소스 소유권 확인, 미들웨어 패턴",
+    "category": "SECURITY",
+    "subcategory": "ACCESS_CONTROL",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Supply Chain Attack(공급망 공격)이 npm 생태계에서 어떻게 발생하는지 설명하고, 이를 방어하기 위한 실무 전략을 제시해주세요.",
+    "hint": "타이포스쿼팅, 의존성 혼란, lockfile, npm audit, Dependabot, 코드 서명, 프라이빗 레지스트리",
+    "category": "SECURITY",
+    "subcategory": "SUPPLY_CHAIN",
+    "difficulty": "HARD"
+  }
+]

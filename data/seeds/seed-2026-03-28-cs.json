@@ -1,0 +1,107 @@
+[
+  {
+    "content": "CPU 스케줄링 알고리즘(FCFS, SJF, Round Robin, Priority)의 특징과 장단점을 비교해주세요.",
+    "hint": "FCFS, SJF, Round Robin, Priority, 선점/비선점, 기아 현상, 평균 대기시간",
+    "category": "CS",
+    "subcategory": "OS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "세마포어(Semaphore)와 뮤텍스(Mutex)의 차이점을 설명하고, 각각의 사용 사례를 예시와 함께 설명해주세요.",
+    "hint": "이진 세마포어, 카운팅 세마포어, 임계영역, 소유권, P/V 연산, 동기화",
+    "category": "CS",
+    "subcategory": "OS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "컨텍스트 스위칭(Context Switching)이 발생하는 과정과 성능에 미치는 영향을 설명해주세요.",
+    "hint": "PCB, 레지스터 저장/복원, 캐시 무효화, 오버헤드, 인터럽트, 시스템 콜",
+    "category": "CS",
+    "subcategory": "OS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "메모리 단편화(Fragmentation)의 종류와 각각의 해결 방법을 설명해주세요.",
+    "hint": "내부 단편화, 외부 단편화, 페이징, 세그멘테이션, 컴팩션, 버디 시스템",
+    "category": "CS",
+    "subcategory": "MEMORY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "스택 메모리와 힙 메모리의 차이점을 설명하고, 각각의 할당/해제 방식과 성능 특성을 비교해주세요.",
+    "hint": "LIFO, 동적 할당, 메모리 누수, 스택 오버플로, 지역변수, 전역변수, malloc/free",
+    "category": "CS",
+    "subcategory": "MEMORY",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "해시 충돌(Hash Collision) 해결 기법인 체이닝(Chaining)과 오픈 어드레싱(Open Addressing)의 차이점과 각각의 장단점을 설명해주세요.",
+    "hint": "체이닝, 선형 탐사, 이차 탐사, 이중 해싱, 적재율, 클러스터링, 리사이징",
+    "category": "CS",
+    "subcategory": "DATA_STRUCTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "균형 이진 탐색 트리(AVL Tree)의 회전 연산 원리와 Red-Black Tree 대비 장단점을 설명해주세요.",
+    "hint": "LL, RR, LR, RL 회전, 균형 인수, 삽입/삭제 성능, 높이 차이, 재균형 빈도",
+    "category": "CS",
+    "subcategory": "DATA_STRUCTURE",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "유니온-파인드(Union-Find) 자료구조의 동작 원리와 경로 압축, 랭크 기반 합치기 최적화를 설명해주세요.",
+    "hint": "Disjoint Set, Find, Union, 경로 압축, union by rank, 역아커만 함수, Kruskal MST",
+    "category": "CS",
+    "subcategory": "DATA_STRUCTURE",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "분할 정복(Divide and Conquer)과 동적 프로그래밍(DP)의 차이점을 설명하고, 부분 문제 중복 여부가 알고리즘 선택에 미치는 영향을 설명해주세요.",
+    "hint": "분할, 정복, 결합, 부분 문제 중복, 최적 부분 구조, 메모이제이션, 머지소트 vs 피보나치",
+    "category": "CS",
+    "subcategory": "ALGORITHM",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "위상 정렬(Topological Sort)의 개념과 구현 방법을 설명하고, 실제 활용 사례를 제시해주세요.",
+    "hint": "DAG, 진입 차수, BFS, DFS, 선후 관계, 빌드 시스템, 수강 순서, 사이클 탐지",
+    "category": "CS",
+    "subcategory": "ALGORITHM",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "싱글톤(Singleton), 팩토리(Factory), 옵저버(Observer) 디자인 패턴의 핵심 개념과 각각의 적용 사례를 설명해주세요.",
+    "hint": "GoF 패턴, 생성 패턴, 행위 패턴, 의존성 역전, 이벤트 시스템, 느슨한 결합",
+    "category": "CS",
+    "subcategory": "ALGORITHM",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "IPC(Inter-Process Communication) 방식들(파이프, 메시지 큐, 공유 메모리, 소켓)의 특징과 적합한 사용 시나리오를 비교해주세요.",
+    "hint": "파이프, 네임드 파이프, 메시지 큐, 공유 메모리, 소켓, 동기/비동기, 성능 비교",
+    "category": "CS",
+    "subcategory": "OS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "캐시 메모리의 매핑 방식(직접 매핑, 연관 매핑, 집합 연관 매핑)을 비교하고, 캐시 히트율을 높이기 위한 전략을 설명해주세요.",
+    "hint": "직접 매핑, 완전 연관, 집합 연관, 캐시 라인, 태그, LRU, 시간적 지역성, 공간적 지역성",
+    "category": "CS",
+    "subcategory": "MEMORY",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "최소 신장 트리(MST)를 구하는 Kruskal과 Prim 알고리즘의 동작 방식과 시간복잡도를 비교해주세요.",
+    "hint": "Kruskal, Prim, 간선 정렬, 우선순위 큐, Union-Find, 그리디, 밀집/희소 그래프",
+    "category": "CS",
+    "subcategory": "ALGORITHM",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "프로그램이 실행될 때 메모리에 적재되는 과정을 코드, 데이터, 힙, 스택 영역으로 나누어 설명해주세요.",
+    "hint": "코드 영역, 데이터 영역, BSS, 힙, 스택, 프로세스 메모리 레이아웃, 전역변수, 지역변수",
+    "category": "CS",
+    "subcategory": "MEMORY",
+    "difficulty": "EASY"
+  }
+]
