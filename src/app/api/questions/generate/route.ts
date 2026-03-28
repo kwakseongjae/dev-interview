@@ -93,7 +93,11 @@ export async function POST(request: NextRequest) {
     if (!hasReference) {
       console.log("시맨틱 캐시 검색 시작:", { query, count: questionCount });
 
-      const cachedQuestions = await searchCachedQuestions(query, questionCount);
+      const cachedQuestions = await searchCachedQuestions(
+        query,
+        questionCount,
+        userId,
+      );
 
       if (cachedQuestions.length >= questionCount) {
         // 캐시 히트: 충분한 질문이 있으므로 Claude API 호출 없이 반환

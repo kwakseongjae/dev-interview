@@ -1,0 +1,107 @@
+[
+  {
+    "content": "iOS 앱의 생명주기(App Lifecycle)에서 각 상태(Not Running, Inactive, Active, Background, Suspended)의 역할과 전환 시점을 설명해주세요.",
+    "hint": "UIApplicationDelegate, SceneDelegate, applicationDidBecomeActive, sceneDidEnterBackground, 상태 전환 콜백",
+    "category": "MOBILE",
+    "subcategory": "IOS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "Android의 Activity 생명주기에서 화면 회전 시 발생하는 문제와 이를 해결하기 위한 ViewModel 및 SavedStateHandle 활용 방법을 설명해주세요.",
+    "hint": "onCreate, onDestroy, Configuration Change, ViewModel, SavedStateHandle, onSaveInstanceState",
+    "category": "MOBILE",
+    "subcategory": "ANDROID",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "React Native에서 Bridge 아키텍처와 새로운 JSI(JavaScript Interface) 아키텍처의 차이점을 설명해주세요.",
+    "hint": "Bridge 직렬화 오버헤드, JSI 동기 호출, Turbo Modules, Fabric 렌더러, Hermes 엔진",
+    "category": "MOBILE",
+    "subcategory": "REACT_NATIVE",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "iOS에서 APNs(Apple Push Notification Service)와 Android에서 FCM(Firebase Cloud Messaging)의 푸시 알림 아키텍처 차이를 비교하고, 통합 관리 전략을 제시해주세요.",
+    "hint": "APNs 토큰, FCM 등록 토큰, 서버 키 관리, 페이로드 구조, silent push, 알림 채널",
+    "category": "MOBILE",
+    "subcategory": "PUSH_NOTIFICATION",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "모바일 앱에서 딥링크(Deep Link)와 유니버설 링크(Universal Link)/앱 링크(App Link)의 차이를 설명하고, Deferred Deep Link 구현 방법을 설명해주세요.",
+    "hint": "URI Scheme, Universal Links, Android App Links, AASA 파일, Digital Asset Links, 어트리뷰션",
+    "category": "MOBILE",
+    "subcategory": "DEEP_LINK",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Flutter의 Widget 렌더링 파이프라인(Build → Layout → Paint → Compositing)을 설명하고, 각 단계에서의 성능 최적화 전략을 제시해주세요.",
+    "hint": "Widget Tree, Element Tree, RenderObject, RepaintBoundary, const 생성자, shouldRepaint",
+    "category": "MOBILE",
+    "subcategory": "FLUTTER",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "모바일 앱에서 이미지 로딩 최적화를 위한 메모리 캐싱, 디스크 캐싱, 이미지 리사이징 전략을 플랫폼별로 설명해주세요.",
+    "hint": "NSCache, LRU 캐시, Glide/Coil, SDWebImage, 썸네일 생성, WebP 포맷, 메모리 경고 처리",
+    "category": "MOBILE",
+    "subcategory": "PERFORMANCE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "React Native에서 상태 관리 라이브러리(Redux, Zustand, Jotai, Recoil)의 특징을 비교하고, 프로젝트 규모에 따른 선택 기준을 제시해주세요.",
+    "hint": "전역 스토어, 원자적 상태, 보일러플레이트, 미들웨어, 번들 크기, 서버 상태 분리",
+    "category": "MOBILE",
+    "subcategory": "STATE_MANAGEMENT",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Android Jetpack Compose와 iOS SwiftUI의 선언적 UI 패러다임을 비교하고, 기존 명령형 UI(XML/UIKit) 대비 장단점을 설명해주세요.",
+    "hint": "Composable, @State, recomposition, 상태 호이스팅, 프리뷰, 기존 코드 마이그레이션",
+    "category": "MOBILE",
+    "subcategory": "UI_FRAMEWORK",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "모바일 앱의 오프라인 퍼스트(Offline-First) 아키텍처를 설계할 때 로컬 DB 동기화, 충돌 해결, 큐잉 전략을 설명해주세요.",
+    "hint": "SQLite, Room, Core Data, CRDT, 낙관적 업데이트, 동기화 큐, 재시도 로직, 네트워크 감지",
+    "category": "MOBILE",
+    "subcategory": "ARCHITECTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "iOS 앱에서 메모리 릭을 탐지하고 해결하는 방법을 설명하고, 강한 참조 순환(Retain Cycle)이 발생하는 대표적인 패턴과 해결책을 제시해주세요.",
+    "hint": "ARC, weak self, unowned, Instruments Leaks, 클로저 캡처 리스트, delegate 패턴, NotificationCenter",
+    "category": "MOBILE",
+    "subcategory": "IOS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Android에서 WorkManager, AlarmManager, Foreground Service의 차이를 설명하고, 백그라운드 작업 제한(Doze 모드, App Standby) 환경에서의 최적 전략을 제시해주세요.",
+    "hint": "WorkManager 제약 조건, 체이닝, Doze 화이트리스트, 정확한 알람, 포그라운드 서비스 타입",
+    "category": "MOBILE",
+    "subcategory": "ANDROID",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Flutter에서 Platform Channel(MethodChannel, EventChannel, BasicMessageChannel)을 활용한 네이티브 모듈 통합 방법과 성능 고려사항을 설명해주세요.",
+    "hint": "MethodChannel 비동기 통신, EventChannel 스트림, 코덱, 스레드 안전성, Pigeon 코드 생성",
+    "category": "MOBILE",
+    "subcategory": "FLUTTER",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "모바일 앱의 보안 강화를 위한 인증서 피닝(Certificate Pinning), 루팅/탈옥 탐지, 코드 난독화, 안전한 키 저장소 활용 방법을 설명해주세요.",
+    "hint": "SSL Pinning, Keychain, Android Keystore, ProGuard/R8, 무결성 검증, OWASP MASVS",
+    "category": "MOBILE",
+    "subcategory": "SECURITY",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "대규모 모바일 앱에서 모듈화(Multi-Module) 아키텍처를 설계할 때 의존성 관리, 빌드 시간 최적화, 피처 모듈 간 통신 전략을 설명해주세요.",
+    "hint": "Gradle 모듈, Swift Package, 의존성 역전, 인터페이스 모듈, Dynamic Feature, 빌드 캐시",
+    "category": "MOBILE",
+    "subcategory": "ARCHITECTURE",
+    "difficulty": "HARD"
+  }
+]

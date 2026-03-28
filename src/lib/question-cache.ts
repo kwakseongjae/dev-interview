@@ -200,6 +200,67 @@ export interface CachedQuestion {
   similarity: number;
 }
 
+// ─── 가중 랜덤 샘플링 유틸리티 ───────────────────────────
+
+/** Fisher-Yates shuffle — O(n), uniform distribution */
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** favorite_count → 가중치 (log-dampened, 최소 1.0) */
+function favoriteCountToWeight(favoriteCount: number): number {
+  return 1.0 + Math.log1p(favoriteCount);
+}
+
+/**
+ * 가중 랜덤 샘플링 (비복원추출)
+ * - 누적 가중치 + swap-remove 방식
+ * - 모든 항목에 최소 0.1 가중치 보장
+ */
+function weightedSampleWithoutReplacement<T>(
+  items: T[],
+  getWeight: (item: T) => number,
+  count: number,
+): T[] {
+  if (items.length === 0 || count <= 0) return [];
+  if (count >= items.length) return shuffle(items);
+
+  const pool = items.map((item) => ({
+    item,
+    weight: Math.max(getWeight(item), 0.1),
+  }));
+
+  const selected: T[] = [];
+
+  for (let i = 0; i < count; i++) {
+    let totalWeight = 0;
+    for (const entry of pool) {
+      totalWeight += entry.weight;
+    }
+
+    let random = Math.random() * totalWeight;
+    let selectedIndex = 0;
+    for (let j = 0; j < pool.length; j++) {
+      random -= pool[j].weight;
+      if (random <= 0) {
+        selectedIndex = j;
+        break;
+      }
+    }
+
+    selected.push(pool[selectedIndex].item);
+    pool[selectedIndex] = pool[pool.length - 1];
+    pool.pop();
+  }
+
+  return selected;
+}
+
 /**
  * 쿼리에서 카테고리를 추출 (키워드 매칭, API 호출 없음)
  */
@@ -221,10 +282,13 @@ export function extractCategoriesFromQuery(query: string): string[] {
 
 /**
  * DB에서 카테고리 기반으로 기존 질문을 검색
+ * - userId가 있으면 유저 히스토리 필터링 적용
+ * - 가중 랜덤 샘플링으로 매번 다른 조합 반환
  */
 export async function searchCachedQuestions(
   query: string,
   count: number,
+  userId?: string,
 ): Promise<CachedQuestion[]> {
   try {
     const categories = extractCategoriesFromQuery(query);
@@ -248,16 +312,15 @@ export async function searchCachedQuestions(
 
     const categoryIds = catRows.map((c: { id: string }) => c.id);
 
-    // 카테고리 필터 + 임베딩 있는 질문만 + 인기순/최신순
+    // 카테고리 필터 + 풀 확보 (count * 4로 필터링 여유분 확보)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: questions, error } = await (supabaseAdmin as any)
       .from("questions")
       .select("id, content, hint, category_id, favorite_count")
       .in("category_id", categoryIds)
-      .not("embedding", "is", null)
       .order("favorite_count", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(count * 2);
+      .limit(count * 4);
 
     if (error) {
       console.error("카테고리 기반 질문 검색 실패:", error);
@@ -274,7 +337,8 @@ export async function searchCachedQuestions(
       catMap.set(c.id, c.name);
     }
 
-    return questions.map(
+    // CachedQuestion 형태로 변환
+    let pool: CachedQuestion[] = questions.map(
       (q: {
         id: string;
         content: string;
@@ -287,8 +351,34 @@ export async function searchCachedQuestions(
         hint: q.hint,
         category: catMap.get(q.category_id) || "GENERAL",
         favorite_count: q.favorite_count,
-        similarity: 1.0, // 카테고리 매칭이므로 유사도 개념 대신 1.0
+        similarity: 1.0,
       }),
+    );
+
+    // 유저 히스토리 필터링 (로그인 유저만)
+    if (userId) {
+      const { getQuestionHistory } = await import("@/lib/question-history");
+      const history = await getQuestionHistory(userId, null, 100);
+
+      if (history.length > 0) {
+        const seenContents = new Set(history);
+        const filtered = pool.filter((q) => !seenContents.has(q.content));
+
+        console.log("캐시 히스토리 필터:", {
+          before: pool.length,
+          after: filtered.length,
+          filtered: pool.length - filtered.length,
+        });
+
+        pool = filtered;
+      }
+    }
+
+    // 가중 랜덤 샘플링 (favorite_count 기반)
+    return weightedSampleWithoutReplacement(
+      pool,
+      (q) => favoriteCountToWeight(q.favorite_count),
+      count,
     );
   } catch (error) {
     console.error("시맨틱 캐시 검색 실패 (fallback to generation):", error);

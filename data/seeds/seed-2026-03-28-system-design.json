@@ -1,0 +1,100 @@
+[
+  {
+    "content": "CDN(Content Delivery Network)의 동작 원리를 설명하고, 캐시 무효화(Cache Invalidation) 전략을 비교해주세요.",
+    "hint": "엣지 서버, 오리진 서버, TTL, purge, stale-while-revalidate, 캐시 키 설계",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CACHING",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "로드밸런서의 종류(L4 vs L7)를 설명하고, 각각 어떤 상황에서 사용하는 것이 적합한지 예시와 함께 설명해주세요.",
+    "hint": "TCP/UDP 레벨, HTTP 헤더 기반 라우팅, SSL 종료, 헬스 체크, 세션 어피니티, 가중치 라우팅",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "LOAD_BALANCING",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "수평 확장(Scale-Out)과 수직 확장(Scale-Up)의 차이를 설명하고, 대규모 트래픽 처리를 위한 수평 확장 전략을 설계해주세요.",
+    "hint": "stateless 설계, 세션 외부화, 오토스케일링, 데이터 파티셔닝, 로드밸런싱, 비용 효율성",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "데이터베이스 샤딩(Sharding)의 개념과 샤딩 키 선택 기준을 설명하고, 핫스팟 문제를 해결하는 방법을 제시해주세요.",
+    "hint": "범위 샤딩, 해시 샤딩, 디렉토리 기반, 리밸런싱, 크로스 샤드 쿼리, consistent hashing",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SHARDING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "캐시 전략(Cache-Aside, Write-Through, Write-Behind)을 각각 설명하고, 서비스 특성에 따른 선택 기준을 제시해주세요.",
+    "hint": "읽기 비율, 일관성 요구사항, 캐시 미스 페널티, TTL, 캐시 워밍, 이중 쓰기 문제",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CACHING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CAP 정리를 설명하고, CP 시스템과 AP 시스템의 실제 사례를 들어 각각의 트레이드오프를 분석해주세요.",
+    "hint": "일관성, 가용성, 파티션 내성, ZooKeeper(CP), Cassandra(AP), eventual consistency, 쿼럼",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "메시지 큐(Message Queue)를 활용한 비동기 처리 아키텍처를 설계하고, 메시지 유실 방지 전략을 설명해주세요.",
+    "hint": "at-least-once, exactly-once, 멱등성, DLQ, ACK 메커니즘, Kafka vs RabbitMQ, 재시도 정책",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "MESSAGE_QUEUE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Rate Limiting을 구현하기 위한 알고리즘(Token Bucket, Sliding Window 등)을 비교하고, 분산 환경에서의 구현 방법을 설명해주세요.",
+    "hint": "토큰 버킷, 슬라이딩 윈도우, 고정 윈도우, Redis 기반 분산 제한, API Gateway 연동, 429 응답",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "이벤트 소싱(Event Sourcing)과 CQRS 패턴을 설명하고, 이를 결합한 시스템 아키텍처의 장단점을 분석해주세요.",
+    "hint": "이벤트 스토어, 스냅샷, 읽기/쓰기 모델 분리, eventual consistency, 리플레이, 감사 로그",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "대규모 데이터 파이프라인을 설계할 때 배치 처리와 스트림 처리의 차이를 설명하고, Lambda 아키텍처와 Kappa 아키텍처를 비교해주세요.",
+    "hint": "Batch Layer, Speed Layer, Serving Layer, Kafka Streams, Flink, 재처리, 지연 시간, 정확성",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DATA_PIPELINE",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "분산 트랜잭션에서 2PC(Two-Phase Commit)와 Saga 패턴을 비교하고, 마이크로서비스 환경에서 데이터 일관성을 보장하는 전략을 설명해주세요.",
+    "hint": "코디네이터, 보상 트랜잭션, 오케스트레이션 vs 코레오그래피, 타임아웃, 부분 실패 처리",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Consistent Hashing을 활용한 분산 캐시 시스템을 설계하고, 노드 추가/제거 시 데이터 리밸런싱 전략을 설명해주세요.",
+    "hint": "해시 링, 가상 노드, 복제 팩터, 핫스팟 방지, 데이터 마이그레이션, Dynamo/Cassandra 사례",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "초당 100만 건의 이벤트를 처리하는 실시간 알림 시스템을 설계해주세요. 푸시 알림, 이메일, SMS 채널을 지원해야 합니다.",
+    "hint": "메시지 큐 파티셔닝, 우선순위 큐, 디바운싱, 채널별 어댑터, 사용자 선호도, 장애 격리, 재시도",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "글로벌 서비스에서 멀티 리전 데이터 복제 전략을 설계하고, 리전 간 데이터 일관성과 지연 시간 간의 트레이드오프를 분석해주세요.",
+    "hint": "동기/비동기 복제, conflict resolution, CRDT, 리더-팔로워 vs 멀티리더, 지역 법규 준수, failover",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "HARD"
+  }
+]

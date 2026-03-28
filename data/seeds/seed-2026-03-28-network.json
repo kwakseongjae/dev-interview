@@ -1,0 +1,107 @@
+[
+  {
+    "content": "HTTP/1.1, HTTP/2, HTTP/3의 주요 차이점을 설명하고, 각 버전이 성능 개선을 위해 도입한 핵심 기술을 비교해주세요.",
+    "hint": "keep-alive, 멀티플렉싱, 헤더 압축(HPACK), 서버 푸시, QUIC, UDP 기반, HOL 블로킹 해결",
+    "category": "NETWORK",
+    "subcategory": "HTTP",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "TCP 3-Way Handshake와 4-Way Handshake의 동작 과정을 단계별로 설명하고, 각 단계에서 교환되는 플래그의 역할을 설명해주세요.",
+    "hint": "SYN, SYN-ACK, ACK, FIN, TIME_WAIT, 시퀀스 번호, 연결 수립, 연결 종료",
+    "category": "NETWORK",
+    "subcategory": "TCP_IP",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "DNS 질의 과정을 재귀적(Recursive) 질의와 반복적(Iterative) 질의로 나누어 설명하고, DNS 캐싱이 웹 성능에 미치는 영향을 설명해주세요.",
+    "hint": "로컬 DNS 캐시, 리커시브 리졸버, 루트/TLD/권한 네임서버, TTL, DNS Prefetch, CNAME vs A 레코드",
+    "category": "NETWORK",
+    "subcategory": "DNS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "HTTPS의 TLS Handshake 과정을 단계별로 설명하고, 대칭키와 비대칭키 암호화가 각각 어떤 역할을 하는지 설명해주세요.",
+    "hint": "ClientHello, ServerHello, 인증서 검증, 세션 키 교환, RSA/ECDHE, 대칭키 암호화 전환, TLS 1.3 0-RTT",
+    "category": "NETWORK",
+    "subcategory": "HTTPS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CDN(Content Delivery Network)의 동작 원리를 설명하고, 캐시 무효화(Cache Invalidation) 전략과 실무에서의 배포 파이프라인 연계 방법을 설명해주세요.",
+    "hint": "엣지 서버, 오리진 서버, Cache-Control, purge/invalidate, 버전 해싱, 파일명 핑거프린팅, stale-while-revalidate",
+    "category": "NETWORK",
+    "subcategory": "CDN",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "WebSocket과 HTTP Long Polling의 차이점을 설명하고, 실시간 통신이 필요한 서비스에서 WebSocket을 선택하는 기준과 고려사항을 설명해주세요.",
+    "hint": "양방향 통신, 커넥션 유지, Upgrade 헤더, 프레임 기반, 하트비트, 재연결 전략, SSE 비교",
+    "category": "NETWORK",
+    "subcategory": "WEBSOCKET",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "REST API와 gRPC의 차이점을 비교하고, 마이크로서비스 아키텍처에서 각각의 적합한 사용 시나리오를 설명해주세요.",
+    "hint": "Protocol Buffers, HTTP/2 스트리밍, JSON vs 바이너리, IDL 정의, 코드 생성, 서비스 간 통신, 브라우저 호환성",
+    "category": "NETWORK",
+    "subcategory": "API_PROTOCOL",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "로드밸런서의 L4와 L7의 차이점을 설명하고, 각 계층에서 사용할 수 있는 로드밸런싱 알고리즘과 적합한 사용 사례를 비교해주세요.",
+    "hint": "전송 계층 vs 애플리케이션 계층, 라운드 로빈, 최소 연결, IP 해시, URL 기반 라우팅, 헬스 체크, SSL 오프로딩",
+    "category": "NETWORK",
+    "subcategory": "LOAD_BALANCING",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "OSI 7계층 모델에서 각 계층의 역할과 대표 프로토콜을 설명해주세요.",
+    "hint": "물리, 데이터링크, 네트워크, 전송, 세션, 표현, 응용, MAC, IP, TCP/UDP, HTTP",
+    "category": "NETWORK",
+    "subcategory": "TCP_IP",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하고, 슬라이딩 윈도우와 혼잡 윈도우(CWND)의 동작 원리를 설명해주세요.",
+    "hint": "수신 윈도우(rwnd), 혼잡 윈도우(cwnd), Slow Start, Congestion Avoidance, Fast Retransmit, Fast Recovery, AIMD",
+    "category": "NETWORK",
+    "subcategory": "TCP_IP",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "포워드 프록시(Forward Proxy)와 리버스 프록시(Reverse Proxy)의 차이점을 설명하고, Nginx를 리버스 프록시로 활용하는 실무 사례를 설명해주세요.",
+    "hint": "클라이언트 대리 vs 서버 대리, IP 은닉, SSL 종단, 캐싱, 로드밸런싱, upstream 설정, API Gateway 연계",
+    "category": "NETWORK",
+    "subcategory": "PROXY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CORS(Cross-Origin Resource Sharing)의 동작 원리를 Preflight 요청 중심으로 설명하고, 실무에서 CORS 이슈를 해결하는 전략을 설명해주세요.",
+    "hint": "Same-Origin Policy, OPTIONS 메서드, Access-Control-Allow-Origin, credentials, 프록시 우회, 와일드카드 제한",
+    "category": "NETWORK",
+    "subcategory": "HTTP",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "TCP와 UDP의 차이점을 설명하고, UDP 기반 프로토콜(QUIC, WebRTC)이 신뢰성을 확보하는 방법을 설명해주세요.",
+    "hint": "연결형 vs 비연결형, 순서 보장, 흐름 제어, QUIC 재전송, FEC, DTLS, 멀티플렉싱, 0-RTT",
+    "category": "NETWORK",
+    "subcategory": "TCP_IP",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "대규모 트래픽 환경에서 DNS 기반 로드밸런싱과 하드웨어/소프트웨어 로드밸런서의 조합 전략을 설명하고, GSLB(Global Server Load Balancing)의 역할을 설명해주세요.",
+    "hint": "DNS 라운드로빈, 가중치 라우팅, Geo-DNS, Anycast, 헬스 체크, failover, 지연시간 기반 라우팅, 재해복구",
+    "category": "NETWORK",
+    "subcategory": "LOAD_BALANCING",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "HTTP 캐싱 메커니즘에서 Cache-Control 헤더의 주요 디렉티브(no-cache, no-store, max-age, must-revalidate, stale-while-revalidate)의 차이를 설명하고, ETag와 Last-Modified를 활용한 조건부 요청의 동작 과정을 설명해주세요.",
+    "hint": "강한 캐시 vs 조건부 캐시, 304 Not Modified, If-None-Match, If-Modified-Since, CDN 캐시 계층, 브라우저 캐시",
+    "category": "NETWORK",
+    "subcategory": "HTTP",
+    "difficulty": "HARD"
+  }
+]

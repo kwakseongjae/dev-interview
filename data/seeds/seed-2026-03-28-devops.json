@@ -1,0 +1,107 @@
+[
+  {
+    "content": "Docker 컨테이너의 멀티스테이지 빌드가 프로덕션 이미지 최적화에 미치는 영향을 설명하고, 구체적인 Dockerfile 설계 전략을 제시해주세요.",
+    "hint": "빌드 스테이지 분리, alpine/distroless 베이스, 레이어 캐싱, .dockerignore, 이미지 크기 축소",
+    "category": "DEVOPS",
+    "subcategory": "DOCKER",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Kubernetes의 Pod Disruption Budget(PDB)과 Rolling Update 전략을 조합하여 무중단 배포를 구현하는 방법을 설명해주세요.",
+    "hint": "maxUnavailable, maxSurge, PDB minAvailable, readinessProbe, 롤백 전략, surge 배포",
+    "category": "DEVOPS",
+    "subcategory": "KUBERNETES",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "CI/CD 파이프라인에서 Blue-Green 배포와 Canary 배포의 차이점을 설명하고, 각각의 롤백 전략을 비교해주세요.",
+    "hint": "트래픽 전환, 가중치 라우팅, 헬스 체크, 롤백 시간, 리소스 비용, feature flag 연계",
+    "category": "DEVOPS",
+    "subcategory": "CI_CD",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Terraform의 State 관리에서 발생할 수 있는 문제점과, Remote Backend를 활용한 팀 협업 전략을 설명해주세요.",
+    "hint": "state locking, S3+DynamoDB 백엔드, state drift, import, workspace, 모듈화",
+    "category": "DEVOPS",
+    "subcategory": "IAC",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "컨테이너 오케스트레이션에서 사이드카 패턴과 Init 컨테이너의 역할을 각각 설명하고, 실무 활용 예시를 들어주세요.",
+    "hint": "로그 수집, 프록시, 시크릿 주입, DB 마이그레이션, 의존성 대기, Istio envoy",
+    "category": "DEVOPS",
+    "subcategory": "KUBERNETES",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "GitHub Actions에서 Self-hosted Runner를 사용할 때의 보안 고려사항과, 컨테이너 격리를 통한 안전한 CI 환경 구축 방법을 설명해주세요.",
+    "hint": "토큰 유출, 워크플로우 격리, ephemeral runner, Docker-in-Docker, 시크릿 관리, OIDC",
+    "category": "DEVOPS",
+    "subcategory": "CI_CD",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "모니터링 시스템에서 메트릭, 로그, 트레이스의 차이점을 설명하고, OpenTelemetry를 활용한 통합 관측 전략을 제시해주세요.",
+    "hint": "Prometheus, Grafana, Loki, Jaeger, OTLP, 상관관계 ID, cardinality 관리",
+    "category": "DEVOPS",
+    "subcategory": "MONITORING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Helm Chart와 Kustomize의 설계 철학 차이를 비교하고, 대규모 마이크로서비스 환경에서의 선택 기준을 설명해주세요.",
+    "hint": "템플릿 vs 오버레이, values.yaml, patch, 환경별 설정, ArgoCD 통합, 학습 곡선",
+    "category": "DEVOPS",
+    "subcategory": "KUBERNETES",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "AWS VPC의 서브넷 설계에서 퍼블릭/프라이빗 서브넷 분리 전략과, NAT Gateway의 역할을 설명해주세요.",
+    "hint": "CIDR 블록, AZ 분산, 라우팅 테이블, 인터넷 게이트웨이, Bastion 호스트, VPC 피어링",
+    "category": "DEVOPS",
+    "subcategory": "AWS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "GitOps의 핵심 원칙을 설명하고, ArgoCD를 활용한 Kubernetes 배포 자동화 파이프라인을 설계해주세요.",
+    "hint": "선언적 인프라, Git을 Single Source of Truth, 자동 동기화, 드리프트 감지, App of Apps 패턴",
+    "category": "DEVOPS",
+    "subcategory": "GITOPS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Docker Compose와 Kubernetes의 차이점을 개발/스테이징/프로덕션 환경 관점에서 비교해주세요.",
+    "hint": "단일 호스트 vs 클러스터, 서비스 디스커버리, 스케일링, 볼륨 관리, 네트워크 모델",
+    "category": "DEVOPS",
+    "subcategory": "DOCKER",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "Kubernetes에서 HPA(Horizontal Pod Autoscaler)와 VPA(Vertical Pod Autoscaler)의 동작 원리와 함께 사용 시 주의점을 설명해주세요.",
+    "hint": "CPU/메모리 기반 스케일링, 커스텀 메트릭, 쿨다운 기간, VPA와 HPA 충돌, KEDA",
+    "category": "DEVOPS",
+    "subcategory": "KUBERNETES",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Secrets Management에서 HashiCorp Vault와 AWS Secrets Manager의 차이점을 비교하고, 마이크로서비스에서의 시크릿 주입 패턴을 설명해주세요.",
+    "hint": "동적 시크릿, 자동 로테이션, sidecar injector, CSI 드라이버, 봉인/해제, 감사 로그",
+    "category": "DEVOPS",
+    "subcategory": "SECURITY",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "로그 집중화 시스템에서 ELK Stack과 Loki+Grafana의 아키텍처 차이를 비교하고, 비용 효율적인 선택 기준을 제시해주세요.",
+    "hint": "인덱싱 vs 레이블 기반, 저장 비용, 쿼리 성능, 카디널리티, 보존 정책, S3 티어링",
+    "category": "DEVOPS",
+    "subcategory": "MONITORING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Infrastructure as Code(IaC)에서 불변 인프라(Immutable Infrastructure) 원칙이 중요한 이유와, 가변 인프라와의 트레이드오프를 설명해주세요.",
+    "hint": "구성 드리프트, AMI/이미지 기반 배포, Packer, 롤백 용이성, 부트스트랩 시간, 비용",
+    "category": "DEVOPS",
+    "subcategory": "IAC",
+    "difficulty": "EASY"
+  }
+]

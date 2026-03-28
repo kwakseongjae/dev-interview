@@ -1,0 +1,100 @@
+[
+  {
+    "content": "SQL에서 INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN의 차이점을 설명하고, 각각 어떤 상황에서 사용하는지 예를 들어주세요.",
+    "hint": "INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN, NULL 처리, 교집합, 합집합",
+    "category": "DATABASE",
+    "subcategory": "SQL",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "데이터베이스 정규화에서 1NF, 2NF, 3NF의 개념을 각각 설명하고, 반정규화(Denormalization)가 필요한 상황을 예시와 함께 설명해주세요.",
+    "hint": "1NF 원자값, 2NF 부분 함수 종속 제거, 3NF 이행 함수 종속 제거, 반정규화, 읽기 성능, 조인 비용",
+    "category": "DATABASE",
+    "subcategory": "NORMALIZATION",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "Redis의 주요 데이터 타입(String, Hash, List, Set, Sorted Set)을 설명하고, 각각의 실무 활용 사례를 하나씩 들어주세요.",
+    "hint": "String 캐싱, Hash 사용자 정보, List 큐, Set 태그, Sorted Set 랭킹, TTL, O(1) 조회",
+    "category": "DATABASE",
+    "subcategory": "REDIS",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "데이터베이스 인덱스의 B-Tree와 Hash 인덱스의 내부 구조 차이를 설명하고, 범위 검색과 동등 검색에서 각각의 성능 특성을 비교해주세요.",
+    "hint": "B-Tree, Hash Index, 범위 검색, 동등 검색, O(logN), O(1), 정렬, 리프 노드 연결",
+    "category": "DATABASE",
+    "subcategory": "INDEXING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "트랜잭션의 ACID 속성을 각각 설명하고, 분산 데이터베이스 환경에서 ACID를 보장하기 어려운 이유와 대안을 설명해주세요.",
+    "hint": "Atomicity, Consistency, Isolation, Durability, CAP 정리, BASE, 2PC, Saga 패턴, 최종 일관성",
+    "category": "DATABASE",
+    "subcategory": "TRANSACTION",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "PostgreSQL의 EXPLAIN ANALYZE 결과를 읽는 방법을 설명하고, Seq Scan이 발생할 때 이를 Index Scan으로 개선하는 전략을 서술해주세요.",
+    "hint": "EXPLAIN ANALYZE, Seq Scan, Index Scan, cost, actual time, rows, 인덱스 생성, WHERE 조건 최적화",
+    "category": "DATABASE",
+    "subcategory": "QUERY_OPTIMIZATION",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "MongoDB에서 Embedded Document 패턴과 Reference 패턴의 차이를 설명하고, 각각 어떤 데이터 관계에서 적합한지 실무 기준으로 설명해주세요.",
+    "hint": "Embedded, Reference, 1:1, 1:N, N:M, 16MB 제한, 읽기 성능, 데이터 중복, populate",
+    "category": "DATABASE",
+    "subcategory": "MONGODB",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "데이터베이스 트랜잭션 격리 수준(Read Uncommitted, Read Committed, Repeatable Read, Serializable)별로 발생할 수 있는 이상 현상을 설명해주세요.",
+    "hint": "Dirty Read, Non-Repeatable Read, Phantom Read, 격리 수준, 성능 트레이드오프, MVCC",
+    "category": "DATABASE",
+    "subcategory": "TRANSACTION",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "복합 인덱스(Composite Index)의 컬럼 순서가 쿼리 성능에 미치는 영향을 설명하고, 최적의 컬럼 순서를 결정하는 기준을 서술해주세요.",
+    "hint": "복합 인덱스, 선두 컬럼, 카디널리티, 선택도, 커버링 인덱스, WHERE 절 순서, 최좌선 매칭 원칙",
+    "category": "DATABASE",
+    "subcategory": "INDEXING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "캐시 전략에서 Cache Aside, Write Through, Write Behind 패턴의 동작 방식을 각각 설명하고, 데이터 정합성 관점에서 비교해주세요.",
+    "hint": "Cache Aside, Write Through, Write Behind, 캐시 미스, 정합성, TTL, 캐시 무효화, Redis",
+    "category": "DATABASE",
+    "subcategory": "CACHING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "PostgreSQL의 MVCC(Multi-Version Concurrency Control) 동작 원리를 설명하고, VACUUM이 필요한 이유와 autovacuum 설정 시 고려사항을 서술해주세요.",
+    "hint": "MVCC, xmin, xmax, dead tuple, VACUUM, autovacuum, 테이블 블로트, 트랜잭션 ID 래핑",
+    "category": "DATABASE",
+    "subcategory": "POSTGRESQL",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "데이터베이스 샤딩(Sharding) 전략에서 Range-based, Hash-based, Directory-based 방식의 장단점을 비교하고, 핫스팟 문제를 해결하는 방법을 설명해주세요.",
+    "hint": "샤딩, Range, Hash, Directory, 핫스팟, 리밸런싱, 크로스 샤드 쿼리, 파티션 키 선정",
+    "category": "DATABASE",
+    "subcategory": "SHARDING",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "N+1 쿼리 문제의 원인을 설명하고, ORM 환경(예: Prisma, TypeORM)에서 이를 감지하고 해결하는 구체적인 방법들을 서술해주세요.",
+    "hint": "N+1 문제, Eager Loading, Lazy Loading, JOIN, Batch Loading, DataLoader, 쿼리 로그 분석",
+    "category": "DATABASE",
+    "subcategory": "QUERY_OPTIMIZATION",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "MongoDB의 Aggregation Pipeline에서 $lookup, $unwind, $group 스테이지의 성능 특성을 설명하고, 대용량 데이터에서 파이프라인 최적화 전략을 서술해주세요.",
+    "hint": "$lookup, $unwind, $group, $match 선행, 인덱스 활용, allowDiskUse, 파이프라인 순서 최적화, $project",
+    "category": "DATABASE",
+    "subcategory": "MONGODB",
+    "difficulty": "HARD"
+  }
+]
