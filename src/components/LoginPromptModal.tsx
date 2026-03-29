@@ -16,8 +16,9 @@ import { useAuth } from "@/hooks/useAuth";
 interface LoginPromptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "complete" | "archive" | "interview";
+  type: "complete" | "archive" | "interview" | "start-interview";
   onLater?: () => void;
+  onLogin?: () => void;
 }
 
 export const LoginPromptModal = ({
@@ -25,6 +26,7 @@ export const LoginPromptModal = ({
   onOpenChange,
   type,
   onLater,
+  onLogin,
 }: LoginPromptModalProps) => {
   const { loggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -39,8 +41,12 @@ export const LoginPromptModal = ({
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const currentPath = window.location.pathname + window.location.search;
-      await signInWithGoogle(currentPath);
+      if (onLogin) {
+        onLogin();
+      } else {
+        const currentPath = window.location.pathname + window.location.search;
+        await signInWithGoogle(currentPath);
+      }
     } catch {
       setIsLoading(false);
     }
@@ -54,7 +60,20 @@ export const LoginPromptModal = ({
   };
 
   const getContent = () => {
-    if (type === "interview") {
+    if (type === "start-interview") {
+      return {
+        title: "로그인하고 면접을 시작하세요",
+        description:
+          "로그인하면 면접 기록이 자동 저장되고, AI 피드백과 모범 답변을 받아볼 수 있습니다.",
+        features: [
+          "면접 기록 자동 저장 및 아카이브",
+          "AI가 분석한 답변 피드백",
+          "질문별 모범 답변 제공",
+        ],
+        loginText: "Google로 시작하기",
+        laterText: "비회원으로 계속하기",
+      };
+    } else if (type === "interview") {
       return {
         title: "면접 결과를 저장하시겠어요?",
         description:

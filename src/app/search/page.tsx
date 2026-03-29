@@ -30,6 +30,7 @@ import type { Question } from "@/types/interview";
 import {
   toggleFavoriteApi,
   isLoggedIn,
+  signInWithGoogle,
   checkFavoriteApi,
   createSessionApi,
 } from "@/lib/api";
@@ -38,6 +39,12 @@ import {
   type StaticInterviewType,
 } from "@/data/interview-types";
 import { InterviewTypeBadge } from "@/components/InterviewTypeSelector";
+import { LoginPromptModal } from "@/components/LoginPromptModal";
+import {
+  savePendingInterview,
+  loadPendingInterview,
+  clearPendingInterview,
+} from "@/lib/pending-interview";
 
 // API 응답 타입
 interface GeneratedQuestion {
@@ -81,9 +88,12 @@ function SearchContent() {
   const [referenceNotice, setReferenceNotice] = useState<string | null>(null);
   const [interviewType, setInterviewType] =
     useState<StaticInterviewType | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // 검색이 이미 시작되었는지 추적하는 ref
   const hasStartedSearch = useRef(false);
+  const hasRestoredRef = useRef(false);
 
   // 면접 범주 정보 구성 (정적 데이터에서 조회)
   useEffect(() => {
@@ -330,6 +340,54 @@ function SearchContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, router]);
 
+  // OAuth 복귀 후 자동 면접 시작 (restore 플로우)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    const restore = searchParams.get("restore");
+    if (restore !== "true") return;
+
+    hasRestoredRef.current = true;
+
+    const pending = loadPendingInterview();
+    if (!pending) {
+      // stale이거나 데이터 없음 → URL 정리만
+      window.history.replaceState(
+        {},
+        "",
+        window.location.pathname +
+          window.location.search.replace(/[&?]restore=true/, ""),
+      );
+      return;
+    }
+
+    // 자동 세션 생성 → 면접 시작
+    const autoStart = async () => {
+      setIsRestoring(true);
+      try {
+        const sessionData = await createSessionApi(
+          pending.query,
+          pending.questions,
+          pending.interviewTypeCode ?? null,
+        );
+        clearPendingInterview();
+        router.push(`/interview?session=${sessionData.session.id}`);
+      } catch (error) {
+        console.error("자동 면접 시작 실패:", error);
+        clearPendingInterview();
+        // URL 정리 후 일반 검색 페이지로 폴백
+        window.history.replaceState(
+          {},
+          "",
+          window.location.pathname +
+            window.location.search.replace(/[&?]restore=true/, ""),
+        );
+        setIsRestoring(false);
+      }
+    };
+
+    autoStart();
+  }, [searchParams, router]);
+
   // 찜하기 토글
   const handleToggleFavorite = async (question: Question) => {
     // 로그인한 유저만 찜하기 가능
@@ -483,15 +541,24 @@ function SearchContent() {
     }
   };
 
-  // 인터뷰 시작
+  // 인터뷰 시작 (비회원이면 auth gate)
   const handleStartInterview = async () => {
-    // 이미 시작 중이면 무시
     if (isStartingInterview) return;
 
+    // 비회원이면 로그인 유도 모달 표시
+    if (!isLoggedIn()) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    await startInterview();
+  };
+
+  // 실제 세션 생성 및 면접 시작
+  const startInterview = async () => {
     setIsStartingInterview(true);
 
     try {
-      // API를 통해 세션 생성 (면접 범주 코드 포함)
       const sessionData = await createSessionApi(
         query,
         questions.map((q) => ({
@@ -511,6 +578,26 @@ function SearchContent() {
       alert("세션 생성에 실패했습니다. 다시 시도해주세요.");
       setIsStartingInterview(false);
     }
+  };
+
+  // 모달에서 "Google로 시작하기" 클릭
+  const handleLoginAndStart = async () => {
+    savePendingInterview({
+      questions: questions.map((q) => ({
+        content: q.content,
+        hint: q.hint,
+        category: q.category,
+      })),
+      query,
+      interviewTypeCode,
+    });
+    await signInWithGoogle("/search?restore=true");
+  };
+
+  // 모달에서 "비회원으로 계속하기" 클릭
+  const handleContinueAsGuest = () => {
+    setShowLoginModal(false);
+    startInterview();
   };
 
   return (
@@ -928,6 +1015,27 @@ function SearchContent() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* 로그인 유도 모달 */}
+      <LoginPromptModal
+        open={showLoginModal}
+        onOpenChange={setShowLoginModal}
+        type="start-interview"
+        onLogin={handleLoginAndStart}
+        onLater={handleContinueAsGuest}
+      />
+
+      {/* OAuth 복귀 후 자동 시작 로딩 */}
+      {isRestoring && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <p className="text-sm text-muted-foreground">
+              면접을 준비하고 있어요...
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
