@@ -18,6 +18,7 @@ export interface Database {
           updated_at: string;
           deleted_at: string | null;
           deletion_reason: string | null;
+          is_admin: boolean;
         };
         Insert: {
           id?: string;
@@ -30,6 +31,7 @@ export interface Database {
           updated_at?: string;
           deleted_at?: string | null;
           deletion_reason?: string | null;
+          is_admin?: boolean;
         };
         Update: {
           id?: string;
@@ -41,6 +43,7 @@ export interface Database {
           updated_at?: string;
           deleted_at?: string | null;
           deletion_reason?: string | null;
+          is_admin?: boolean;
         };
         Relationships: [
           {
@@ -190,6 +193,7 @@ export interface Database {
           interview_type_id: string | null;
           created_at: string;
           completed_at: string | null;
+          claimed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -199,12 +203,14 @@ export interface Database {
           is_completed?: boolean;
           interview_type_id?: string | null;
           created_at?: string;
+          claimed_at?: string | null;
         };
         Update: {
           query?: string;
           total_time?: number;
           is_completed?: boolean;
           interview_type_id?: string | null;
+          claimed_at?: string | null;
         };
         Relationships: [
           {

@@ -42,11 +42,11 @@ export async function PATCH(
       );
     }
 
-    // 세션 user_id 업데이트 (Update 타입에 user_id가 없어 as any 사용)
+    // 세션 user_id + claimed_at 업데이트 (Update 타입에 user_id가 없어 as any 사용)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabaseAdmin as any)
       .from("interview_sessions")
-      .update({ user_id: auth.sub })
+      .update({ user_id: auth.sub, claimed_at: new Date().toISOString() })
       .eq("id", sessionId)
       .is("user_id", null);
 

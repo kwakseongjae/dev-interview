@@ -128,6 +128,7 @@ interface UserInfo {
   id: string;
   email: string;
   nickname: string | null;
+  is_admin?: boolean;
 }
 
 let cachedUser: UserInfo | null = null;

@@ -16,6 +16,7 @@ import {
   Building2,
   TrendingUp,
   Flame,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -64,7 +65,10 @@ export default function Home() {
   });
   const { loggedIn } = useAuth();
   const [query, setQuery] = useState("");
-  const [user, setUser] = useState<{ nickname: string | null } | null>(null);
+  const [user, setUser] = useState<{
+    nickname: string | null;
+    is_admin?: boolean;
+  } | null>(null);
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -513,6 +517,17 @@ export default function Home() {
               <>
                 {user ? (
                   <>
+                    {user.is_admin && (
+                      <Link href="/admin">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-9 md:w-9"
+                        >
+                          <Shield className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                    )}
                     <Link href="/settings">
                       <Button
                         variant="ghost"

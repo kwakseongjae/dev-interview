@@ -11,7 +11,7 @@ export async function GET(_request: NextRequest) {
     const { data: user, error } = await (supabaseAdmin as any)
       .from("users")
       .select(
-        "id, email, nickname, avatar_url, created_at, updated_at, deleted_at",
+        "id, email, nickname, avatar_url, created_at, updated_at, deleted_at, is_admin",
       )
       .eq("id", auth.sub)
       .single();
@@ -39,6 +39,7 @@ export async function GET(_request: NextRequest) {
         avatar_url: user.avatar_url,
         created_at: user.created_at,
         updated_at: user.updated_at,
+        is_admin: user.is_admin ?? false,
       },
     });
   } catch (error) {
