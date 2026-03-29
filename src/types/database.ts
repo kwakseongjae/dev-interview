@@ -16,6 +16,8 @@ export interface Database {
           last_selected_team_space_id: string | null;
           created_at: string;
           updated_at: string;
+          deleted_at: string | null;
+          deletion_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -26,6 +28,8 @@ export interface Database {
           last_selected_team_space_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          deleted_at?: string | null;
+          deletion_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -35,6 +39,8 @@ export interface Database {
           has_seen_teamspace_intro?: boolean;
           last_selected_team_space_id?: string | null;
           updated_at?: string;
+          deleted_at?: string | null;
+          deletion_reason?: string | null;
         };
         Relationships: [
           {

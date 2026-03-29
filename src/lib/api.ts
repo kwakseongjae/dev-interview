@@ -144,9 +144,20 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   if (!isLoggedIn()) return null;
 
   try {
-    const data = await fetchApi<{ user: UserInfo }>("/api/auth/me");
-    cachedUser = data.user;
-    return data.user;
+    const data = await fetchApi<{ user?: UserInfo; deleted?: boolean }>(
+      "/api/auth/me",
+    );
+
+    // 탈퇴한 계정 감지 → 복구 페이지로 리다이렉트
+    if (data.deleted) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/account-recovery";
+      }
+      return null;
+    }
+
+    cachedUser = data.user ?? null;
+    return data.user ?? null;
   } catch {
     return null;
   }

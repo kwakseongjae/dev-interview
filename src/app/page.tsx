@@ -78,8 +78,23 @@ export default function Home() {
   const [inputWarning, setInputWarning] = useState<string | null>(null);
   const [selectedInterviewTypeCode, setSelectedInterviewTypeCode] =
     useState<InterviewTypeCode | null>(null);
+  const [deletedMessage, setDeletedMessage] = useState(false);
   const [selectedTrendTopic, setSelectedTrendTopic] =
     useState<TrendTopic | null>(null);
+
+  // 탈퇴 완료 메시지 감지
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("deleted") === "true") {
+      setDeletedMessage(true);
+      // URL에서 파라미터 제거
+      window.history.replaceState({}, "", "/");
+      // 5초 후 메시지 숨기기
+      const timer = setTimeout(() => setDeletedMessage(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     // 로그인 상태 확인 후 마지막 선택한 팀스페이스 불러오기
@@ -497,14 +512,25 @@ export default function Home() {
             {!isLoadingUser && (
               <>
                 {user ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="text-muted-foreground hover:text-foreground text-xs md:text-sm px-2 md:px-3 h-8 md:h-9"
-                  >
-                    로그아웃
-                  </Button>
+                  <>
+                    <Link href="/settings">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-9 md:w-9"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="text-muted-foreground hover:text-foreground text-xs md:text-sm px-2 md:px-3 h-8 md:h-9"
+                    >
+                      로그아웃
+                    </Button>
+                  </>
                 ) : (
                   <Link href="/auth">
                     <Button
@@ -521,6 +547,14 @@ export default function Home() {
           </div>
         </nav>
       </header>
+
+      {/* 탈퇴 완료 메시지 */}
+      {deletedMessage && (
+        <div className="mx-4 mt-2 rounded-lg bg-muted/50 border border-border/60 px-4 py-3 text-center text-sm text-muted-foreground">
+          회원탈퇴가 완료되었습니다. 15일 이내에 다시 로그인하면 계정을 복구할
+          수 있습니다.
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center md:justify-center px-4 md:px-6 pb-8 md:pb-12 pt-12 md:pt-20">
