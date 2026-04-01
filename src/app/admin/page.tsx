@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PeriodFilter } from "./_components/period-filter";
 import { StatCards } from "./_components/stat-cards";
 import { DailyTrendChart } from "./_components/daily-trend-chart";
@@ -9,6 +10,8 @@ import { TypeDistributionChart } from "./_components/type-distribution-chart";
 import { PopularQueries } from "./_components/popular-queries";
 import { ConversionStats } from "./_components/conversion-stats";
 import { RecentSessionsTable } from "./_components/recent-sessions-table";
+import { ErrorLogPanel } from "./_components/error-log-panel";
+import { TokenUsagePanel } from "./_components/token-usage-panel";
 
 interface AdminStats {
   overview: {
@@ -48,7 +51,7 @@ interface AdminStats {
   }[];
 }
 
-export default function AdminPage() {
+function OverviewTab() {
   const [period, setPeriod] = useState("30d");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,15 +74,11 @@ export default function AdminPage() {
     fetchStats(period);
   }, [period, fetchStats]);
 
-  const handlePeriodChange = (newPeriod: string) => {
-    setPeriod(newPeriod);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">서비스 현황</h2>
-        <PeriodFilter value={period} onChange={handlePeriodChange} />
+        <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
       {loading ? (
@@ -111,5 +110,29 @@ export default function AdminPage() {
         </p>
       )}
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="overview">개요</TabsTrigger>
+        <TabsTrigger value="errors">에러 로그</TabsTrigger>
+        <TabsTrigger value="tokens">API 사용량</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview">
+        <OverviewTab />
+      </TabsContent>
+
+      <TabsContent value="errors">
+        <ErrorLogPanel />
+      </TabsContent>
+
+      <TabsContent value="tokens">
+        <TokenUsagePanel />
+      </TabsContent>
+    </Tabs>
   );
 }

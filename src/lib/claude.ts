@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { InterviewTypeCode } from "@/types/interview";
 import { getTrendTopicById, type TrendTopic } from "@/data/trend-topics";
+import { classifyAndLogApiError } from "./error-logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -498,24 +499,33 @@ ${
 
   // temperature 0.7로 설정하여 질문 다양성 향상
   // Prompt Caching: 시스템 프롬프트에 cache_control 적용하여 입력 토큰 비용 절감
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    temperature: 0.7,
-    system: [
-      {
-        type: "text",
-        text: "당신은 개발자 기술면접 전문가입니다. 사용자의 요청에 맞는 기술면접 질문을 생성합니다.",
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
+      temperature: 0.7,
+      system: [
+        {
+          type: "text",
+          text: "당신은 개발자 기술면접 전문가입니다. 사용자의 요청에 맞는 기술면접 질문을 생성합니다.",
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (apiError) {
+    classifyAndLogApiError(apiError, {
+      endpoint: "/api/questions/generate",
+      model: "claude-sonnet-4-6",
+    });
+    throw apiError;
+  }
 
   // 추출된 레퍼런스 텍스트 (핑거프린트 생성용)
   const extractedReferenceText =
@@ -638,16 +648,25 @@ export async function evaluateAnswer(
     .replace("{hint}", hint || "힌트 없음")
     .replace("{answer}", answer);
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (apiError) {
+    classifyAndLogApiError(apiError, {
+      endpoint: "/api/answers/evaluate",
+      model: "claude-sonnet-4-6",
+    });
+    throw apiError;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {
