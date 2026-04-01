@@ -4,6 +4,7 @@
  */
 
 import { VoyageAIClient } from "voyageai";
+import { classifyAndLogApiError } from "./error-logger";
 
 const voyageClient = new VoyageAIClient({
   apiKey: process.env.VOYAGE_API_KEY,
@@ -21,12 +22,21 @@ export async function generateEmbedding(
   text: string,
   inputType: "query" | "document" = "document",
 ): Promise<number[]> {
-  const result = await voyageClient.embed({
-    input: [text],
-    model: EMBEDDING_MODEL,
-    inputType,
-    outputDimension: EMBEDDING_DIMENSION,
-  });
+  let result;
+  try {
+    result = await voyageClient.embed({
+      input: [text],
+      model: EMBEDDING_MODEL,
+      inputType,
+      outputDimension: EMBEDDING_DIMENSION,
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/embedding/single",
+      model: EMBEDDING_MODEL,
+    });
+    throw err;
+  }
 
   if (!result.data || result.data.length === 0 || !result.data[0].embedding) {
     throw new Error("임베딩 생성 실패: 빈 응답");
@@ -46,12 +56,21 @@ export async function generateEmbeddings(
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  const result = await voyageClient.embed({
-    input: texts,
-    model: EMBEDDING_MODEL,
-    inputType,
-    outputDimension: EMBEDDING_DIMENSION,
-  });
+  let result;
+  try {
+    result = await voyageClient.embed({
+      input: texts,
+      model: EMBEDDING_MODEL,
+      inputType,
+      outputDimension: EMBEDDING_DIMENSION,
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/embedding/batch",
+      model: EMBEDDING_MODEL,
+    });
+    throw err;
+  }
 
   if (!result.data || result.data.length !== texts.length) {
     throw new Error("임베딩 생성 실패: 결과 수 불일치");

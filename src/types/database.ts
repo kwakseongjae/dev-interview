@@ -635,6 +635,47 @@ export interface Database {
           },
         ];
       };
+      api_error_logs: {
+        Row: {
+          id: string;
+          error_type: string;
+          error_message: string;
+          error_code: string | null;
+          endpoint: string | null;
+          user_id: string | null;
+          session_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          error_type: string;
+          error_message: string;
+          error_code?: string | null;
+          endpoint?: string | null;
+          user_id?: string | null;
+          session_id?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "api_error_logs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "api_error_logs_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "interview_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       question_generation_history: {
         Row: {
           id: string;
@@ -759,6 +800,10 @@ export type QuestionGenerationHistory =
   Database["public"]["Tables"]["question_generation_history"]["Row"];
 export type QuestionGenerationHistoryInsert =
   Database["public"]["Tables"]["question_generation_history"]["Insert"];
+
+export type ApiErrorLog = Database["public"]["Tables"]["api_error_logs"]["Row"];
+export type ApiErrorLogInsert =
+  Database["public"]["Tables"]["api_error_logs"]["Insert"];
 
 // Question with relations
 export interface QuestionWithCategory extends Question {
