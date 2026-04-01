@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { supabaseAdmin } from "./supabase";
+import { classifyAndLogApiError } from "./error-logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -100,16 +101,25 @@ export async function generateHintWithClaude(
     .replace("{category}", category)
     .replace("{subcategory}", subcategory);
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 256,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/hint/generate",
+      model: "claude-sonnet-4-6",
+    });
+    throw err;
+  }
 
   // 응답 파싱
   const content = response.content[0];

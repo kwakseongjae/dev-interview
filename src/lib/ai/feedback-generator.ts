@@ -11,6 +11,7 @@ import {
   MODEL_ANSWER_PROMPT,
   fillPromptTemplate,
 } from "./feedback-prompts";
+import { classifyAndLogApiError } from "../error-logger";
 import type {
   QuickFeedbackData,
   DetailedFeedbackData,
@@ -79,16 +80,25 @@ export async function generateQuickFeedback(
     trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
-  const response = await anthropic.messages.create({
-    model: SONNET_MODEL,
-    max_tokens: 256,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 256,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/feedback/quick",
+      model: SONNET_MODEL,
+    });
+    throw err;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -154,16 +164,25 @@ export async function generateDetailedFeedback(
     score: existingScore,
   });
 
-  const response = await anthropic.messages.create({
-    model: SONNET_MODEL,
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/feedback/detailed",
+      model: SONNET_MODEL,
+    });
+    throw err;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -232,16 +251,25 @@ export async function generateFullFeedback(
     trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
-  const response = await anthropic.messages.create({
-    model: SONNET_MODEL,
-    max_tokens: 1500,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 1500,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/feedback/full",
+      model: SONNET_MODEL,
+    });
+    throw err;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -344,16 +372,25 @@ export async function generateModelAnswer(
     trend_context: buildFeedbackTrendContext(trendTopicId),
   });
 
-  const response = await anthropic.messages.create({
-    model: SONNET_MODEL,
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: SONNET_MODEL,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/feedback/model-answer",
+      model: SONNET_MODEL,
+    });
+    throw err;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {

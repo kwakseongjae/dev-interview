@@ -195,13 +195,15 @@ async function validateReferenceContent(
   }
 
   // Claude를 사용해 레퍼런스 유효성 검증
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 256,
-    messages: [
-      {
-        role: "user",
-        content: `다음 텍스트가 기술면접 질문 생성에 활용할 수 있는 유효한 자료인지 판단해주세요.
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      messages: [
+        {
+          role: "user",
+          content: `다음 텍스트가 기술면접 질문 생성에 활용할 수 있는 유효한 자료인지 판단해주세요.
 유효한 자료의 예: 이력서, 포트폴리오, 기술 문서, 프로젝트 설명, 기술 블로그 글 등
 유효하지 않은 자료의 예: 일반적인 텍스트, 광고, 무관한 문서, 읽을 수 없는 내용 등
 
@@ -210,9 +212,16 @@ ${referenceText.substring(0, 2000)}
 
 다음 JSON 형식으로만 응답해주세요:
 {"isValid": true 또는 false, "reason": "판단 이유 (한 문장)"}`,
-      },
-    ],
-  });
+        },
+      ],
+    });
+  } catch (err) {
+    classifyAndLogApiError(err, {
+      endpoint: "/api/reference/validate",
+      model: "claude-sonnet-4-6",
+    });
+    throw err;
+  }
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -296,24 +305,33 @@ async function extractTextFromReference(
             },
           };
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `이 ${
-                fileType === "application/pdf" ? "PDF 문서" : "이미지"
-              }의 내용을 텍스트로 추출해주세요. 기술 문서, 이력서, 포트폴리오 등의 내용을 정확하게 추출해주세요.`,
-            },
-            contentBlock,
-          ],
-        },
-      ],
-    });
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `이 ${
+                  fileType === "application/pdf" ? "PDF 문서" : "이미지"
+                }의 내용을 텍스트로 추출해주세요. 기술 문서, 이력서, 포트폴리오 등의 내용을 정확하게 추출해주세요.`,
+              },
+              contentBlock,
+            ],
+          },
+        ],
+      });
+    } catch (apiErr) {
+      classifyAndLogApiError(apiErr, {
+        endpoint: "/api/reference/extract",
+        model: "claude-sonnet-4-6",
+      });
+      throw apiErr;
+    }
 
     const content = response.content[0];
     if (content.type !== "text") {
@@ -595,22 +613,31 @@ export async function summarizeQueryToTitle(query: string): Promise<string> {
   }
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 100,
-      messages: [
-        {
-          role: "user",
-          content: `다음 면접 준비 요청을 20자 내외의 짧고 명확한 제목으로 요약해주세요. 
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 100,
+        messages: [
+          {
+            role: "user",
+            content: `다음 면접 준비 요청을 20자 내외의 짧고 명확한 제목으로 요약해주세요.
 핵심 키워드만 포함하고, "면접", "준비", "질문" 같은 일반적인 단어는 생략해도 됩니다.
 제목만 출력하고 다른 설명은 하지 마세요.
 
 요청: ${query}
 
 제목:`,
-        },
-      ],
-    });
+          },
+        ],
+      });
+    } catch (apiErr) {
+      classifyAndLogApiError(apiErr, {
+        endpoint: "/api/sessions/summarize",
+        model: "claude-sonnet-4-6",
+      });
+      throw apiErr;
+    }
 
     const content = response.content[0];
     if (content.type !== "text") {
