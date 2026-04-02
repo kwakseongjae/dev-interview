@@ -1,0 +1,107 @@
+[
+  {
+    "content": "초당 10만 건의 API 요청을 처리해야 하는 서비스에서 로드밸런싱과 오토스케일링 전략을 설계해주세요. L4/L7 로드밸런서 선택 기준과 오토스케일링 메트릭 설정 방법을 포함해주세요.",
+    "hint": "L4 vs L7 로드밸런서, 헬스 체크, CPU/메모리 기반 스케일링, 커스텀 메트릭, 쿨다운 기간, 프리워밍, sticky session",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "LOAD_BALANCING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "글로벌 서비스에서 CDN 캐싱과 애플리케이션 레벨 캐싱(Redis)을 함께 사용할 때, 각 레이어의 역할 분담과 캐시 무효화 전략을 설계해주세요.",
+    "hint": "CDN 엣지 캐시, Redis 중앙 캐시, 로컬 캐시, TTL 계층화, write-through, write-behind, cache stampede, 퍼지 전략",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CACHING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "캐시 관련 장애 패턴인 Cache Penetration, Cache Avalanche, Cache Stampede의 차이를 설명하고, 각각의 방어 전략을 설계해주세요.",
+    "hint": "블룸 필터, 널 캐싱, TTL 지터, 뮤텍스 락, singleflight, stale-while-revalidate, 프리히팅",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CACHING",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "데이터베이스 샤딩과 파티셔닝의 차이를 설명하고, 10억 건의 사용자 데이터를 저장하는 시스템에서 어떤 방식을 선택할지 트레이드오프와 함께 설계해주세요.",
+    "hint": "수평 파티셔닝 vs 샤딩, 해시 기반 vs 범위 기반, 크로스 샤드 조인, 리밸런싱, consistent hashing, vitess",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SHARDING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Kafka와 RabbitMQ의 아키텍처 차이를 비교하고, 주문 처리 시스템에서 메시지 큐를 설계할 때 어떤 것을 선택할지 근거와 함께 설명해주세요.",
+    "hint": "pull vs push 모델, 파티션, 컨슈머 그룹, 메시지 순서 보장, at-least-once, exactly-once, DLQ, 처리량 vs 지연시간",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "MESSAGING",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "이벤트 드리븐 아키텍처에서 메시지 유실과 중복 처리를 방지하기 위한 설계 전략을 설명해주세요. Idempotency와 Outbox 패턴을 포함해주세요.",
+    "hint": "idempotency key, outbox 패턴, CDC, 트랜잭셔널 메시징, exactly-once semantics, deduplication, 재시도 전략",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "MESSAGING",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "CAP 이론을 실무적으로 설명하고, CP 시스템과 AP 시스템의 실제 사례를 들어 각각 어떤 비즈니스 요구사항에 적합한지 비교해주세요.",
+    "hint": "Consistency, Availability, Partition Tolerance, ZooKeeper(CP), Cassandra(AP), PACELC, 네트워크 파티션 시나리오",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CAP",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "마이크로서비스 간 동기 통신(REST/gRPC)과 비동기 통신(메시지 큐/이벤트)의 트레이드오프를 비교하고, 결제 시스템에서 적절한 통신 방식을 설계해주세요.",
+    "hint": "동기 호출 장애 전파, 비동기 eventual consistency, Saga 패턴, 보상 트랜잭션, gRPC 스트리밍, 서비스 메시 통신",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "분산 환경에서 Rate Limiting을 구현하는 방법을 설계해주세요. Token Bucket, Sliding Window 알고리즘을 비교하고, 여러 서버 인스턴스에서 일관된 제한을 적용하는 방법을 설명해주세요.",
+    "hint": "token bucket, sliding window log, sliding window counter, Redis 중앙 저장소, 분산 카운터, 로컬 + 글로벌 하이브리드, 429 응답",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "URL Shortener 서비스를 설계해주세요. 하루 1억 건의 단축 URL 생성과 10억 건의 리다이렉트를 처리해야 합니다. 고유 ID 생성, 저장소, 캐싱 전략을 포함해주세요.",
+    "hint": "base62 인코딩, snowflake ID, 해시 충돌 처리, 301 vs 302 리다이렉트, 읽기 집중 캐시, 분석 데이터 수집, TTL 만료",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "수백만 사용자가 동시에 사용하는 실시간 채팅 시스템을 설계해주세요. 메시지 전달 보장, 읽음 확인, 오프라인 메시지 처리를 포함해주세요.",
+    "hint": "WebSocket, 커넥션 게이트웨이, 메시지 큐, 팬아웃, 읽음 확인 최적화, 오프라인 큐, 메시지 순서 보장, 채널 기반 Pub/Sub",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Eventual Consistency와 Strong Consistency의 차이를 설명하고, 은행 송금 시스템과 소셜 미디어 피드에서 각각 어떤 정합성 모델을 선택해야 하는지 근거와 함께 설명해주세요.",
+    "hint": "linearizability, causal consistency, read-your-writes, quorum, 2PC, Saga, CRDT, 비즈니스 요구사항 기반 선택",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "CAP",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "Circuit Breaker 패턴의 상태 전이(Closed → Open → Half-Open)를 설명하고, 마이크로서비스 장애 전파를 방지하기 위한 Resilience 전략을 설계해주세요.",
+    "hint": "circuit breaker 상태, 실패율 임계값, 타임아웃, 폴백, bulkhead 패턴, retry with backoff, 서비스 메시, Hystrix/Resilience4j",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "대규모 알림 시스템(푸시, SMS, 이메일)을 설계해주세요. 하루 수억 건의 알림을 처리하면서 중복 발송 방지, 우선순위 처리, 사용자별 채널 선호도를 지원해야 합니다.",
+    "hint": "알림 큐 우선순위, 멱등성 보장, 템플릿 엔진, 채널 라우터, 배치 처리, rate limiting, opt-out 관리, DLQ 재처리",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "SCALABILITY",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "대규모 트래픽을 받는 서비스에서 Graceful Degradation과 Failover 전략을 설계해주세요. 부분 장애 시 사용자 경험을 유지하면서 시스템 안정성을 확보하는 방법을 설명해주세요.",
+    "hint": "graceful degradation, 기능별 폴백, 캐시 폴백, 읽기 전용 모드, active-passive failover, DNS 페일오버, 헬스 체크, 카나리 배포",
+    "category": "SYSTEM_DESIGN",
+    "subcategory": "DISTRIBUTED_SYSTEMS",
+    "difficulty": "EASY"
+  }
+]
