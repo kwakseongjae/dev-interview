@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 interface LoginPromptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "complete" | "archive" | "interview" | "start-interview";
+  type: "complete" | "archive" | "interview" | "start-interview" | "voice";
   onLater?: () => void;
   onLogin?: () => void;
 }
@@ -60,7 +60,20 @@ export const LoginPromptModal = ({
   };
 
   const getContent = () => {
-    if (type === "start-interview") {
+    if (type === "voice") {
+      return {
+        title: "로그인하고 음성 입력을 사용하세요",
+        description:
+          "음성 입력 기능은 로그인한 사용자만 이용할 수 있습니다. 로그인하면 마이크로 답변을 말하고 자동으로 텍스트로 변환됩니다.",
+        features: [
+          "마이크로 답변하면 자동 텍스트 변환",
+          "기술 용어 자동 인식 (React, TypeScript 등)",
+          "계정당 100분 무료 제공",
+        ],
+        loginText: "Google로 로그인하기",
+        laterText: "텍스트로 입력하기",
+      };
+    } else if (type === "start-interview") {
       return {
         title: "로그인하고 면접을 시작하세요",
         description:

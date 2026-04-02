@@ -37,6 +37,8 @@ import {
 } from "@/lib/api";
 import { formatSeconds } from "@/hooks/useTimer";
 import { HintSection } from "@/components/feedback/HintSection";
+import { VoiceModeToggle } from "@/components/interview/VoiceModeToggle";
+import { VoiceInputPanel } from "@/components/interview/VoiceInputPanel";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import {
   Accordion,
@@ -114,6 +116,11 @@ export default function CaseStudyInterviewPage() {
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  const [sttEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return process.env.NEXT_PUBLIC_STT_ENABLED !== "false";
+  });
 
   const totalTimeRef = useRef(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -686,20 +693,43 @@ export default function CaseStudyInterviewPage() {
 
           {/* Answer Textarea */}
           <Card className="p-1">
+            {inputMode === "voice" && sttEnabled && sessionId && (
+              <VoiceInputPanel
+                onApply={(text) => {
+                  const current = answers[currentQuestion.id] || "";
+                  handleAnswerChange(current ? current + "\n" + text : text);
+                }}
+                onSwitchToText={() => setInputMode("text")}
+                sessionId={sessionId}
+                questionId={currentQuestion.id}
+                isLoggedIn={isLoggedIn()}
+              />
+            )}
+
             <Textarea
               value={answers[currentQuestion.id] || ""}
               onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="답변을 입력해주세요..."
+              placeholder={
+                inputMode === "voice" && sttEnabled
+                  ? "음성 변환 결과가 여기에 적용됩니다..."
+                  : "답변을 입력해주세요..."
+              }
               className="min-h-[250px] text-base border-0 focus-visible:ring-0 resize-none"
+              readOnly={inputMode === "voice" && sttEnabled}
             />
           </Card>
 
-          {/* Hint Section */}
-          <HintSection
-            hint={currentQuestion.hint}
-            isOpen={showHint}
-            onToggle={() => setShowHint(!showHint)}
-          />
+          {/* Hint + Voice Toggle */}
+          <div className="flex items-start justify-between gap-2">
+            <HintSection
+              hint={currentQuestion.hint}
+              isOpen={showHint}
+              onToggle={() => setShowHint(!showHint)}
+            />
+            {sttEnabled && (
+              <VoiceModeToggle mode={inputMode} onToggle={setInputMode} />
+            )}
+          </div>
 
           {/* Navigation */}
           <div className="flex items-center justify-between pt-2">
