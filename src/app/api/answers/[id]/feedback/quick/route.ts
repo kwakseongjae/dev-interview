@@ -5,6 +5,7 @@ import {
   generateQuickFeedback,
   getModelInfo,
 } from "@/lib/ai/feedback-generator";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 /**
  * POST /api/answers/:id/feedback/quick - Generate quick feedback
@@ -16,6 +17,8 @@ export async function POST(
 ) {
   try {
     const auth = await requireUser();
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
 
     const { id: answerId } = await params;
 

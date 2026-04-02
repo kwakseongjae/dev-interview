@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrGenerateHint } from "@/lib/hint-generator";
+import { getClientIp } from "@/lib/ip";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // GET /api/questions/:id/hint - 힌트 조회 (없으면 자동 생성)
 export async function GET(
@@ -7,6 +9,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const ip = await getClientIp();
+    const blocked = await checkRateLimit(ip, "general");
+    if (blocked) return blocked;
+
     const { id: questionId } = await params;
 
     // UUID 형식 검증

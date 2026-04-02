@@ -12,6 +12,7 @@ import { ConversionStats } from "./_components/conversion-stats";
 import { RecentSessionsTable } from "./_components/recent-sessions-table";
 import { ErrorLogPanel } from "./_components/error-log-panel";
 import { TokenUsagePanel } from "./_components/token-usage-panel";
+import { UsagePanel } from "./_components/usage-panel";
 
 interface AdminStats {
   overview: {
@@ -120,6 +121,7 @@ export default function AdminPage() {
         <TabsTrigger value="overview">개요</TabsTrigger>
         <TabsTrigger value="errors">에러 로그</TabsTrigger>
         <TabsTrigger value="tokens">API 사용량</TabsTrigger>
+        <TabsTrigger value="usage">Rate Limit</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview">
@@ -132,6 +134,10 @@ export default function AdminPage() {
 
       <TabsContent value="tokens">
         <TokenUsagePanel />
+      </TabsContent>
+
+      <TabsContent value="usage">
+        <UsagePanel />
       </TabsContent>
     </Tabs>
   );

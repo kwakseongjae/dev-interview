@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getClientIp } from "@/lib/ip";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // POST /api/answers - 답변 저장
 export async function POST(request: NextRequest) {
   try {
+    const ip = await getClientIp();
+    const generalBlocked = await checkRateLimit(ip, "general");
+    if (generalBlocked) return generalBlocked;
+
     const auth = await getUserOptional();
 
     const body = await request.json();

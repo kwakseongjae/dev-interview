@@ -3,6 +3,8 @@ import { requireUser, getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateQuestions, summarizeQueryToTitle } from "@/lib/claude";
 import { normalizeQuestionContent } from "@/lib/question-utils";
+import { getClientIp } from "@/lib/ip";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // GET /api/sessions - 내 면접 세션 목록
 export async function GET(request: NextRequest) {
@@ -225,6 +227,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await getUserOptional();
+    const ip = await getClientIp();
+    const sessionBlocked = await checkRateLimit(
+      auth ? auth.sub : `anon:${ip}`,
+      auth ? "ai-auth" : "session-anon",
+    );
+    if (sessionBlocked) return sessionBlocked;
 
     const body = await request.json();
     let { query, question_ids, questions: questionsData } = body;

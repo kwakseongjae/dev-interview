@@ -5,6 +5,7 @@ import {
   generateFullFeedback,
   getModelInfo,
 } from "@/lib/ai/feedback-generator";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 /**
  * POST /api/answers/:id/feedback/full - Generate complete feedback in one call
@@ -17,6 +18,8 @@ export async function POST(
 ) {
   try {
     const auth = await requireUser();
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
 
     const { id: answerId } = await params;
 

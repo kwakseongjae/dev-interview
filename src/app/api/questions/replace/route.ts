@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
+import { requireUser } from "@/lib/supabase/auth-helpers";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // POST /api/questions/replace - 선택된 질문들만 새로 생성
 export async function POST(request: NextRequest) {
   try {
+    let auth;
+    try {
+      auth = await requireUser();
+    } catch {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+    }
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
+
     const body = await request.json();
     const {
       query,

@@ -4,6 +4,8 @@ import {
   incrementInterviewCount,
 } from "@/lib/case-studies";
 import { generateQuestions } from "@/lib/claude";
+import { requireUser } from "@/lib/supabase/auth-helpers";
+import { checkRateLimit } from "@/lib/ratelimit";
 import type { InterviewTypeCode } from "@/types/interview";
 
 // POST /api/case-studies/[slug]/questions - 케이스 스터디 기반 면접 질문 생성
@@ -12,6 +14,15 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    let auth;
+    try {
+      auth = await requireUser();
+    } catch {
+      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+    }
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
+
     const { slug } = await params;
     const body = await request.json();
     const { count = 5, use_seed_questions = false } = body;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { evaluateAnswer } from "@/lib/claude";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // POST /api/answers/:id/score - AI 답변 평가 요청
 export async function POST(
@@ -10,6 +11,8 @@ export async function POST(
 ) {
   try {
     const auth = await requireUser();
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
 
     const { id: answerId } = await params;
 
