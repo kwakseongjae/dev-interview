@@ -6,7 +6,9 @@ import {
 } from "@/lib/case-studies";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
 
-// GET /api/case-studies/[slug] - 케이스 스터디 상세 조회
+const VIEW_COOLDOWN_SECONDS = 600; // 같은 사례 재조회 시 10분간 카운트 안 함
+
+// GET /api/case-studies/[slug] - 기업 사례 상세 조회
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
@@ -18,13 +20,18 @@ export async function GET(
 
     if (!caseStudy) {
       return NextResponse.json(
-        { error: "케이스 스터디를 찾을 수 없습니다" },
+        { error: "기업 사례를 찾을 수 없습니다" },
         { status: 404 },
       );
     }
 
-    // 조회수 증가 (비동기, 에러 무시)
-    incrementViewCount(caseStudy.id).catch(() => {});
+    // 조회수 중복 방지: 쿠키로 최근 조회 여부 체크
+    const viewedCookie = request.cookies.get(`cs_viewed_${slug}`);
+    const shouldCountView = !viewedCookie;
+
+    if (shouldCountView) {
+      incrementViewCount(caseStudy.id).catch(() => {});
+    }
 
     // 로그인 사용자인 경우 즐겨찾기 상태 추가
     const auth = await getUserOptional();
@@ -35,12 +42,24 @@ export async function GET(
       isFavorite = favoriteIds.includes(caseStudy.id);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       caseStudy: { ...caseStudy, isFavorite },
     });
+
+    // 조회 기록 쿠키 설정 (10분간 유지)
+    if (shouldCountView) {
+      response.cookies.set(`cs_viewed_${slug}`, "1", {
+        maxAge: VIEW_COOLDOWN_SECONDS,
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+      });
+    }
+
+    return response;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "케이스 스터디 조회 실패";
+      error instanceof Error ? error.message : "기업 사례 조회 실패";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
