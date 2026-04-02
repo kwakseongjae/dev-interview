@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 let _supabase: ReturnType<typeof createClient> | null = null;
 let _isLoggedIn = false;
 let _initialized = false;
+let _authReady = false;
 
 function getSupabase() {
   if (!_supabase) {
@@ -29,6 +30,11 @@ function ensureAuthListener() {
   supabase.auth.onAuthStateChange((event, session) => {
     _isLoggedIn = !!session;
 
+    // INITIAL_SESSION 이후 auth 상태가 확정됨
+    if (event === "INITIAL_SESSION") {
+      _authReady = true;
+    }
+
     if (
       event === "INITIAL_SESSION" ||
       event === "SIGNED_IN" ||
@@ -42,8 +48,8 @@ function ensureAuthListener() {
       );
     }
 
-    // onAuthStateChange 콜백 내 직접 await 사용 금지 (데드락 위험)
-    // setTimeout으로 다음 이벤트 루프 틱에서 실행
+    // SIGNED_IN 시 다른 페이지(archive, favorites 등)를 위해
+    // localStorage에 마지막 선택 팀스페이스 동기화 (경량, 비차단)
     if (event === "SIGNED_IN" && session) {
       setTimeout(async () => {
         try {
@@ -65,6 +71,12 @@ function ensureAuthListener() {
 export function isLoggedIn(): boolean {
   ensureAuthListener();
   return _isLoggedIn;
+}
+
+/** INITIAL_SESSION 이벤트가 발생했는지 (auth 상태가 확정되었는지) */
+export function isAuthReady(): boolean {
+  ensureAuthListener();
+  return _authReady;
 }
 
 export async function signInWithGoogle(redirectTo?: string): Promise<void> {

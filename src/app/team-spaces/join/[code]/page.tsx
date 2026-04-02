@@ -11,11 +11,8 @@ import Link from "next/link";
 import Image from "next/image";
 import logoImage from "@/assets/images/logo.png";
 import logoTextImage from "@/assets/images/logo-text.png";
-import {
-  getTeamSpaceByInviteCodeApi,
-  joinTeamSpaceApi,
-  isLoggedIn,
-} from "@/lib/api";
+import { getTeamSpaceByInviteCodeApi, joinTeamSpaceApi } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { LoginPromptModal } from "@/components/LoginPromptModal";
 
 function JoinContent() {
@@ -34,6 +31,7 @@ function JoinContent() {
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState("");
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const { loggedIn } = useAuth();
 
   useEffect(() => {
     const loadTeamSpace = async () => {
@@ -54,17 +52,20 @@ function JoinContent() {
     loadTeamSpace();
   }, [inviteCode]);
 
+  // Show login modal only after both loading is done and auth state resolves to false
   useEffect(() => {
-    if (!isLoading && !isLoggedIn()) {
+    if (!isLoading && !loggedIn) {
       setShowLoginModal(true);
+    } else if (loggedIn) {
+      setShowLoginModal(false);
     }
-  }, [isLoading]);
+  }, [isLoading, loggedIn]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       setShowLoginModal(true);
       return;
     }

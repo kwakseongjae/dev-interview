@@ -12,19 +12,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  isLoggedIn,
   getTeamSpaceIntroStatusApi,
   markTeamSpaceIntroSeenApi,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export const TeamSpaceIntro = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [, setIsLoading] = useState(true);
+  const { loggedIn } = useAuth();
 
   useEffect(() => {
     const checkIntroStatus = async () => {
       // 로그인하지 않은 경우 인트로 표시하지 않음
-      if (!isLoggedIn()) {
+      if (!loggedIn) {
         setIsLoading(false);
         return;
       }
@@ -48,7 +49,7 @@ export const TeamSpaceIntro = () => {
     };
 
     checkIntroStatus();
-  }, []);
+  }, [loggedIn]);
 
   const handleClose = async () => {
     setIsOpen(false);

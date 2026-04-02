@@ -29,8 +29,8 @@ import {
   getTeamSpaceFavoritesApi,
   type TeamSpaceSession,
   type TeamSpaceFavorite,
-  isLoggedIn,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -38,6 +38,7 @@ import { ko } from "date-fns/locale";
 function TeamSpaceContent() {
   const params = useParams();
   const router = useRouter();
+  const { loggedIn, authReady } = useAuth();
   const teamSpaceId = params.id as string;
 
   const [teamSpace, setTeamSpace] = useState<{
@@ -57,6 +58,7 @@ function TeamSpaceContent() {
     "sessions",
   );
   const [isLoading, setIsLoading] = useState(true);
+  // authReady replaces isInitializing
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -97,12 +99,14 @@ function TeamSpaceContent() {
       }
     };
 
-    if (isLoggedIn()) {
+    if (loggedIn) {
       loadData();
-    } else {
+    } else if (authReady) {
+      // Auth resolved, user is definitely not logged in
       router.push("/auth");
     }
-  }, [teamSpaceId, router, selectedWeek, dateRange]);
+    // If !loggedIn && !authReady: waiting for INITIAL_SESSION
+  }, [loggedIn, authReady, teamSpaceId, router, selectedWeek, dateRange]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -137,7 +141,7 @@ function TeamSpaceContent() {
   const myFavorites = favorites.filter((f) => f.is_mine);
   const otherFavorites = favorites.filter((f) => !f.is_mine);
 
-  if (isLoading) {
+  if (!authReady || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gold" />
