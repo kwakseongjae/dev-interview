@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 import { validateInterviewInput } from "@/lib/validation";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
+import { getClientIp } from "@/lib/ip";
+import { checkRateLimit } from "@/lib/ratelimit";
 import {
   getQuestionHistory,
   getQuestionHistoryByReference,
@@ -19,6 +21,12 @@ import type { InterviewTypeCode } from "@/types/interview";
 // POST /api/questions/generate - Claude로 질문 생성 (세션 저장 없이)
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limit: 비회원 IP 3회/일, 회원 10회/분
+    const ip = await getClientIp();
+    // 먼저 general tier로 체크 (IP 기반)
+    const generalBlocked = await checkRateLimit(ip, "general");
+    if (generalBlocked) return generalBlocked;
+
     const body = await request.json();
     const {
       query,
@@ -60,6 +68,14 @@ export async function POST(request: NextRequest) {
 
     // 선택적 인증 - 로그인 사용자는 질문 이력 기반 다양성 적용
     const auth = await getUserOptional();
+
+    // Claude API Rate Limit: 인증 여부에 따라 분기
+    const aiBlocked = await checkRateLimit(
+      auth ? auth.sub : `anon:${ip}`,
+      auth ? "ai-auth" : "ai-anon",
+    );
+    if (aiBlocked) return aiBlocked;
+
     const userId = auth?.sub;
 
     // 제외할 질문 내용 목록 (이미 추천된 질문들) - 최대 50개, 각 200자 제한

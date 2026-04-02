@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getClientIp } from "@/lib/ip";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // GET /api/team-spaces/invite/:code - 초대 코드로 팀스페이스 정보 조회
 export async function GET(
@@ -7,6 +9,10 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ) {
   try {
+    const ip = await getClientIp();
+    const blocked = await checkRateLimit(ip, "invite");
+    if (blocked) return blocked;
+
     const { code: inviteCode } = await params;
 
     // 초대 코드 형식 검증 (8자 영문+숫자)

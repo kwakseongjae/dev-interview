@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateModelAnswer, getModelInfo } from "@/lib/ai/feedback-generator";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 /**
  * POST /api/answers/:id/model-answer - Generate model answer for a question
@@ -17,6 +18,8 @@ export async function POST(
     if (!auth) {
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
+    const blocked = await checkRateLimit(auth.sub, "ai-auth");
+    if (blocked) return blocked;
 
     const { id: answerId } = await params;
 

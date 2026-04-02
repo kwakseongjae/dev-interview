@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 // POST /api/references/upload - 레퍼런스 파일 업로드
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireUser();
+    const blocked = await checkRateLimit(auth.sub, "upload");
+    if (blocked) return blocked;
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
