@@ -22,19 +22,27 @@ import {
 interface TeamSpaceSelectorProps {
   currentTeamSpaceId: string | null;
   onSelect: (teamSpaceId: string | null) => void;
+  initialTeamSpaces?: ApiTeamSpace[];
 }
 
 export const TeamSpaceSelector = ({
   currentTeamSpaceId,
   onSelect,
+  initialTeamSpaces,
 }: TeamSpaceSelectorProps) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [teamSpaces, setTeamSpaces] = useState<ApiTeamSpace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 컴포넌트 마운트 시 팀스페이스 목록 로드 (현재 선택된 팀스페이스 정보 표시를 위해)
+  // 초기 팀스페이스 목록: parent에서 전달받으면 API 호출 생략
   useEffect(() => {
+    if (initialTeamSpaces && initialTeamSpaces.length > 0) {
+      setTeamSpaces(initialTeamSpaces);
+      setIsLoading(false);
+      return;
+    }
+
     const loadTeamSpaces = async () => {
       if (!isLoggedIn()) {
         setIsLoading(false);
@@ -52,7 +60,7 @@ export const TeamSpaceSelector = ({
     };
 
     loadTeamSpaces();
-  }, []);
+  }, [initialTeamSpaces]);
 
   // Sheet가 열릴 때마다 최신 팀스페이스 목록 로드
   useEffect(() => {

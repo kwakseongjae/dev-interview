@@ -38,6 +38,7 @@ import {
   createSessionApi,
   type ApiSessionDetail,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { AIAnalysisSection } from "@/components/feedback/AIAnalysisSection";
 import { HintSection } from "@/components/feedback/HintSection";
 
@@ -50,12 +51,14 @@ import { formatSecondsKorean } from "@/hooks/useTimer";
 export default function ArchiveDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { loggedIn, authReady } = useAuth();
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<
     (InterviewSession & { questions: QuestionWithAnswerId[] }) | null
   >(null);
   const [isLoading, setIsLoading] = useState(true);
+  // isInitializing = auth not yet resolved (authReady handles this)
   const [showQuestionSelectDialog, setShowQuestionSelectDialog] =
     useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(
@@ -87,36 +90,40 @@ export default function ArchiveDetailPage() {
   });
 
   useEffect(() => {
-    const loadSession = async () => {
-      if (!isLoggedIn()) {
-        router.replace(`/auth?redirect=/archive/${sessionId}`);
-        return;
-      }
-
-      // 게스트 세션 클레임: localStorage에 저장된 guestSessionId가 현재 세션이면 귀속 처리
-      const guestSessionId = localStorage.getItem("guestSessionId");
-      if (guestSessionId === sessionId) {
-        try {
-          await fetch(`/api/sessions/${sessionId}/claim`, { method: "PATCH" });
-          localStorage.removeItem("guestSessionId");
-        } catch {
-          // 이미 귀속된 세션이거나 실패 시 무시하고 계속
+    if (loggedIn) {
+      // User is logged in — load session data
+      const loadSession = async () => {
+        // 게스트 세션 클레임: localStorage에 저장된 guestSessionId가 현재 세션이면 귀속 처리
+        const guestSessionId = localStorage.getItem("guestSessionId");
+        if (guestSessionId === sessionId) {
+          try {
+            await fetch(`/api/sessions/${sessionId}/claim`, {
+              method: "PATCH",
+            });
+            localStorage.removeItem("guestSessionId");
+          } catch {
+            // 이미 귀속된 세션이거나 실패 시 무시하고 계속
+          }
         }
-      }
 
-      try {
-        const apiSession = await getSessionByIdApi(sessionId);
-        setSession(convertApiSession(apiSession));
-      } catch (error) {
-        console.error("세션 조회 실패:", error);
-        setSession(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        try {
+          const apiSession = await getSessionByIdApi(sessionId);
+          setSession(convertApiSession(apiSession));
+        } catch (error) {
+          console.error("세션 조회 실패:", error);
+          setSession(null);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-    loadSession();
-  }, [sessionId, router]);
+      loadSession();
+    } else if (authReady) {
+      // Auth resolved, user is definitely not logged in
+      router.replace(`/auth?redirect=/archive/${sessionId}`);
+    }
+    // If !loggedIn && !authReady: still waiting for INITIAL_SESSION, show loading
+  }, [loggedIn, authReady, sessionId, router]);
 
   const handleToggleFavorite = async (questionId: string) => {
     if (!session) return;
@@ -263,7 +270,7 @@ export default function ArchiveDetailPage() {
     }
   };
 
-  if (isLoading) {
+  if (!authReady || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gold" />

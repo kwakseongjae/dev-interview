@@ -14,12 +14,13 @@ import {
   getTeamSpaceByIdApi,
   updateTeamSpaceApi,
   regenerateInviteCodeApi,
-  isLoggedIn,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 function ManageContent() {
   const params = useParams();
   const router = useRouter();
+  const { loggedIn, authReady } = useAuth();
   const teamSpaceId = params.id as string;
 
   const [teamSpace, setTeamSpace] = useState<{
@@ -34,6 +35,7 @@ function ManageContent() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // authReady replaces isInitializing
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState("");
@@ -62,12 +64,12 @@ function ManageContent() {
       }
     };
 
-    if (isLoggedIn()) {
+    if (loggedIn) {
       loadTeamSpace();
-    } else {
+    } else if (authReady) {
       router.push("/auth");
     }
-  }, [teamSpaceId, router]);
+  }, [loggedIn, authReady, teamSpaceId, router]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,7 +191,7 @@ function ManageContent() {
     }
   };
 
-  if (isLoading) {
+  if (!authReady || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gold" />
