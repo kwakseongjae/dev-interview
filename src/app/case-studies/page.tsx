@@ -370,7 +370,7 @@ function CaseStudiesContent() {
           className="mb-8"
         >
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            케이스 스터디
+            기업 사례
           </h1>
           <p className="text-muted-foreground text-lg">
             실제 기업의 기술 블로그와 컨퍼런스를 기반으로 한 고난도 면접을
@@ -388,7 +388,7 @@ function CaseStudiesContent() {
                 <Input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="케이스 스터디 검색..."
+                  placeholder="기업 사례 검색..."
                   className="pl-10 pr-4"
                 />
               </div>
@@ -559,7 +559,7 @@ function CaseStudiesContent() {
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-muted-foreground">
             총 <span className="font-medium text-foreground">{total}</span>개의
-            케이스 스터디
+            기업 사례
           </p>
         </div>
 
@@ -616,6 +616,7 @@ function CaseStudiesContent() {
             )}
           </div>
         )}
+
       </div>
     </main>
   );
@@ -699,7 +700,7 @@ function CaseStudyCard({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
             {caseStudy.publishedAt && (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
@@ -709,14 +710,16 @@ function CaseStudyCard({
                 })}
               </span>
             )}
-            <span className="flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5" />
-              {caseStudy.viewCount}
-            </span>
-            <span className="flex items-center gap-1">
-              <MessageSquare className="w-3.5 h-3.5" />
-              {caseStudy.interviewCount}회 면접
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Eye className="w-3.5 h-3.5" />
+                {caseStudy.viewCount}
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5" />
+                {caseStudy.interviewCount}회 면접
+              </span>
+            </div>
           </div>
         </Card>
       </Link>

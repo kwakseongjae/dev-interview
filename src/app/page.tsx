@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Flame,
   Shield,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -80,6 +81,20 @@ export default function Home() {
   const [deletedMessage, setDeletedMessage] = useState(false);
   const [selectedTrendTopic, setSelectedTrendTopic] =
     useState<TrendTopic | null>(null);
+  const [caseStudyStats, setCaseStudyStats] = useState<{
+    totalCount: number;
+    companies: { slug: string; name: string }[];
+  } | null>(null);
+
+  // 기업 사례 통계 로드
+  useEffect(() => {
+    fetch("/api/case-studies/stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.totalCount !== undefined) setCaseStudyStats(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // 탈퇴 완료 메시지 감지
   useEffect(() => {
@@ -894,29 +909,31 @@ export default function Home() {
                 {/* Row 3: Company Logos */}
                 <div className="flex items-center mt-auto">
                   <div className="flex -space-x-2">
-                    {["kakao", "toss", "naver", "coupang", "woowa"].map(
-                      (slug) => (
+                    {(caseStudyStats?.companies ?? [])
+                      .slice(0, 5)
+                      .map((c) => (
                         <div
-                          key={slug}
+                          key={c.slug}
                           className="w-8 h-8 rounded-full border-2 border-card bg-white flex items-center justify-center overflow-hidden shadow-sm"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={`/companies/${slug}.png`}
+                            src={`/companies/${c.slug}.png`}
                             alt=""
                             className="w-5 h-5 object-contain"
                           />
                         </div>
-                      ),
+                      ))}
+                    {(caseStudyStats?.companies?.length ?? 0) > 5 && (
+                      <div className="w-8 h-8 rounded-full border-2 border-card bg-muted flex items-center justify-center shadow-sm">
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          +{(caseStudyStats?.companies?.length ?? 0) - 5}
+                        </span>
+                      </div>
                     )}
-                    <div className="w-8 h-8 rounded-full border-2 border-card bg-muted flex items-center justify-center shadow-sm">
-                      <span className="text-[10px] font-medium text-muted-foreground">
-                        +7
-                      </span>
-                    </div>
                   </div>
                   <span className="ml-2.5 text-xs text-muted-foreground">
-                    12개 기업 사례
+                    {caseStudyStats?.totalCount ?? 12}개 기업 사례
                   </span>
                 </div>
               </div>
@@ -969,6 +986,47 @@ export default function Home() {
                       {chip.label}
                     </span>
                   ))}
+                </div>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
+        {/* Tech Blog Archive Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-3 w-full max-w-2xl"
+        >
+          <Link href="/tech-blogs" className="block group">
+            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/50 bg-card hover:border-emerald-300/50 hover:shadow-lg transition-all p-4 md:p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm md:text-base font-semibold">
+                      기술 블로그 아카이브
+                    </h3>
+                    <p className="text-[11px] md:text-xs text-muted-foreground mt-0.5">
+                      면접 준비에 참고할 국내외 48개 기업 엔지니어링 블로그
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:flex gap-1.5">
+                    {["Frontend", "Backend", "Infra", "AI/ML"].map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>
             </div>

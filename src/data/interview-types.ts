@@ -39,7 +39,7 @@ export const INTERVIEW_TYPES: StaticInterviewType[] = [
   },
   {
     code: "CASE_STUDY",
-    displayName: "케이스 스터디",
+    displayName: "기업 사례",
     description:
       "실제 기업 사례를 분석하고 기술적 의사결정 과정과 트레이드오프를 심층 토론합니다.",
     icon: "BookOpen",

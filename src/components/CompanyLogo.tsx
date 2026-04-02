@@ -9,19 +9,56 @@ import { cn } from "@/lib/utils";
  * public/companies/{slug}.png 정적 파일을 사용하여 회사 로고를 표시
  * 파일이 없는 회사는 Building2 아이콘으로 폴백
  */
-const COMPANIES_WITH_LOGO = new Set([
-  "toss",
-  "woowa",
-  "daangn",
-  "netflix",
-  "stripe",
-  "figma",
-  "slack",
-  "discord",
+export const COMPANIES_WITH_LOGO = new Set([
+  // Korean - Big Tech
   "kakao",
+  "kakaopay",
+  "kakaobank",
   "naver",
   "line",
   "coupang",
+  "toss",
+  "woowa",
+  "samsung-sds",
+  "sk-planet",
+  "nhn",
+  // Korean - Startups & Scale-ups
+  "daangn",
+  "devsisters",
+  "hyperconnect",
+  "bucketplace",
+  "socar",
+  "kurly",
+  "banksalad",
+  "ridi",
+  "watcha",
+  "yogiyo",
+  "29cm",
+  "musinsa",
+  "zigbang",
+  // International
+  "meta",
+  "google",
+  "netflix",
+  "aws",
+  "github",
+  "linkedin",
+  "x",
+  "discord",
+  "slack",
+  "pinterest",
+  "shopify",
+  "stripe",
+  "airbnb",
+  "uber",
+  "lyft",
+  "doordash",
+  "instacart",
+  "spotify",
+  "cloudflare",
+  "dropbox",
+  // Other
+  "figma",
 ]);
 
 interface CompanyLogoProps {

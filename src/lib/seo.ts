@@ -53,7 +53,7 @@ export function getWebApplicationJsonLd(): WithContext<WebApplication> {
       "실전 타이머 기반 모의면접",
       "경력/포지션별 맞춤 질문",
       "AI 트렌드 기술 질문 (LLM, RAG, AI Agent)",
-      "실제 기업 기술블로그 기반 케이스 스터디 면접",
+      "실제 기업 기술블로그 기반 기업 사례 면접",
       "팀 스페이스 협업 학습",
     ],
     inLanguage: "ko",

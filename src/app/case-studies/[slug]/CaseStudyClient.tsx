@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -75,11 +76,18 @@ interface CaseStudyClientProps {
 }
 
 export default function CaseStudyClient({ caseStudy }: CaseStudyClientProps) {
+  // 조회수 증가 (마운트 시 1회)
+  useEffect(() => {
+    if (caseStudy?.slug) {
+      fetch(`/api/case-studies/${caseStudy.slug}`).catch(() => {});
+    }
+  }, [caseStudy?.slug]);
+
   if (!caseStudy) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-lg text-muted-foreground">
-          케이스 스터디를 찾을 수 없습니다
+          기업 사례를 찾을 수 없습니다
         </p>
         <Link href="/case-studies">
           <Button variant="outline">
