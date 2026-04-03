@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 import { validateInterviewInput } from "@/lib/validation";
+import {
+  safeClassifyQuery,
+  CLASSIFIER_CONFIDENCE_THRESHOLD,
+} from "@/lib/query-classifier";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
 import { checkDailyClaudeLimit } from "@/lib/api-usage-logger";
 import { getClientIp } from "@/lib/ip";
@@ -76,6 +80,25 @@ export async function POST(request: NextRequest) {
       auth ? "ai-auth" : "ai-anon",
     );
     if (aiBlocked) return aiBlocked;
+
+    // Layer 2: Haiku 분류기 — 비개발 쿼리 2차 검증 (fail-open, Rate Limit 이후 호출)
+    const classification = await safeClassifyQuery(query);
+    if (
+      !classification.isDevInterview &&
+      classification.confidence > CLASSIFIER_CONFIDENCE_THRESHOLD
+    ) {
+      return NextResponse.json(
+        {
+          error: "invalid_input",
+          validation_error: true,
+          category: "not_interview",
+          suggestion: classification.reason
+            ? `${classification.reason} 개발 관련 면접 질문을 입력해주세요.`
+            : "이 서비스는 개발자 기술면접 전용입니다. 예: 'React 면접 질문', '백엔드 개발자 면접'",
+        },
+        { status: 422 },
+      );
+    }
 
     const userId = auth?.sub;
 
