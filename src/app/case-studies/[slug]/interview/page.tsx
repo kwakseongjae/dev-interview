@@ -745,7 +745,7 @@ export default function CaseStudyInterviewPage() {
                 onSwitchToText={() => setInputMode("text")}
                 sessionId={sessionId}
                 questionId={currentQuestion.id}
-                isLoggedIn={isLoggedIn()}
+                isLoggedIn={loggedIn}
                 onVoiceActiveChange={setIsVoiceActive}
                 onRecordingChange={setIsRecordingNow}
                 autoApply

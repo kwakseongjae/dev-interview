@@ -141,6 +141,8 @@ export default function AdminPage() {
 
       <TabsContent value="stt">
         <SttUsagePanel />
+      </TabsContent>
+
       <TabsContent value="usage">
         <UsagePanel />
       </TabsContent>
