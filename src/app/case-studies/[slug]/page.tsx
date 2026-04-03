@@ -14,21 +14,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!caseStudy) {
     return {
-      title: "케이스 스터디를 찾을 수 없습니다 | 모카번",
+      title: "기업 사례를 찾을 수 없습니다 | 모카번",
     };
   }
 
   const title = `${caseStudy.companyName} - ${caseStudy.title} | 모카번`;
   const description = caseStudy.summary.background
     ? `${caseStudy.companyName}의 ${caseStudy.title}. ${caseStudy.summary.background.slice(0, 120)}...`
-    : `${caseStudy.companyName}의 기술적 결정과 트레이드오프를 분석하는 케이스 스터디 면접`;
+    : `${caseStudy.companyName}의 기술적 결정과 트레이드오프를 분석하는 기업 사례 면접`;
 
   return {
     title,
     description,
     keywords: [
       caseStudy.companyName,
-      "케이스 스터디",
+      "기업 사례",
       "기술면접",
       ...caseStudy.domains,
       ...caseStudy.technologies.slice(0, 5),
@@ -57,7 +57,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 
   const breadcrumbItems = [
     { name: "홈", url: SITE_URL },
-    { name: "케이스 스터디", url: `${SITE_URL}/case-studies` },
+    { name: "기업 사례", url: `${SITE_URL}/case-studies` },
     ...(caseStudy
       ? [{ name: `${caseStudy.companyName} - ${caseStudy.title}` }]
       : []),

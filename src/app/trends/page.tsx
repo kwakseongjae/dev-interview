@@ -51,7 +51,7 @@ const INTERVIEW_TYPE_LABELS: Record<string, string> = {
   CS: "CS 기초",
   PROJECT: "프로젝트",
   SYSTEM_DESIGN: "시스템 설계",
-  CASE_STUDY: "케이스 스터디",
+  CASE_STUDY: "기업 사례",
 };
 
 type FilterType = "all" | TrendRelevance;

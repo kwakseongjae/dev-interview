@@ -31,10 +31,12 @@ import {
 } from "@/lib/api";
 import { formatSecondsKorean } from "@/hooks/useTimer";
 import { LoginPromptModal } from "@/components/LoginPromptModal";
+import { useAuth } from "@/hooks/useAuth";
 
 function CompleteContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
+  const { loggedIn } = useAuth();
 
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,13 +174,13 @@ function CompleteContent() {
   // 로그인 상태 변경 감지하여 세션 저장
   useEffect(() => {
     const checkLoginAndSave = async () => {
-      if (isLoggedIn() && pendingSession && !session) {
+      if (loggedIn && pendingSession && !session) {
         // 로그인 후 세션 저장
         await handleSaveSession();
       }
     };
     checkLoginAndSave();
-  }, [handleSaveSession, pendingSession, session]);
+  }, [loggedIn, handleSaveSession, pendingSession, session]);
 
   const handleLater = () => {
     // 하루 동안 모달 안뜨게 설정
@@ -297,7 +299,7 @@ function CompleteContent() {
         </motion.div>
 
         {/* 게스트 로그인 유도 배너 */}
-        {!isLoggedIn() && (
+        {!loggedIn && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -337,7 +339,7 @@ function CompleteContent() {
           transition={{ delay: 0.6 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3"
         >
-          {isLoggedIn() ? (
+          {loggedIn ? (
             <Link href={`/archive/${sessionId}`}>
               <Button
                 size="lg"
@@ -389,7 +391,7 @@ function CompleteContent() {
           transition={{ delay: 0.8 }}
           className="mt-12 text-sm text-muted-foreground"
         >
-          {isLoggedIn()
+          {loggedIn
             ? "수고하셨습니다! 아카이브에서 답변을 다시 확인하실 수 있습니다."
             : "수고하셨습니다! 로그인하면 AI 피드백과 함께 다시 확인할 수 있어요."}
         </motion.p>

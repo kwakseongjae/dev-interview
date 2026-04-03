@@ -36,11 +36,11 @@ import {
   removeFavoriteApi,
   addFavoriteApi,
   createSessionApi,
-  isLoggedIn,
   type ApiFavorite,
   type TeamSpaceFavorite,
   type ApiTeamSpace,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { cache, createCacheKey } from "@/lib/cache";
 import { ShareToTeamSpaceDialog } from "@/components/ShareToTeamSpaceDialog";
 import { useRouter } from "next/navigation";
@@ -71,6 +71,8 @@ export default function FavoritesPage() {
   const [interviewTitle, setInterviewTitle] = useState("");
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
+  const { loggedIn } = useAuth();
+
   // 실제 팀 스페이스 액세스 상태 로드
   useEffect(() => {
     setIsMounted(true);
@@ -82,35 +84,35 @@ export default function FavoritesPage() {
     }
   }, []);
 
-  // 팀 스페이스 목록 로드
+  // 팀 스페이스 목록 로드 (loggedIn 반응형 의존성)
   useEffect(() => {
-    const loadTeamSpaces = async () => {
-      if (isLoggedIn() && isMounted) {
-        try {
-          const response = await getTeamSpacesApi();
-          setTeamSpaces(response.teamSpaces);
+    if (!loggedIn || !isMounted) return;
 
-          // 실제 팀 스페이스 액세스 상태 확인
-          if (actualTeamSpaceId) {
-            const exists = response.teamSpaces.some(
-              (ts) => ts.id === actualTeamSpaceId,
-            );
-            if (!exists) {
-              // 실제 팀 스페이스가 목록에 없으면 개인 공간으로 전환
-              setActualTeamSpaceId(null);
-              setViewMode("personal");
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("currentTeamSpaceId");
-              }
+    const loadTeamSpaces = async () => {
+      try {
+        const response = await getTeamSpacesApi();
+        setTeamSpaces(response.teamSpaces);
+
+        // 실제 팀 스페이스 액세스 상태 확인
+        if (actualTeamSpaceId) {
+          const exists = response.teamSpaces.some(
+            (ts) => ts.id === actualTeamSpaceId,
+          );
+          if (!exists) {
+            // 실제 팀 스페이스가 목록에 없으면 개인 공간으로 전환
+            setActualTeamSpaceId(null);
+            setViewMode("personal");
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("currentTeamSpaceId");
             }
           }
-        } catch (error) {
-          console.error("팀 스페이스 목록 로드 실패:", error);
         }
+      } catch (error) {
+        console.error("팀 스페이스 목록 로드 실패:", error);
       }
     };
     loadTeamSpaces();
-  }, [isMounted, actualTeamSpaceId]);
+  }, [loggedIn, isMounted, actualTeamSpaceId]);
 
   // API 데이터를 FavoriteQuestion 형태로 변환
   const convertApiFavorite = (apiFav: ApiFavorite): FavoriteQuestion => ({
@@ -150,7 +152,7 @@ export default function FavoritesPage() {
     setIsLoading(true);
 
     // 로그인 상태면 API 사용
-    if (isLoggedIn()) {
+    if (loggedIn) {
       try {
         // 캐시 키 생성
         const cacheKey = createCacheKey("favorites", {
@@ -235,7 +237,7 @@ export default function FavoritesPage() {
     setFavorites([]);
     setUseApi(false);
     setIsLoading(false);
-  }, [viewMode, actualTeamSpaceId]);
+  }, [loggedIn, viewMode, actualTeamSpaceId]);
 
   useEffect(() => {
     // 마운트된 후에만 데이터 로드
@@ -244,17 +246,8 @@ export default function FavoritesPage() {
     }
   }, [loadFavorites, isMounted]);
 
-  // 로그인 상태 변경 감지하여 데이터 다시 로드
+  // 크로스 탭 로그인/로그아웃 감지
   useEffect(() => {
-    const handleAuthStateChange = () => {
-      // 로그인 상태 변경 시 데이터 다시 로드
-      loadFavorites();
-    };
-
-    // 커스텀 이벤트 리스너 (로그인/로그아웃 시)
-    window.addEventListener("authStateChanged", handleAuthStateChange);
-
-    // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === "devinterview_access_token" ||
@@ -266,7 +259,6 @@ export default function FavoritesPage() {
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener("authStateChanged", handleAuthStateChange);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [loadFavorites]);
@@ -296,7 +288,7 @@ export default function FavoritesPage() {
     questionId: string,
     currentIsMine?: boolean,
   ) => {
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       alert("로그인이 필요합니다.");
       return;
     }
@@ -340,7 +332,7 @@ export default function FavoritesPage() {
 
   // 선택한 질문들 중 내가 찜한 것들만 찜 해제
   const handleUnfavoriteSelected = async () => {
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       alert("로그인이 필요합니다.");
       return;
     }
@@ -396,7 +388,7 @@ export default function FavoritesPage() {
     // 이미 시작 중이면 무시
     if (isCreatingSession) return;
 
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       alert("로그인이 필요합니다.");
       router.push("/auth");
       return;
@@ -531,7 +523,7 @@ export default function FavoritesPage() {
         </motion.div>
 
         {/* 개인/팀 스페이스 전환 (페이지 내부 뷰만 변경) */}
-        {isLoggedIn() &&
+        {loggedIn &&
           isMounted &&
           teamSpaces.length > 0 &&
           actualTeamSpaceId && (
@@ -588,7 +580,7 @@ export default function FavoritesPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
-        ) : !isLoggedIn() ? (
+        ) : !loggedIn ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mb-6">
               <Heart className="w-8 h-8 text-gold" />
@@ -791,7 +783,7 @@ export default function FavoritesPage() {
 
                       {/* 액션 버튼 - 모바일에서 항상 표시, 데스크톱에서 hover 시 표시 */}
                       <div className="flex items-center gap-1 md:gap-2">
-                        {isLoggedIn() && (
+                        {loggedIn && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -861,7 +853,7 @@ export default function FavoritesPage() {
       </div>
 
       {/* Share Dialog */}
-      {isLoggedIn() && selectedFavoriteId && (
+      {loggedIn && selectedFavoriteId && (
         <ShareToTeamSpaceDialog
           open={showShareDialog}
           onOpenChange={(open) => {

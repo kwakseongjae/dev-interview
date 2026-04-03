@@ -40,7 +40,6 @@ import {
   deleteSessionApi,
   getSessionByIdApi,
   toggleFavoriteApi,
-  isLoggedIn,
   getTeamSpacesApi,
   getCurrentUser,
   getInterviewTypesApi,
@@ -48,6 +47,7 @@ import {
   type ApiTeamSpace,
   type ApiInterviewType,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { InterviewTypeBadge } from "@/components/InterviewTypeSelector";
 import { cn } from "@/lib/utils";
 import { cache, createCacheKey } from "@/lib/cache";
@@ -93,6 +93,7 @@ export default function ArchivePage() {
 
   // 모바일 여부 감지
   const isMobile = useIsMobile();
+  const { loggedIn } = useAuth();
 
   // 실제 팀 스페이스 액세스 상태 로드
   useEffect(() => {
@@ -118,55 +119,45 @@ export default function ArchivePage() {
     loadInterviewTypes();
   }, []);
 
-  // 현재 사용자 ID 로드
+  // 현재 사용자 ID + 팀 스페이스 목록 로드 (loggedIn 반응형 의존성)
   useEffect(() => {
-    const loadCurrentUser = async () => {
-      if (isLoggedIn() && isMounted) {
-        try {
-          const user = await getCurrentUser();
-          setCurrentUserId(user?.id || null);
-        } catch (error) {
-          console.error("사용자 정보 로드 실패:", error);
-        }
-      }
-    };
-    loadCurrentUser();
-  }, [isMounted]);
+    if (!loggedIn || !isMounted) return;
 
-  // 팀 스페이스 목록 및 역할 로드
-  useEffect(() => {
-    const loadTeamSpaces = async () => {
-      if (isLoggedIn() && isMounted) {
-        try {
-          const response = await getTeamSpacesApi();
-          setTeamSpaces(response.teamSpaces);
+    const loadUserAndTeamSpaces = async () => {
+      try {
+        const [user, teamSpacesResponse] = await Promise.all([
+          getCurrentUser(),
+          getTeamSpacesApi(),
+        ]);
 
-          // 실제 팀 스페이스 액세스 상태 확인
-          if (actualTeamSpaceId) {
-            const teamSpace = response.teamSpaces.find(
-              (ts) => ts.id === actualTeamSpaceId,
-            );
-            if (teamSpace) {
-              setTeamSpaceRole(teamSpace.role);
-            } else {
-              // 실제 팀 스페이스가 목록에 없으면 개인 공간으로 전환
-              setActualTeamSpaceId(null);
-              setViewMode("personal");
-              setTeamSpaceRole(null);
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("currentTeamSpaceId");
-              }
-            }
+        setCurrentUserId(user?.id || null);
+        setTeamSpaces(teamSpacesResponse.teamSpaces);
+
+        // 실제 팀 스페이스 액세스 상태 확인
+        if (actualTeamSpaceId) {
+          const teamSpace = teamSpacesResponse.teamSpaces.find(
+            (ts) => ts.id === actualTeamSpaceId,
+          );
+          if (teamSpace) {
+            setTeamSpaceRole(teamSpace.role);
           } else {
+            // 실제 팀 스페이스가 목록에 없으면 개인 공간으로 전환
+            setActualTeamSpaceId(null);
+            setViewMode("personal");
             setTeamSpaceRole(null);
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("currentTeamSpaceId");
+            }
           }
-        } catch (error) {
-          console.error("팀 스페이스 목록 로드 실패:", error);
+        } else {
+          setTeamSpaceRole(null);
         }
+      } catch (error) {
+        console.error("사용자/팀 스페이스 로드 실패:", error);
       }
     };
-    loadTeamSpaces();
-  }, [isMounted, actualTeamSpaceId]);
+    loadUserAndTeamSpaces();
+  }, [loggedIn, isMounted, actualTeamSpaceId]);
 
   // API 데이터를 InterviewSession 형태로 변환
   const convertApiSession = (
@@ -188,7 +179,7 @@ export default function ArchivePage() {
     setIsLoading(true);
 
     // 로그인 상태면 API 사용
-    if (isLoggedIn()) {
+    if (loggedIn) {
       try {
         const startDate = dateRange.from
           ? format(dateRange.from, "yyyy-MM-dd")
@@ -273,7 +264,13 @@ export default function ArchivePage() {
     setSessions([]);
     setUseApi(false);
     setIsLoading(false);
-  }, [viewMode, actualTeamSpaceId, dateRange, selectedInterviewTypeId]);
+  }, [
+    loggedIn,
+    viewMode,
+    actualTeamSpaceId,
+    dateRange,
+    selectedInterviewTypeId,
+  ]);
 
   useEffect(() => {
     // 마운트된 후에만 데이터 로드
@@ -282,17 +279,8 @@ export default function ArchivePage() {
     }
   }, [loadSessions, isMounted]);
 
-  // 로그인 상태 변경 감지하여 데이터 다시 로드
+  // 크로스 탭 로그인/로그아웃 감지
   useEffect(() => {
-    const handleAuthStateChange = () => {
-      // 로그인 상태 변경 시 데이터 다시 로드
-      loadSessions();
-    };
-
-    // 커스텀 이벤트 리스너 (로그인/로그아웃 시)
-    window.addEventListener("authStateChanged", handleAuthStateChange);
-
-    // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === "devinterview_access_token" ||
@@ -304,7 +292,6 @@ export default function ArchivePage() {
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener("authStateChanged", handleAuthStateChange);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [loadSessions]);
@@ -452,7 +439,7 @@ export default function ArchivePage() {
     sessionId: string,
     questionId: string,
   ) => {
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       alert("로그인이 필요합니다.");
       return;
     }
@@ -625,7 +612,7 @@ export default function ArchivePage() {
         </motion.div>
 
         {/* Filters */}
-        {isLoggedIn() &&
+        {loggedIn &&
           isMounted &&
           teamSpaces.length > 0 &&
           actualTeamSpaceId && (
@@ -799,7 +786,7 @@ export default function ArchivePage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
-        ) : !isLoggedIn() ? (
+        ) : !loggedIn ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mb-6">
               <Archive className="w-8 h-8 text-gold" />
@@ -1036,7 +1023,7 @@ export default function ArchivePage() {
                                             {question.content}
                                           </p>
                                         </div>
-                                        {isLoggedIn() && (
+                                        {loggedIn && (
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();

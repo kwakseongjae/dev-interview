@@ -13,6 +13,7 @@ import { RecentSessionsTable } from "./_components/recent-sessions-table";
 import { ErrorLogPanel } from "./_components/error-log-panel";
 import { TokenUsagePanel } from "./_components/token-usage-panel";
 import { SttUsagePanel } from "./_components/stt-usage-panel";
+import { UsagePanel } from "./_components/usage-panel";
 
 interface AdminStats {
   overview: {
@@ -123,6 +124,7 @@ export default function AdminPage() {
         <TabsTrigger value="errors">에러 로그</TabsTrigger>
         <TabsTrigger value="tokens">API 사용량</TabsTrigger>
         <TabsTrigger value="stt">STT 사용량</TabsTrigger>
+        <TabsTrigger value="usage">Rate Limit</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview">
@@ -139,6 +141,8 @@ export default function AdminPage() {
 
       <TabsContent value="stt">
         <SttUsagePanel />
+      <TabsContent value="usage">
+        <UsagePanel />
       </TabsContent>
     </Tabs>
   );
