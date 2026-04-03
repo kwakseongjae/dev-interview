@@ -18,6 +18,140 @@ const SUGGESTION_EXAMPLES = [
   "RAG 파이프라인 설계 면접 준비",
 ];
 
+// ── Layer 1: 키워드 2단계 분리 ──────────────────────────────────
+
+// 범용 키워드 — 단독으로는 기술 키워드 역할 불가 (비개발 면접에도 사용됨)
+const GENERIC_KEYWORDS = [
+  "면접",
+  "준비",
+  "취업",
+  "이직",
+  "신입",
+  "경력",
+  "기술",
+];
+
+// 순수 개발 도메인 키워드
+const DEV_DOMAIN_KEYWORDS = [
+  // 직무
+  "개발",
+  "개발자",
+  "프론트",
+  "백엔드",
+  "풀스택",
+  "데브옵스",
+  "인프라",
+  "ios",
+  "android",
+  "모바일",
+  "코딩",
+  "프로그래밍",
+  // 기술 스택
+  "javascript",
+  "typescript",
+  "react",
+  "vue",
+  "angular",
+  "next",
+  "node",
+  "express",
+  "python",
+  "java",
+  "kotlin",
+  "swift",
+  "go",
+  "rust",
+  "c++",
+  "c#",
+  "spring",
+  "django",
+  "flask",
+  "fastapi",
+  "nest",
+  "sql",
+  "mysql",
+  "postgresql",
+  "mongodb",
+  "redis",
+  "database",
+  "db",
+  "aws",
+  "gcp",
+  "azure",
+  "docker",
+  "kubernetes",
+  "k8s",
+  "ci/cd",
+  "api",
+  "rest",
+  "graphql",
+  "http",
+  "network",
+  "네트워크",
+  "자료구조",
+  "알고리즘",
+  "cs",
+  "운영체제",
+  "os",
+  "시스템",
+  "git",
+  "agile",
+  "scrum",
+  "tdd",
+  "테스트",
+  // 한글 기술 용어
+  "자바",
+  "파이썬",
+  "리액트",
+  "노드",
+  "스프링",
+  "데이터베이스",
+  // AI/트렌드 관련
+  "ai",
+  "llm",
+  "rag",
+  "에이전트",
+  "agent",
+  "gpt",
+  "claude",
+  "프롬프트",
+  "prompt",
+  "트렌드",
+  "벡터",
+  "임베딩",
+  "embedding",
+  "transformer",
+  "트랜스포머",
+  "파인튜닝",
+  "할루시네이션",
+  "생성형",
+  "머신러닝",
+  "딥러닝",
+  "ml",
+  "서버리스",
+  "serverless",
+  "엣지",
+  "edge",
+  "옵저버빌리티",
+  "observability",
+  "kafka",
+  "이벤트 드리븐",
+];
+
+// 비개발 도메인 블랙리스트
+const NON_DEV_BLACKLIST = [
+  // 비개발 직무
+  /(알바|아르바이트|파트타임|카페|편의점|마트|배달|서빙|캐셔|매장)/,
+  // 비기술 도메인
+  /(주가|주식|코인|부동산|투자|재테크|펀드|보험)/,
+  /(다이어트|요리|레시피|운동|헬스|미용|네일)/,
+  // 비개발 직군 면접
+  /(승무원|간호사|공무원|경찰|소방|군대|입대|군인)/,
+  /(마케팅|영업|회계|인사|총무|비서|사무직)/,
+  // 비기술 면접 유형
+  /(자소서|자기소개서|인성면접|임원면접|PT면접)/,
+];
+
 /**
  * 입력 유효성 검증 (API 호출 전 토큰 절약)
  */
@@ -126,128 +260,39 @@ export function validateInterviewInput(query: string): InputValidationResult {
     }
   }
 
-  // 7. 너무 모호한 입력 (2단어 이하이면서 기술 키워드가 없는 경우)
-  const techKeywords = [
-    // 직무 관련
-    "면접",
-    "개발",
-    "개발자",
-    "프론트",
-    "백엔드",
-    "풀스택",
-    "데브옵스",
-    "인프라",
-    "ios",
-    "android",
-    "모바일",
-    "기술",
-    "코딩",
-    "프로그래밍",
-    "신입",
-    "경력",
-    "취업",
-    "이직",
-    "준비",
-    // 기술 스택
-    "javascript",
-    "typescript",
-    "react",
-    "vue",
-    "angular",
-    "next",
-    "node",
-    "express",
-    "python",
-    "java",
-    "kotlin",
-    "swift",
-    "go",
-    "rust",
-    "c++",
-    "c#",
-    "spring",
-    "django",
-    "flask",
-    "fastapi",
-    "nest",
-    "sql",
-    "mysql",
-    "postgresql",
-    "mongodb",
-    "redis",
-    "database",
-    "db",
-    "aws",
-    "gcp",
-    "azure",
-    "docker",
-    "kubernetes",
-    "k8s",
-    "ci/cd",
-    "api",
-    "rest",
-    "graphql",
-    "http",
-    "network",
-    "네트워크",
-    "자료구조",
-    "알고리즘",
-    "cs",
-    "운영체제",
-    "os",
-    "시스템",
-    "git",
-    "agile",
-    "scrum",
-    "tdd",
-    "테스트",
-    // 한글 기술 용어
-    "자바",
-    "파이썬",
-    "리액트",
-    "노드",
-    "스프링",
-    "데이터베이스",
-    // AI/트렌드 관련
-    "ai",
-    "llm",
-    "rag",
-    "에이전트",
-    "agent",
-    "gpt",
-    "claude",
-    "프롬프트",
-    "prompt",
-    "트렌드",
-    "벡터",
-    "임베딩",
-    "embedding",
-    "transformer",
-    "트랜스포머",
-    "파인튜닝",
-    "할루시네이션",
-    "생성형",
-    "머신러닝",
-    "딥러닝",
-    "ml",
-    "서버리스",
-    "serverless",
-    "엣지",
-    "edge",
-    "옵저버빌리티",
-    "observability",
-    "kafka",
-    "이벤트 드리븐",
-  ];
+  // ── Layer 1: 2단계 키워드 검증 + 블랙리스트 ──────────────────
 
   const queryLower = trimmedQuery.toLowerCase();
   const words = trimmedQuery.split(/\s+/);
-  const hasTechKeyword = techKeywords.some((keyword) =>
-    queryLower.includes(keyword),
+  const hasDevKeyword = DEV_DOMAIN_KEYWORDS.some((k) => queryLower.includes(k));
+  const hasGenericKeyword = GENERIC_KEYWORDS.some((k) =>
+    queryLower.includes(k),
   );
+  const hasAnyKeyword = hasDevKeyword || hasGenericKeyword;
+  const hasNonDevBlacklist = NON_DEV_BLACKLIST.some((p) => p.test(queryLower));
 
-  // 2단어 이하이면서 기술 키워드가 없는 경우
-  if (words.length <= 2 && !hasTechKeyword && trimmedQuery.length < 10) {
+  // 7. 비개발 블랙리스트 매치 + 기술 키워드 없음 → 차단
+  if (hasNonDevBlacklist && !hasDevKeyword) {
+    return {
+      isValid: false,
+      category: "not_interview",
+      suggestion:
+        "모카번은 개발자 기술면접 전용 서비스입니다. 예: 'React 면접 질문', '백엔드 개발자 면접 준비'",
+    };
+  }
+
+  // 8. 범용 키워드만 있고 기술 키워드 없음 → 차단 (짧은 쿼리)
+  if (hasGenericKeyword && !hasDevKeyword && trimmedQuery.length < 30) {
+    return {
+      isValid: false,
+      category: "not_interview",
+      suggestion:
+        "구체적인 기술 스택이나 개발 직무를 포함해주세요. 예: 'React 프론트엔드 면접', 'Java 백엔드 면접 준비'",
+    };
+  }
+
+  // 9. 너무 모호한 입력 (2단어 이하 + 키워드 없음 + 짧음)
+  if (words.length <= 2 && !hasAnyKeyword && trimmedQuery.length < 10) {
     return {
       isValid: false,
       category: "too_vague",
@@ -255,8 +300,8 @@ export function validateInterviewInput(query: string): InputValidationResult {
     };
   }
 
-  // 8. 기술 키워드가 전혀 없고 짧은 입력 (일반적인 대화로 추정)
-  if (!hasTechKeyword && trimmedQuery.length < 20) {
+  // 10. 기술 키워드가 전혀 없고 짧은 입력
+  if (!hasAnyKeyword && trimmedQuery.length < 20) {
     return {
       isValid: false,
       category: "not_interview",
