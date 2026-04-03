@@ -616,7 +616,6 @@ function CaseStudiesContent() {
             )}
           </div>
         )}
-
       </div>
     </main>
   );

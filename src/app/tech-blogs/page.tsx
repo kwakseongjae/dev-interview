@@ -300,12 +300,8 @@ export default function TechBlogsPage() {
             {filteredBlogs.length}
           </span>
           개 블로그
-          {selectedDomain && (
-            <span> · {DOMAIN_LABELS[selectedDomain]}</span>
-          )}
-          {selectedType && (
-            <span> · {COMPANY_TYPE_LABELS[selectedType]}</span>
-          )}
+          {selectedDomain && <span> · {DOMAIN_LABELS[selectedDomain]}</span>}
+          {selectedType && <span> · {COMPANY_TYPE_LABELS[selectedType]}</span>}
         </p>
 
         {/* Blog Grid */}
@@ -356,7 +352,11 @@ export default function TechBlogsPage() {
               <section>
                 <h2 className="font-display text-lg font-semibold mb-4 flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/companies/medium.png" alt="" className="w-5 h-5 object-contain" />
+                  <img
+                    src="/companies/medium.png"
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                  />
                   Medium Engineering Publications
                   <span className="text-sm font-normal text-muted-foreground">
                     ({MEDIUM_ENGINEERING_PUBLICATIONS.length})
