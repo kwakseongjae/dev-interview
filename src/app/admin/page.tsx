@@ -12,6 +12,7 @@ import { ConversionStats } from "./_components/conversion-stats";
 import { RecentSessionsTable } from "./_components/recent-sessions-table";
 import { ErrorLogPanel } from "./_components/error-log-panel";
 import { TokenUsagePanel } from "./_components/token-usage-panel";
+import { SttUsagePanel } from "./_components/stt-usage-panel";
 import { UsagePanel } from "./_components/usage-panel";
 
 interface AdminStats {
@@ -49,6 +50,7 @@ interface AdminStats {
     is_completed: boolean;
     question_count: number;
     interview_type: { display_name: string; color: string } | null;
+    questions: { id: string; content: string }[];
   }[];
 }
 
@@ -121,6 +123,7 @@ export default function AdminPage() {
         <TabsTrigger value="overview">개요</TabsTrigger>
         <TabsTrigger value="errors">에러 로그</TabsTrigger>
         <TabsTrigger value="tokens">API 사용량</TabsTrigger>
+        <TabsTrigger value="stt">STT 사용량</TabsTrigger>
         <TabsTrigger value="usage">Rate Limit</TabsTrigger>
       </TabsList>
 
@@ -134,6 +137,10 @@ export default function AdminPage() {
 
       <TabsContent value="tokens">
         <TokenUsagePanel />
+      </TabsContent>
+
+      <TabsContent value="stt">
+        <SttUsagePanel />
       </TabsContent>
 
       <TabsContent value="usage">

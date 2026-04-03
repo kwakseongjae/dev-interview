@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { InterviewTypeCode } from "@/types/interview";
 import { getTrendTopicById, type TrendTopic } from "@/data/trend-topics";
 import { classifyAndLogApiError } from "./error-logger";
+import { logApiUsage, estimateClaudeCost } from "./api-usage-logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -223,6 +224,20 @@ ${referenceText.substring(0, 2000)}
     throw err;
   }
 
+  // Log token usage (fire-and-forget)
+  logApiUsage({
+    service: "claude",
+    endpoint: "/api/reference/validate",
+    model: "claude-sonnet-4-6",
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+    estimatedCost: estimateClaudeCost(
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+    ),
+  });
+
   const content = response.content[0];
   if (content.type !== "text") {
     return { isValid: false, reason: "검증 응답 형식 오류" };
@@ -332,6 +347,21 @@ async function extractTextFromReference(
       });
       throw apiErr;
     }
+
+    // Log vision API token usage (fire-and-forget)
+    logApiUsage({
+      service: "claude",
+      endpoint: "/api/reference/extract",
+      model: "claude-sonnet-4-6",
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+      estimatedCost: estimateClaudeCost(
+        response.usage.input_tokens,
+        response.usage.output_tokens,
+      ),
+      metadata: { fileType },
+    });
 
     const content = response.content[0];
     if (content.type !== "text") {
@@ -545,6 +575,21 @@ ${
     throw apiError;
   }
 
+  // Log token usage (fire-and-forget)
+  logApiUsage({
+    service: "claude",
+    endpoint: "/api/questions/generate",
+    model: "claude-sonnet-4-6",
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+    estimatedCost: estimateClaudeCost(
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+    ),
+    metadata: { questionCount: count, hasReference: referenceUsed },
+  });
+
   // 추출된 레퍼런스 텍스트 (핑거프린트 생성용)
   const extractedReferenceText =
     referenceTexts.length > 0 ? referenceTexts.join("\n\n") : undefined;
@@ -694,6 +739,20 @@ export async function evaluateAnswer(
     });
     throw apiError;
   }
+
+  // Log token usage (fire-and-forget)
+  logApiUsage({
+    service: "claude",
+    endpoint: "/api/answers/evaluate",
+    model: "claude-sonnet-4-6",
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+    estimatedCost: estimateClaudeCost(
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+    ),
+  });
 
   const content = response.content[0];
   if (content.type !== "text") {

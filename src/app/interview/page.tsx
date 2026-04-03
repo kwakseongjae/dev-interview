@@ -37,6 +37,8 @@ import {
 } from "@/lib/api";
 import { useTimer, formatSeconds } from "@/hooks/useTimer";
 import { HintSection } from "@/components/feedback/HintSection";
+import { VoiceModeToggle } from "@/components/interview/VoiceModeToggle";
+import { VoiceInputPanel } from "@/components/interview/VoiceInputPanel";
 
 // 로컬 스토리지 키 생성
 const getStorageKey = (sessionId: string) => `interview_progress_${sessionId}`;
@@ -66,6 +68,15 @@ function InterviewContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  // Whether voice is actively recording or transcribing (blocks navigation)
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  // Whether microphone is actively recording (textarea readOnly only during this)
+  const [isRecordingNow, setIsRecordingNow] = useState(false);
+  const [sttEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return process.env.NEXT_PUBLIC_STT_ENABLED !== "false";
+  });
 
   // 총 소요시간 트래킹용 ref
   const totalTimeRef = useRef(0);
@@ -266,8 +277,12 @@ function InterviewContent() {
     }, 10000);
 
     // 페이지 이탈 전 저장 (beforeunload)
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocal();
+      // 음성 녹음/변환 중이면 이탈 경고
+      if (isVoiceActive) {
+        e.preventDefault();
+      }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -279,7 +294,7 @@ function InterviewContent() {
       }
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [session, isLoading, saveToLocal]);
+  }, [session, isLoading, saveToLocal, isVoiceActive]);
 
   const currentQuestion = session?.questions[currentQuestionIndex];
 
@@ -707,27 +722,59 @@ function InterviewContent() {
 
                 {/* Answer Textarea */}
                 <Card className="p-1">
+                  {inputMode === "voice" && sttEnabled && sessionId && (
+                    <VoiceInputPanel
+                      onApply={(text) => {
+                        const current = answers[currentQuestion.id] || "";
+                        handleAnswerChange(
+                          current ? current + "\n" + text : text,
+                        );
+                      }}
+                      onSwitchToText={() => setInputMode("text")}
+                      sessionId={sessionId}
+                      questionId={currentQuestion.id}
+                      isLoggedIn={isLoggedIn()}
+                      onVoiceActiveChange={setIsVoiceActive}
+                      onRecordingChange={setIsRecordingNow}
+                      autoApply
+                    />
+                  )}
+
                   <Textarea
                     value={answers[currentQuestion.id] || ""}
                     onChange={(e) => handleAnswerChange(e.target.value)}
-                    placeholder="답변을 입력해주세요..."
+                    placeholder={
+                      inputMode === "voice" && sttEnabled
+                        ? "음성 변환 결과가 여기에 적용됩니다..."
+                        : "답변을 입력해주세요..."
+                    }
                     className="min-h-[250px] text-base border-0 focus-visible:ring-0 resize-none"
+                    readOnly={isRecordingNow}
                   />
                 </Card>
 
-                {/* Hint Section */}
-                <HintSection
-                  hint={currentQuestion.hint}
-                  isOpen={showHint}
-                  onToggle={() => setShowHint(!showHint)}
-                />
+                {/* Hint + Voice Toggle */}
+                <div className="flex items-start justify-between gap-2">
+                  <HintSection
+                    hint={currentQuestion.hint}
+                    isOpen={showHint}
+                    onToggle={() => setShowHint(!showHint)}
+                  />
+                  {sttEnabled && (
+                    <VoiceModeToggle
+                      mode={inputMode}
+                      onToggle={setInputMode}
+                      disabled={isVoiceActive}
+                    />
+                  )}
+                </div>
 
                 {/* Navigation */}
                 <div className="flex items-center justify-between pt-4">
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
-                    disabled={currentQuestionIndex === 0}
+                    disabled={currentQuestionIndex === 0 || isVoiceActive}
                     className="gap-2"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -738,9 +785,13 @@ function InterviewContent() {
                     {session.questions.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => handleGoToQuestion(index)}
+                        onClick={() =>
+                          !isVoiceActive && handleGoToQuestion(index)
+                        }
+                        disabled={isVoiceActive}
                         className={`
                           w-2 h-2 rounded-full transition-colors
+                          ${isVoiceActive ? "cursor-not-allowed opacity-50" : ""}
                           ${
                             index === currentQuestionIndex
                               ? "bg-navy"
@@ -757,6 +808,7 @@ function InterviewContent() {
                   {currentQuestionIndex < session.questions.length - 1 ? (
                     <Button
                       onClick={handleNext}
+                      disabled={isVoiceActive}
                       className="gap-2 bg-navy hover:bg-navy-light"
                     >
                       다음
@@ -765,7 +817,7 @@ function InterviewContent() {
                   ) : (
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isVoiceActive}
                       className="gap-2 bg-navy hover:bg-navy-light text-white"
                     >
                       {isSubmitting ? (

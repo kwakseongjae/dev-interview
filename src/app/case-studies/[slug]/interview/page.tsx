@@ -37,6 +37,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { formatSeconds } from "@/hooks/useTimer";
 import { HintSection } from "@/components/feedback/HintSection";
+import { VoiceModeToggle } from "@/components/interview/VoiceModeToggle";
+import { VoiceInputPanel } from "@/components/interview/VoiceInputPanel";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import {
   Accordion,
@@ -115,6 +117,13 @@ export default function CaseStudyInterviewPage() {
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [isRecordingNow, setIsRecordingNow] = useState(false);
+  const [sttEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return process.env.NEXT_PUBLIC_STT_ENABLED !== "false";
+  });
 
   const totalTimeRef = useRef(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -499,15 +508,18 @@ export default function CaseStudyInterviewPage() {
   useEffect(() => {
     if (isLoading || !sessionId) return;
 
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocal();
+      if (isVoiceActive) {
+        e.preventDefault();
+      }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [isLoading, sessionId, saveToLocal]);
+  }, [isLoading, sessionId, saveToLocal, isVoiceActive]);
 
   // 언마운트 시 정리
   useEffect(() => {
@@ -724,27 +736,57 @@ export default function CaseStudyInterviewPage() {
 
           {/* Answer Textarea */}
           <Card className="p-1">
+            {inputMode === "voice" && sttEnabled && sessionId && (
+              <VoiceInputPanel
+                onApply={(text) => {
+                  const current = answers[currentQuestion.id] || "";
+                  handleAnswerChange(current ? current + "\n" + text : text);
+                }}
+                onSwitchToText={() => setInputMode("text")}
+                sessionId={sessionId}
+                questionId={currentQuestion.id}
+                isLoggedIn={loggedIn}
+                onVoiceActiveChange={setIsVoiceActive}
+                onRecordingChange={setIsRecordingNow}
+                autoApply
+              />
+            )}
+
             <Textarea
               value={answers[currentQuestion.id] || ""}
               onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="답변을 입력해주세요..."
+              placeholder={
+                inputMode === "voice" && sttEnabled
+                  ? "음성 변환 결과가 여기에 적용됩니다..."
+                  : "답변을 입력해주세요..."
+              }
               className="min-h-[250px] text-base border-0 focus-visible:ring-0 resize-none"
+              readOnly={isRecordingNow}
             />
           </Card>
 
-          {/* Hint Section */}
-          <HintSection
-            hint={currentQuestion.hint}
-            isOpen={showHint}
-            onToggle={() => setShowHint(!showHint)}
-          />
+          {/* Hint + Voice Toggle */}
+          <div className="flex items-start justify-between gap-2">
+            <HintSection
+              hint={currentQuestion.hint}
+              isOpen={showHint}
+              onToggle={() => setShowHint(!showHint)}
+            />
+            {sttEnabled && (
+              <VoiceModeToggle
+                mode={inputMode}
+                onToggle={setInputMode}
+                disabled={isVoiceActive}
+              />
+            )}
+          </div>
 
           {/* Navigation */}
           <div className="flex items-center justify-between pt-2">
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
+              disabled={currentQuestionIndex === 0 || isVoiceActive}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -755,9 +797,11 @@ export default function CaseStudyInterviewPage() {
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => handleGoToQuestion(index)}
+                  onClick={() => !isVoiceActive && handleGoToQuestion(index)}
+                  disabled={isVoiceActive}
                   className={`
                     w-2 h-2 rounded-full transition-colors
+                    ${isVoiceActive ? "cursor-not-allowed opacity-50" : ""}
                     ${
                       index === currentQuestionIndex
                         ? "bg-navy"
@@ -774,6 +818,7 @@ export default function CaseStudyInterviewPage() {
             {currentQuestionIndex < questions.length - 1 ? (
               <Button
                 onClick={handleNext}
+                disabled={isVoiceActive}
                 className="gap-2 bg-navy hover:bg-navy-light"
               >
                 다음
@@ -782,7 +827,7 @@ export default function CaseStudyInterviewPage() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isVoiceActive}
                 className="gap-2 bg-gold hover:bg-gold-light text-navy"
               >
                 {isSubmitting ? (

@@ -1,0 +1,86 @@
+[
+  {
+    "content": "SOLID 원칙 중 의존성 역전 원칙(DIP)을 실무에서 어떻게 적용하는지 구체적인 예시와 함께 설명해주세요.",
+    "hint": "추상화, 인터페이스, 고수준 모듈, 저수준 모듈, 의존성 방향, Repository 패턴",
+    "category": "ARCHITECTURE",
+    "subcategory": "SOLID",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "디자인 패턴 중 Strategy 패턴과 Template Method 패턴의 차이점을 비교하고, 각각 어떤 상황에서 선택하는 것이 적합한지 설명해주세요.",
+    "hint": "합성 vs 상속, 런타임 교체, 알고리즘 캡슐화, OCP, 유연성, 결합도",
+    "category": "ARCHITECTURE",
+    "subcategory": "DESIGN_PATTERN",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "클린 아키텍처와 헥사고날 아키텍처의 핵심 개념을 비교하고, 실무에서 어떤 기준으로 선택하는지 설명해주세요.",
+    "hint": "포트와 어댑터, 의존성 규칙, 유스케이스, 도메인 계층, 인프라 분리, 테스트 용이성",
+    "category": "ARCHITECTURE",
+    "subcategory": "CLEAN_ARCHITECTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "DDD에서 바운디드 컨텍스트(Bounded Context)란 무엇이며, 컨텍스트 간 통신 전략(Context Mapping)에는 어떤 패턴들이 있는지 설명해주세요.",
+    "hint": "유비쿼터스 언어, 컨텍스트 맵, Anti-Corruption Layer, Shared Kernel, 이벤트 기반 통합",
+    "category": "ARCHITECTURE",
+    "subcategory": "DDD",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "모노리스에서 마이크로서비스로 전환할 때 Strangler Fig 패턴을 어떻게 적용하는지 단계별로 설명하고, 전환 시 주의할 점을 알려주세요.",
+    "hint": "점진적 마이그레이션, 프록시, 도메인 분리, 데이터 분리, 분산 트랜잭션, 조직 구조",
+    "category": "ARCHITECTURE",
+    "subcategory": "EVENT_DRIVEN",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CQRS(Command Query Responsibility Segregation) 패턴의 장단점을 설명하고, Event Sourcing과 함께 사용할 때의 트레이드오프를 논해주세요.",
+    "hint": "읽기/쓰기 분리, 이벤트 스토어, 최종 일관성, 복잡성, 스케일링, 리플레이, 스냅샷",
+    "category": "ARCHITECTURE",
+    "subcategory": "EVENT_DRIVEN",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "의존성 주입(DI) 컨테이너의 역할과 Service Locator 패턴과의 차이점을 설명하고, DI 컨테이너 없이 순수 DI를 사용하는 것과 비교해주세요.",
+    "hint": "IoC, 생성자 주입, 세터 주입, 서비스 로케이터 안티패턴, 테스트 용이성, 결합도",
+    "category": "ARCHITECTURE",
+    "subcategory": "CLEAN_ARCHITECTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "레이어드 아키텍처(Layered Architecture)의 한계점을 설명하고, 이를 극복하기 위한 대안 아키텍처를 비교해주세요.",
+    "hint": "순환 의존성, 관심사 분리, 수직 슬라이스, 클린 아키텍처, 모듈러 모노리스, 변경 전파",
+    "category": "ARCHITECTURE",
+    "subcategory": "CLEAN_ARCHITECTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "모듈러 모노리스(Modular Monolith)란 무엇이며, 순수 모노리스 및 마이크로서비스 대비 어떤 장단점이 있는지 설명해주세요.",
+    "hint": "모듈 경계, 독립 배포, 공유 데이터베이스, 점진적 분리, 복잡성 관리, 팀 자율성",
+    "category": "ARCHITECTURE",
+    "subcategory": "CLEAN_ARCHITECTURE",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "API 버전 관리 전략(URL 경로, 헤더, 쿼리 파라미터)을 비교하고, 하위 호환성을 유지하면서 API를 진화시키는 설계 원칙을 설명해주세요.",
+    "hint": "시맨틱 버저닝, URI 버저닝, Content Negotiation, 폐기 정책, 하위 호환성, API Gateway",
+    "category": "ARCHITECTURE",
+    "subcategory": "CLEAN_ARCHITECTURE",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Observer 패턴과 이벤트 기반 아키텍처(Event-Driven Architecture)의 관계를 설명하고, 메시지 브로커를 도입할 때의 설계 판단 기준을 논해주세요.",
+    "hint": "Pub/Sub, 느슨한 결합, 메시지 큐, 이벤트 버스, 순서 보장, 멱등성, 장애 전파",
+    "category": "ARCHITECTURE",
+    "subcategory": "EVENT_DRIVEN",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "SOLID 원칙 중 개방-폐쇄 원칙(OCP)을 위반하는 코드의 특징을 설명하고, Repository 패턴과 Factory 패턴을 활용하여 OCP를 준수하도록 리팩토링하는 전략을 제시해주세요.",
+    "hint": "확장에 열림, 수정에 닫힘, 추상 팩토리, 전략 패턴, 다형성, if/switch 제거, 플러그인 구조",
+    "category": "ARCHITECTURE",
+    "subcategory": "SOLID",
+    "difficulty": "HARD"
+  }
+]

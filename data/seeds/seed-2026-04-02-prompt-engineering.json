@@ -1,0 +1,82 @@
+[
+  {
+    "content": "Few-shot 프롬프팅과 Zero-shot 프롬프팅의 차이를 설명하고, 각각이 효과적인 사용 사례를 예시와 함께 비교해주세요.",
+    "hint": "예시 포함 여부, 일반화 능력, 토큰 비용, 태스크 복잡도, 일관성, GPT/Claude 차이",
+    "category": "AI/ML",
+    "difficulty": "EASY",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "Chain of Thought (CoT) 프롬프팅이란 무엇이며, 일반 프롬프팅 대비 어떤 장점이 있는지 설명해주세요. 수학 문제나 논리 추론에서의 적용 예시를 포함해주세요.",
+    "hint": "단계적 추론, Let's think step by step, 중간 과정 출력, 정확도 향상, 토큰 증가 트레이드오프, self-consistency",
+    "category": "AI/ML",
+    "difficulty": "EASY",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "프롬프트 인젝션 공격의 주요 유형(직접 인젝션, 간접 인젝션)을 설명하고, 프로덕션 환경에서 이를 방어하기 위한 전략을 설계해주세요.",
+    "hint": "시스템 프롬프트 우회, 간접 인젝션, 입력 검증, 출력 필터링, 샌드박싱, 권한 분리, 레드팀 테스트, guardrails",
+    "category": "AI/ML",
+    "difficulty": "HARD",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "효과적인 시스템 프롬프트를 설계하기 위한 핵심 원칙들을 설명해주세요. 역할 지정, 출력 형식 제어, 제약 조건 설정 등을 포함해주세요.",
+    "hint": "페르소나 설정, 출력 포맷 지정, 네거티브 프롬프트, 경계 조건, 예외 처리, 톤 앤 매너, 컨텍스트 윈도우 관리",
+    "category": "AI/ML",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "LLM API의 Temperature, Top-p, Top-k, Frequency Penalty 등 주요 파라미터의 역할을 설명하고, 용도별 최적 설정 전략을 제시해주세요.",
+    "hint": "Temperature 창의성, Top-p 누적 확률, Top-k 후보 제한, 반복 억제, 코드 생성 vs 창작, 결정론적 출력, seed 파라미터",
+    "category": "AI/ML",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "LLM에서 구조화된 출력을 얻기 위한 방법들(JSON Mode, Function Calling, Tool Use)을 비교하고, 각각의 장단점과 적합한 사용 시나리오를 설명해주세요.",
+    "hint": "JSON mode, function calling, tool use, 스키마 정의, 파싱 안정성, 에러 핸들링, structured outputs, Pydantic",
+    "category": "AI/ML",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "프로덕션 환경에서 프롬프트 버전 관리와 A/B 테스트를 구현하는 방법을 설계해주세요. 프롬프트 변경이 서비스 품질에 미치는 영향을 측정하는 전략을 포함해주세요.",
+    "hint": "프롬프트 레지스트리, 버전 태깅, 평가 메트릭, LLM 판정, 사람 평가, 트래픽 분배, 롤백 전략, promptfoo, langsmith",
+    "category": "AI/ML",
+    "difficulty": "HARD",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "RAG(Retrieval-Augmented Generation) 파이프라인에서 검색된 문서를 LLM에 전달할 때의 프롬프트 설계 전략을 설명해주세요. 컨텍스트 윈도우 관리와 환각 방지 기법을 포함해주세요.",
+    "hint": "컨텍스트 주입, 청크 순서, lost in the middle, 출처 인용, 환각 방지, 메타데이터 활용, reranking, 컨텍스트 압축",
+    "category": "AI/ML",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "멀티모달 프롬프팅에서 이미지와 텍스트를 함께 활용할 때의 설계 원칙과 주의사항을 설명해주세요. Vision 모델의 프롬프트 작성 시 텍스트 전용 모델과 다른 점을 포함해주세요.",
+    "hint": "이미지 해상도, 토큰 비용, 이미지 내 텍스트 인식, 공간 추론, 다이어그램 해석, 멀티턴 비전, base64 vs URL, 이미지 순서",
+    "category": "AI/ML",
+    "difficulty": "MEDIUM",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  },
+  {
+    "content": "프롬프트 최적화를 통한 토큰 절약 전략을 설명해주세요. 비용 효율적인 프롬프트 설계, 캐싱, 모델 라우팅 등 프로덕션 레벨의 최적화 기법을 포함해주세요.",
+    "hint": "프롬프트 압축, 캐시 프리픽스, 시맨틱 캐싱, 모델 라우팅, 소형 모델 활용, 배치 처리, 프롬프트 체이닝, 비용 모니터링",
+    "category": "AI/ML",
+    "difficulty": "HARD",
+    "is_trending": true,
+    "trend_topic": "prompt-engineering"
+  }
+]

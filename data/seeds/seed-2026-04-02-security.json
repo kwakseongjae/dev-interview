@@ -1,0 +1,72 @@
+[
+  {
+    "content": "HTTP 보안 헤더(X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Referrer-Policy)를 조합하여 설정할 때 각 헤더가 방어하는 공격 유형과, 헤더 간 중복·충돌이 발생하는 사례를 설명해주세요.",
+    "hint": "MIME 스니핑, 클릭재킹, HSTS preload, Referrer 정보 노출, CSP frame-ancestors와 X-Frame-Options 중복",
+    "category": "SECURITY",
+    "subcategory": "WEB_SECURITY",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "OAuth 2.0과 OpenID Connect(OIDC)의 관계를 설명하고, ID Token과 Access Token의 용도가 다른 이유를 인증(Authentication)과 인가(Authorization) 관점에서 비교해주세요.",
+    "hint": "OAuth 2.0은 인가 프레임워크, OIDC는 인증 레이어, ID Token은 사용자 신원, Access Token은 리소스 접근, UserInfo 엔드포인트",
+    "category": "SECURITY",
+    "subcategory": "AUTH",
+    "difficulty": "EASY"
+  },
+  {
+    "content": "JWT가 stateless하다는 장점이 토큰 폐기(revocation) 시 오히려 약점이 되는 이유를 설명하고, Token Blacklist, Short-lived Token + Refresh, Token Versioning 등 실무 해결 전략의 트레이드오프를 비교해주세요.",
+    "hint": "stateless 특성, 즉시 폐기 불가, Redis 블랙리스트, 짧은 만료 시간, jti 클레임, 서버 부하 증가, Refresh Token Rotation",
+    "category": "SECURITY",
+    "subcategory": "AUTH",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "DOM-based XSS가 Stored/Reflected XSS와 근본적으로 다른 점을 설명하고, 서버 측 방어(WAF, 출력 인코딩)만으로 DOM-based XSS를 막을 수 없는 이유와 클라이언트 측 방어 전략을 제시해주세요.",
+    "hint": "클라이언트 사이드 실행, document.location, innerHTML, eval, Trusted Types API, DOMPurify, CSP strict-dynamic",
+    "category": "SECURITY",
+    "subcategory": "WEB_SECURITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CSRF 방어에서 Double Submit Cookie 패턴의 동작 원리를 설명하고, 서브도메인 쿠키 주입 공격이나 MITM 환경에서 이 패턴이 무력화될 수 있는 시나리오와 보완 방법을 논의해주세요.",
+    "hint": "쿠키와 요청 헤더 값 비교, 서브도메인 쿠키 오버라이드, __Host- 접두사, Secure 플래그, HMAC 서명, SameSite 병행",
+    "category": "SECURITY",
+    "subcategory": "WEB_SECURITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "2차 SQL Injection(Second-Order SQL Injection)이란 무엇이며, 일반적인 Prepared Statement 기반 방어를 우회할 수 있는 이유를 구체적인 시나리오와 함께 설명해주세요.",
+    "hint": "저장 시점과 사용 시점 분리, 신뢰된 데이터 가정, 동적 쿼리 생성, 화이트리스트 검증, ORM raw query 주의",
+    "category": "SECURITY",
+    "subcategory": "WEB_SECURITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "CORS에서 credentials 모드(withCredentials: true)를 사용할 때 Access-Control-Allow-Origin에 와일드카드(*)를 사용할 수 없는 이유를 설명하고, Origin 반사(reflection) 패턴이 초래하는 보안 위험과 올바른 화이트리스트 구현 방법을 제시해주세요.",
+    "hint": "credentials 모드, 와일드카드 제한, Origin 헤더 반사 취약점, 정규식 우회, 명시적 화이트리스트, Vary: Origin 헤더",
+    "category": "SECURITY",
+    "subcategory": "NETWORK_SECURITY",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "content": "bcrypt의 cost factor 기반 설계와 Argon2의 메모리·병렬성·시간 파라미터 기반 설계를 비교하고, GPU/ASIC 기반 병렬 공격에 대한 저항성 차이와 실무에서의 선택 기준을 논의해주세요.",
+    "hint": "bcrypt Blowfish 기반, Argon2id 권장, 메모리 하드 함수, GPU 저항성, OWASP 권장 파라미터, 서버 리소스 제약, 응답 시간 트레이드오프",
+    "category": "SECURITY",
+    "subcategory": "ENCRYPTION",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "Certificate Transparency(CT) 로그의 동작 원리를 설명하고, CT가 없던 시절에 발생했던 인증서 오발급 사고 사례와 CT가 이를 어떻게 방지하는지, 그리고 CT 로그 모니터링을 실무에 적용하는 방법을 제시해주세요.",
+    "hint": "SCT(Signed Certificate Timestamp), 머클 트리, 공개 감사 로그, DigiNotar 사건, Expect-CT 헤더, CT 모니터링 서비스",
+    "category": "SECURITY",
+    "subcategory": "ENCRYPTION",
+    "difficulty": "HARD"
+  },
+  {
+    "content": "API Gateway에서 인증·인가·Rate Limiting·입력 검증을 통합 처리하는 보안 아키텍처를 설계할 때, 각 레이어의 역할과 처리 순서가 중요한 이유를 설명하고, Gateway 단일 장애점(SPOF) 문제와 우회 공격에 대한 대응 전략을 논의해주세요.",
+    "hint": "인증 먼저 후 Rate Limiting, JWT 검증 위치, OAuth Scope 기반 인가, 입력 스키마 검증, Gateway 이중화, 서비스 메시 보완, 백엔드 자체 검증 필요성",
+    "category": "SECURITY",
+    "subcategory": "NETWORK_SECURITY",
+    "difficulty": "HARD"
+  }
+]
