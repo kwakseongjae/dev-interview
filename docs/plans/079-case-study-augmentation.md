@@ -258,6 +258,7 @@
 ### Deviations from Plan
 
 **Added (계획에 없던 추가 사항)**:
+
 - `/tech-blogs` 독립 페이지 (원래 기업 사례 하단 섹션만 계획)
 - 홈 페이지에 기술 블로그 아카이브 카드 추가
 - 45개 회사 로고 다운로드 (원래 6개만 계획)
@@ -267,10 +268,12 @@
 - API 어뷰징 감사 → #80 이슈 분리
 
 **Changed**:
+
 - seed 데이터 파일 저장 방식: JSON 파일 → DB 직접 적재 스킬로 변경
 - TechBlogDirectory 컴포넌트 → 독립 페이지로 승격 후 컴포넌트 삭제
 
 **Skipped**:
+
 - Rate Limiting 구현 → #80 이슈로 분리
 
 ### Follow-up Tasks

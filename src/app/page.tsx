@@ -909,21 +909,19 @@ export default function Home() {
                 {/* Row 3: Company Logos */}
                 <div className="flex items-center mt-auto">
                   <div className="flex -space-x-2">
-                    {(caseStudyStats?.companies ?? [])
-                      .slice(0, 5)
-                      .map((c) => (
-                        <div
-                          key={c.slug}
-                          className="w-8 h-8 rounded-full border-2 border-card bg-white flex items-center justify-center overflow-hidden shadow-sm"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/companies/${c.slug}.png`}
-                            alt=""
-                            className="w-5 h-5 object-contain"
-                          />
-                        </div>
-                      ))}
+                    {(caseStudyStats?.companies ?? []).slice(0, 5).map((c) => (
+                      <div
+                        key={c.slug}
+                        className="w-8 h-8 rounded-full border-2 border-card bg-white flex items-center justify-center overflow-hidden shadow-sm"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/companies/${c.slug}.png`}
+                          alt=""
+                          className="w-5 h-5 object-contain"
+                        />
+                      </div>
+                    ))}
                     {(caseStudyStats?.companies?.length ?? 0) > 5 && (
                       <div className="w-8 h-8 rounded-full border-2 border-card bg-muted flex items-center justify-center shadow-sm">
                         <span className="text-[10px] font-medium text-muted-foreground">

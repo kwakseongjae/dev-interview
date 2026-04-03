@@ -1,0 +1,373 @@
+name: "mochabun Voice Interview Demo"
+description: "음성 면접(STT) 기능 데모 — 질문 생성 → 면접 시작 → 음성 녹음 → 전사 반영"
+
+viewport:
+  width: 1280
+  height: 800
+
+effects:
+  cursor:
+    enabled: true
+    size: 20
+    speed: "normal"
+    clickEffect: true
+    clickColor: "rgba(59, 130, 246, 0.35)"
+    trail: true
+    trailLength: 6
+    highlight: true
+    highlightRadius: 35
+  background:
+    type: gradient
+    value: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+    padding: 48
+    borderRadius: 14
+    shadow: true
+  deviceFrame:
+    enabled: true
+    type: browser
+    darkMode: true
+  zoom:
+    enabled: true
+    intensity: light
+    duration: 800
+    autoZoom:
+      followCursor: true
+      transitionDuration: 300
+      padding: 200
+  speedRamp:
+    enabled: true
+    idleSpeed: 2.0
+    actionSpeed: 0.8
+  keystroke:
+    enabled: false
+
+output:
+  format: mp4
+  width: 1280
+  height: 800
+  fps: 30
+  preset: balanced
+
+steps:
+  # ===== 1. Auto Login =====
+  - name: "Auto login"
+    actions:
+      - action: navigate
+        url: "http://localhost:3000/api/demo-auth?next=/"
+        waitUntil: networkidle
+    captureDelay: 100
+    holdDuration: 400
+
+  # ===== 2. Homepage loaded =====
+  - name: "Homepage loaded"
+    actions:
+      - action: waitForSelector
+        selector: "textarea[aria-label='면접 유형 검색']"
+        state: visible
+        timeout: 60000
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== 3. Open interview category popover =====
+  - name: "Open category popover"
+    actions:
+      - action: click
+        selector: "button:has-text('면접 범주')"
+        timeout: 5000
+        delay: 200
+      - action: waitForSelector
+        selector: "[data-radix-popper-content-wrapper]"
+        state: visible
+        timeout: 3000
+    captureDelay: 200
+    holdDuration: 600
+
+  # ===== 4. Select 시스템 설계 category =====
+  - name: "Select system design"
+    actions:
+      - action: click
+        selector: "button:has-text('시스템 설계')"
+        timeout: 5000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== 5. Type interview query =====
+  - name: "Type interview query"
+    actions:
+      - action: click
+        selector: "textarea[aria-label='면접 유형 검색']"
+        timeout: 5000
+      - action: type
+        selector: "textarea[aria-label='면접 유형 검색']"
+        text: "대규모 트래픽을 처리하는 시스템 설계 면접 준비해줘"
+        delay: 40
+    captureDelay: 200
+    holdDuration: 600
+
+  # ===== 6. Submit query =====
+  - name: "Submit query"
+    actions:
+      - action: click
+        selector: "button[type='submit']"
+        timeout: 5000
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== 7. AI generating questions =====
+  - name: "AI generating questions"
+    actions:
+      - action: waitForFunction
+        expression: "window.location.pathname === '/search'"
+        timeout: 30000
+      - action: waitForSelector
+        selector: ".divide-y"
+        state: visible
+        timeout: 120000
+        captureWhileWaiting: true
+        displaySpeed: 4
+    captureDelay: 300
+    holdDuration: 1200
+
+  # ===== 8. Scroll through questions =====
+  - name: "Scroll through questions"
+    actions:
+      - action: scroll
+        y: 350
+        smooth: true
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== 9. Scroll to start button =====
+  - name: "Scroll to start button"
+    actions:
+      - action: waitForFunction
+        expression: "document.querySelector('button.bg-gold')?.scrollIntoView({behavior:'smooth',block:'center'}) || true"
+        timeout: 10000
+    captureDelay: 300
+    holdDuration: 500
+
+  # ===== 10. Start interview =====
+  - name: "Start interview"
+    actions:
+      - action: click
+        selector: "button.bg-gold"
+        timeout: 5000
+        delay: 200
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== 11. Wait for interview page =====
+  - name: "Wait for interview page"
+    actions:
+      - action: waitForFunction
+        expression: "window.location.pathname.startsWith('/interview')"
+        timeout: 60000
+        captureWhileWaiting: true
+        displaySpeed: 8
+      - action: waitForSelector
+        selector: "textarea"
+        state: visible
+        timeout: 60000
+    captureDelay: 300
+    holdDuration: 1000
+
+  # ===== 12. Inject voice recording mock =====
+  # Mock getUserMedia (silent stream), permissions (granted), and fetch(/api/transcribe)
+  # so the real recording UI animations play naturally without an actual microphone.
+  - name: "Inject voice mock environment"
+    actions:
+      - action: waitForFunction
+        expression: >
+          (() => {
+            if (window.__CLIPWISE_VOICE_MOCK__) return true;
+
+            const MOCK_ANSWERS = [
+              'Load Balancer로 트래픽을 여러 서버에 분산하고, Redis Cache로 database 부하를 줄입니다. CDN을 통해 static asset을 edge에서 제공하고, Kafka message queue로 비동기 처리를 구현합니다. Auto Scaling Group을 설정하여 트래픽 급증 시 instance를 자동으로 scale out 합니다.',
+              'Database sharding은 horizontal partitioning 전략으로 데이터를 여러 shard에 분산 저장합니다. Consistent hashing을 사용하면 node 추가/제거 시 rebalancing 비용을 최소화할 수 있습니다. Read replica를 활용한 read/write splitting으로 read-heavy workload를 효과적으로 처리할 수 있습니다.'
+            ];
+            let answerIndex = 0;
+
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const dst = ctx.createMediaStreamDestination();
+            osc.connect(dst);
+            osc.start();
+            const fakeStream = dst.stream;
+
+            const origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+            navigator.mediaDevices.getUserMedia = async function(c) {
+              if (c && c.audio) return fakeStream;
+              return origGUM(c);
+            };
+
+            const origQuery = navigator.permissions.query.bind(navigator.permissions);
+            navigator.permissions.query = async function(d) {
+              if (d.name === 'microphone') return { state: 'granted', addEventListener: function(){}, removeEventListener: function(){} };
+              return origQuery(d);
+            };
+
+            const origFetch = window.fetch;
+            window.fetch = async function(url, opts) {
+              if (typeof url === 'string' && url.includes('/api/transcribe') && !url.includes('/quota') && !url.includes('/log')) {
+                await new Promise(function(r){ setTimeout(r, 2000); });
+                const text = MOCK_ANSWERS[answerIndex % MOCK_ANSWERS.length];
+                answerIndex++;
+                return new Response(JSON.stringify({ text: text, correctedText: text }), {
+                  status: 200, headers: { 'Content-Type': 'application/json' }
+                });
+              }
+              if (typeof url === 'string' && url.includes('/api/transcribe/quota')) {
+                return new Response(JSON.stringify({ remaining: 600, limit: 600, used: 0 }), {
+                  status: 200, headers: { 'Content-Type': 'application/json' }
+                });
+              }
+              return origFetch.call(this, url, opts);
+            };
+
+            window.__CLIPWISE_VOICE_MOCK__ = true;
+            return true;
+          })()
+        timeout: 5000
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== 13. Click voice mode toggle =====
+  - name: "Switch to voice mode"
+    actions:
+      - action: click
+        selector: "button[title='음성 입력으로 전환']"
+        timeout: 5000
+        delay: 300
+      - action: waitForSelector
+        selector: "button[aria-label='녹음 시작']"
+        state: visible
+        timeout: 5000
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== 14. Start voice recording (10초간 녹음하는 모습 촬영) =====
+  - name: "Start voice recording"
+    actions:
+      - action: click
+        selector: "button[aria-label='녹음 시작']"
+        timeout: 5000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 10000
+
+  # ===== 15. Stop voice recording =====
+  - name: "Stop voice recording"
+    actions:
+      - action: click
+        selector: "button[aria-label='녹음 중지']"
+        timeout: 5000
+        delay: 200
+    captureDelay: 100
+    holdDuration: 500
+
+  # ===== 16. Wait for transcription result =====
+  - name: "Wait for transcription"
+    actions:
+      - action: waitForFunction
+        expression: "document.querySelector('textarea') && document.querySelector('textarea').value.length > 10"
+        timeout: 15000
+        captureWhileWaiting: true
+        displaySpeed: 1
+    captureDelay: 300
+    holdDuration: 2000
+
+  # ===== 17. Scroll to see full answer =====
+  - name: "Scroll to see answer"
+    actions:
+      - action: scroll
+        y: 150
+        smooth: true
+    captureDelay: 200
+    holdDuration: 1000
+
+  # ===== 18. Navigate to next question =====
+  - name: "Go to next question"
+    actions:
+      - action: click
+        selector: "button:has-text('다음')"
+        timeout: 5000
+        delay: 300
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== 19. Switch back to text mode for comparison =====
+  - name: "Switch to text mode"
+    actions:
+      - action: click
+        selector: "button[title='텍스트 입력으로 전환']"
+        timeout: 5000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== 20. Type text answer for Q2 =====
+  - name: "Type text answer"
+    actions:
+      - action: click
+        selector: "textarea"
+        timeout: 5000
+      - action: type
+        selector: "textarea"
+        text: "Circuit Breaker pattern은 MSA에서 장애 전파를 방지하는 핵심 패턴입니다. Service 간 호출 실패가 threshold를 초과하면 circuit이 open되어 즉시 fallback response를 반환하고, 일정 시간 후 half-open 상태에서 복구를 시도합니다."
+        delay: 25
+    captureDelay: 200
+    holdDuration: 800
+
+  # ===== 21. Scroll to top =====
+  - name: "Scroll to top"
+    actions:
+      - action: scroll
+        y: -400
+        smooth: true
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== 22. Submit interview =====
+  - name: "Navigate to last question and submit"
+    actions:
+      - action: waitForFunction
+        expression: >
+          (() => {
+            const dots = document.querySelectorAll('.flex.items-center.gap-1 button');
+            if (dots.length > 0) { dots[dots.length - 1].click(); return true; }
+            return false;
+          })()
+        timeout: 5000
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== 23. Click submit button =====
+  - name: "Click submit"
+    actions:
+      - action: waitForSelector
+        selector: "button:has-text('제출하기')"
+        state: visible
+        timeout: 5000
+      - action: click
+        selector: "button:has-text('제출하기')"
+        timeout: 5000
+        delay: 300
+    captureDelay: 100
+    holdDuration: 300
+
+  # ===== 24. Wait for complete page =====
+  - name: "Wait for completion"
+    actions:
+      - action: waitForFunction
+        expression: "window.location.pathname.startsWith('/complete')"
+        timeout: 60000
+        captureWhileWaiting: true
+        displaySpeed: 4
+      - action: waitForSelector
+        selector: "h1"
+        state: visible
+        timeout: 10000
+    captureDelay: 300
+    holdDuration: 2000
+    transition: fade
