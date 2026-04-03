@@ -18,6 +18,7 @@
 import { generateEmbeddings } from "./embedding";
 import type { GeneratedQuestion } from "./claude";
 import { normalizeQuestionContent } from "./question-utils";
+import { isNonDevContent } from "./validation";
 
 // 중복 차단 임계값: "같은 질문을 다르게 표현한 것" 저장 방지
 const DEDUP_THRESHOLD = 0.92;
@@ -191,6 +192,21 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
+// 인접 카테고리 매핑 (Tier 2 확장 검색용)
+const ADJACENT_CATEGORIES: Record<string, string[]> = {
+  FRONTEND: ["CS", "ARCHITECTURE", "NETWORK"],
+  BACKEND: ["DATABASE", "SYSTEM_DESIGN", "DEVOPS", "CS"],
+  DATABASE: ["BACKEND", "SYSTEM_DESIGN"],
+  CS: ["NETWORK", "ARCHITECTURE", "SECURITY"],
+  DEVOPS: ["BACKEND", "SECURITY", "NETWORK"],
+  "AI/ML": ["CS", "ARCHITECTURE", "BACKEND"],
+  ARCHITECTURE: ["CS", "SYSTEM_DESIGN", "BACKEND"],
+  SYSTEM_DESIGN: ["ARCHITECTURE", "BACKEND", "DATABASE", "DEVOPS"],
+  NETWORK: ["CS", "SECURITY", "DEVOPS"],
+  SECURITY: ["NETWORK", "CS", "BACKEND"],
+  MOBILE: ["FRONTEND", "CS", "NETWORK"],
+};
+
 export interface CachedQuestion {
   id: string;
   content: string;
@@ -281,9 +297,11 @@ export function extractCategoriesFromQuery(query: string): string[] {
 }
 
 /**
- * DB에서 카테고리 기반으로 기존 질문을 검색
- * - userId가 있으면 유저 히스토리 필터링 적용
- * - 가중 랜덤 샘플링으로 매번 다른 조합 반환
+ * DB에서 카테고리 기반으로 기존 질문을 검색 (Tiered Fallback)
+ *
+ * Tier 1: 1차 카테고리 (동적 풀 크기) + 비기술 필터 + 히스토리 필터
+ * Tier 2: 인접 카테고리 확장 (부족 시)
+ * Tier 3: 오래된 질문 재활용 (14일+ 전에 본 질문)
  */
 export async function searchCachedQuestions(
   query: string,
@@ -299,80 +317,183 @@ export async function searchCachedQuestions(
 
     const { supabaseAdmin } = await import("@/lib/supabase");
 
-    // 카테고리명 → ID 매핑
+    // 카테고리명 → ID 매핑 (모든 카테고리 조회 — 인접 확장에도 사용)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: catRows } = await (supabaseAdmin as any)
+    const { data: allCatRows } = await (supabaseAdmin as any)
       .from("categories")
-      .select("id, name")
-      .in("name", categories);
+      .select("id, name");
 
-    if (!catRows || catRows.length === 0) {
+    if (!allCatRows || allCatRows.length === 0) {
       return [];
     }
 
-    const categoryIds = catRows.map((c: { id: string }) => c.id);
+    const catNameToId = new Map<string, string>();
+    const catIdToName = new Map<string, string>();
+    for (const c of allCatRows) {
+      catNameToId.set(c.name, c.id);
+      catIdToName.set(c.id, c.name);
+    }
 
-    // 카테고리 필터 + 풀 확보 (count * 4로 필터링 여유분 확보)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: questions, error } = await (supabaseAdmin as any)
-      .from("questions")
-      .select("id, content, hint, category_id, favorite_count")
-      .in("category_id", categoryIds)
-      .order("favorite_count", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(count * 4);
+    const primaryCategoryIds = categories
+      .map((name) => catNameToId.get(name))
+      .filter((id): id is string => !!id);
 
-    if (error) {
-      console.error("카테고리 기반 질문 검색 실패:", error);
+    if (primaryCategoryIds.length === 0) {
       return [];
     }
 
-    if (!questions || questions.length === 0) {
-      return [];
-    }
+    // 히스토리 사전 조회 (동적 풀 크기 계산 + 필터링 겸용)
+    let seenContents = new Set<string>();
+    let staleContents = new Set<string>();
+    let historySize = 0;
 
-    // 카테고리명 매핑
-    const catMap = new Map<string, string>();
-    for (const c of catRows) {
-      catMap.set(c.id, c.name);
-    }
-
-    // CachedQuestion 형태로 변환
-    let pool: CachedQuestion[] = questions.map(
-      (q: {
-        id: string;
-        content: string;
-        hint: string | null;
-        category_id: string;
-        favorite_count: number;
-      }) => ({
-        id: q.id,
-        content: q.content,
-        hint: q.hint,
-        category: catMap.get(q.category_id) || "GENERAL",
-        favorite_count: q.favorite_count,
-        similarity: 1.0,
-      }),
-    );
-
-    // 유저 히스토리 필터링 (로그인 유저만)
     if (userId) {
-      const { getQuestionHistory } = await import("@/lib/question-history");
-      const history = await getQuestionHistory(userId, null, 100);
+      const {
+        getQuestionHistory,
+        getQuestionHistoryCount,
+        getStaleQuestionHistory,
+      } = await import("@/lib/question-history");
 
-      if (history.length > 0) {
-        const seenContents = new Set(history);
-        const filtered = pool.filter((q) => !seenContents.has(q.content));
+      // 병렬 조회: 히스토리 카운트 + 히스토리 내용 + 오래된 히스토리
+      const [countResult, historyResult, staleResult] = await Promise.all([
+        getQuestionHistoryCount(userId),
+        getQuestionHistory(userId, null, 200),
+        getStaleQuestionHistory(userId, 14),
+      ]);
 
-        console.log("캐시 히스토리 필터:", {
-          before: pool.length,
-          after: filtered.length,
-          filtered: pool.length - filtered.length,
-        });
+      historySize = countResult;
+      seenContents = new Set(historyResult);
+      staleContents = staleResult;
+    }
 
-        pool = filtered;
+    // 동적 풀 크기: 히스토리가 많을수록 더 많은 후보 확보
+    const baseMultiplier = 4;
+    const historyBuffer = userId ? Math.ceil(historySize / count) : 0;
+    const dynamicMultiplier = Math.max(
+      baseMultiplier,
+      historyBuffer + baseMultiplier,
+    );
+    const poolLimit = Math.min(count * dynamicMultiplier, 200);
+
+    // DB 질문 조회 헬퍼
+    const fetchQuestions = async (
+      categoryIds: string[],
+      limit: number,
+    ): Promise<CachedQuestion[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabaseAdmin as any)
+        .from("questions")
+        .select("id, content, hint, category_id, favorite_count")
+        .in("category_id", categoryIds)
+        .order("favorite_count", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (error || !data) return [];
+
+      return data.map(
+        (q: {
+          id: string;
+          content: string;
+          hint: string | null;
+          category_id: string;
+          favorite_count: number;
+        }) => ({
+          id: q.id,
+          content: q.content,
+          hint: q.hint,
+          category: catIdToName.get(q.category_id) || "GENERAL",
+          favorite_count: q.favorite_count,
+          similarity: 1.0,
+        }),
+      );
+    };
+
+    // 비기술 콘텐츠 + 히스토리 필터링 헬퍼
+    const filterPool = (
+      questions: CachedQuestion[],
+    ): { filtered: CachedQuestion[]; nonDevCount: number } => {
+      let nonDevCount = 0;
+      const filtered = questions.filter((q) => {
+        // 비기술 질문 제거
+        if (isNonDevContent(q.content)) {
+          nonDevCount++;
+          return false;
+        }
+        // 최근 본 질문 제거 (오래된 질문은 제거하지 않음 — Tier 3에서 재활용)
+        if (seenContents.has(q.content) && !staleContents.has(q.content)) {
+          return false;
+        }
+        return true;
+      });
+      return { filtered, nonDevCount };
+    };
+
+    // ─── Tier 1: 1차 카테고리 검색 ───────────────────────────
+    const tier1Raw = await fetchQuestions(primaryCategoryIds, poolLimit);
+    const { filtered: tier1Pool, nonDevCount: tier1NonDev } =
+      filterPool(tier1Raw);
+
+    let pool = tier1Pool;
+    let tier2Count = 0;
+    let tier3Recycled = 0;
+
+    // ─── Tier 2: 인접 카테고리 확장 (부족 시) ─────────────────
+    if (pool.length < count) {
+      const adjacentCatNames = categories
+        .flatMap((c) => ADJACENT_CATEGORIES[c] || [])
+        .filter((c) => !categories.includes(c));
+
+      const uniqueAdjacentNames = [...new Set(adjacentCatNames)];
+      const adjacentCategoryIds = uniqueAdjacentNames
+        .map((name) => catNameToId.get(name))
+        .filter((id): id is string => !!id)
+        .filter((id) => !primaryCategoryIds.includes(id));
+
+      if (adjacentCategoryIds.length > 0) {
+        const needed = (count - pool.length) * 4;
+        const tier2Raw = await fetchQuestions(adjacentCategoryIds, needed);
+        const { filtered: tier2Pool } = filterPool(tier2Raw);
+
+        // 중복 제거 (Tier 1과 겹치는 질문)
+        const existingIds = new Set(pool.map((q) => q.id));
+        const newFromTier2 = tier2Pool.filter((q) => !existingIds.has(q.id));
+
+        tier2Count = newFromTier2.length;
+        pool = [...pool, ...newFromTier2];
       }
     }
+
+    // ─── Tier 3: 오래된 질문 재활용 (여전히 부족 시) ──────────
+    if (pool.length < count && userId && staleContents.size > 0) {
+      // Tier 1에서 히스토리로 필터된 질문 중 stale인 것만 재투입
+      const existingIds = new Set(pool.map((q) => q.id));
+      const recyclable = tier1Raw.filter(
+        (q) =>
+          !existingIds.has(q.id) &&
+          staleContents.has(q.content) &&
+          !isNonDevContent(q.content),
+      );
+
+      tier3Recycled = Math.min(recyclable.length, count - pool.length);
+      pool = [...pool, ...recyclable.slice(0, count - pool.length)];
+    }
+
+    console.log("캐시 검색 결과:", {
+      query: query.slice(0, 50),
+      primaryCategories: categories,
+      historySize,
+      poolLimit,
+      tier1: {
+        fetched: tier1Raw.length,
+        afterFilter: tier1Pool.length,
+        nonDevFiltered: tier1NonDev,
+      },
+      tier2Expanded: tier2Count,
+      tier3Recycled,
+      finalPool: pool.length,
+      requested: count,
+    });
 
     // 가중 랜덤 샘플링 (favorite_count 기반)
     return weightedSampleWithoutReplacement(
