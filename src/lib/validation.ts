@@ -138,7 +138,7 @@ const DEV_DOMAIN_KEYWORDS = [
   "이벤트 드리븐",
 ];
 
-// 비개발 도메인 블랙리스트
+// 비개발 도메인 블랙리스트 (쿼리 검증용)
 const NON_DEV_BLACKLIST = [
   // 비개발 직무
   /(알바|아르바이트|파트타임|카페|편의점|마트|배달|서빙|캐셔|매장)/,
@@ -312,4 +312,79 @@ export function validateInterviewInput(query: string): InputValidationResult {
 
   // 유효한 입력
   return { isValid: true };
+}
+
+// ── 질문 콘텐츠 기반 비기술 필터링 ──────────────────────────────
+
+// 기술적 맥락을 나타내는 키워드 — 이것이 포함되면 비기술 판정 면제
+const DEV_CONTEXT_KEYWORDS = [
+  "시스템",
+  "아키텍처",
+  "설계",
+  "구현",
+  "알고리즘",
+  "데이터",
+  "api",
+  "서버",
+  "클라이언트",
+  "모델",
+  "파이프라인",
+  "인프라",
+  "배포",
+  "코드",
+  "개발",
+  "프로그래밍",
+  "동시성",
+  "트래픽",
+  "데이터베이스",
+  "인덱스",
+  "캐싱",
+  "llm",
+  "rag",
+  "머신러닝",
+  "딥러닝",
+  "임베딩",
+  "transformer",
+  "pos",
+  "추천 시스템",
+  "서빙",
+  "레이턴시",
+  "스케일",
+];
+
+// 순수 비기술 질문만 감지하는 패턴 (기술적 맥락 없이 비기술 키워드만 있는 경우)
+const NON_DEV_CONTENT_PATTERNS = [
+  // 비개발 직무 면접 (기술 맥락 없는 순수 직무 질문)
+  /알바 경험이 없/,
+  /이 일을 잘 할 수 있다고/,
+  /업무를 익히기 위해/,
+  /근무 태도/,
+  /출퇴근/,
+  // 비기술 업무 질문
+  /음료를 제조/,
+  /음료 제조/,
+  /음료 위생/,
+  /매장 청결/,
+  /위생 관리.*원칙/,
+  /피크타임에 주문이 밀리/,
+  // 비기술 면접 유형
+  /자기소개서를 작성/,
+  /인성면접에서/,
+];
+
+/**
+ * 질문 content가 비기술 콘텐츠인지 확인
+ * - 캐시 검색 시 DB에서 가져온 질문을 필터링하는 용도
+ * - 쿼리가 아닌 질문 텍스트(content) 대상
+ * - 기술적 맥락이 포함된 질문은 통과 (예: "카페 POS 시스템 동시성 문제")
+ */
+export function isNonDevContent(content: string): boolean {
+  const lower = content.toLowerCase();
+
+  // 기술적 맥락이 있으면 비기술 질문이 아님
+  if (DEV_CONTEXT_KEYWORDS.some((kw) => lower.includes(kw))) {
+    return false;
+  }
+
+  return NON_DEV_CONTENT_PATTERNS.some((p) => p.test(lower));
 }

@@ -127,6 +127,67 @@ export async function saveQuestionHistory(
 }
 
 /**
+ * 사용자의 질문 히스토리 개수 조회 (동적 풀 크기 계산용)
+ * - COUNT만 반환하여 경량화
+ */
+export async function getQuestionHistoryCount(userId: string): Promise<number> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count, error } = await (supabaseAdmin as any)
+      .from("question_generation_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gt("expires_at", new Date().toISOString());
+
+    if (error) {
+      console.error("질문 히스토리 카운트 조회 실패:", error);
+      return 0;
+    }
+
+    return count ?? 0;
+  } catch (error) {
+    console.error("질문 히스토리 카운트 조회 중 오류:", error);
+    return 0;
+  }
+}
+
+/**
+ * 오래된 질문 히스토리 조회 (재활용 대상)
+ * - staleDays일 이전에 본 질문들을 반환
+ * - 아직 유효하지만(expires_at > now) 충분히 오래된 질문
+ */
+export async function getStaleQuestionHistory(
+  userId: string,
+  staleDays: number = 14,
+): Promise<Set<string>> {
+  try {
+    const staleDate = new Date();
+    staleDate.setDate(staleDate.getDate() - staleDays);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabaseAdmin as any)
+      .from("question_generation_history")
+      .select("question_content")
+      .eq("user_id", userId)
+      .gt("expires_at", new Date().toISOString())
+      .lt("created_at", staleDate.toISOString())
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (error) {
+      console.error("오래된 히스토리 조회 실패:", error);
+      return new Set();
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new Set((data || []).map((row: any) => row.question_content));
+  } catch (error) {
+    console.error("오래된 히스토리 조회 중 오류:", error);
+    return new Set();
+  }
+}
+
+/**
  * 레퍼런스 텍스트로부터 핑거프린트 생성
  * - 외부에서 사용할 수 있도록 re-export
  */
