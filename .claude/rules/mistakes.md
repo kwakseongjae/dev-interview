@@ -272,7 +272,31 @@
 
 ---
 
-**마지막 업데이트**: 2026-03-29
+**마지막 업데이트**: 2026-04-03
+
+---
+
+### 2026-04-03: [Security] 인메모리 Rate Limit은 서버리스에서 무효
+
+- **실수**: STT API에 인메모리 `Map` 기반 Rate Limit 적용 → Vercel 서버리스 Cold Start마다 Map이 초기화되어 사실상 무효
+- **원인**: 서버리스 함수는 요청마다 새 인스턴스를 스핀업할 수 있어 인메모리 상태가 공유되지 않음
+- **규칙**:
+  - 서버리스 환경에서 Rate Limit은 반드시 DB 또는 Redis(Upstash) 기반으로 구현
+  - 인메모리 `Map`, `Set` 등은 캐시 용도로만 사용 (보안 제어에 사용 금지)
+  - 대안: `stt_usage_logs.created_at >= 1분 전` COUNT 쿼리 또는 Upstash `@upstash/ratelimit`
+- **참조**: #75, `src/app/api/transcribe/route.ts`
+
+---
+
+### 2026-04-03: [Security] 클라이언트 보고 duration을 서버가 신뢰하면 쿼터 우회 가능
+
+- **실수**: 클라이언트가 `duration=1`로 보내면 1초만 쿼터에서 차감, 실제 120초 분량 오디오 전송 가능
+- **원인**: 서버가 클라이언트 보고값을 우선 신뢰하고 파일 크기 기반 추정은 fallback으로만 사용
+- **규칙**:
+  - 클라이언트 보고값과 서버 추정값(파일 크기/bitrate) 중 **큰 값**을 사용
+  - `Math.max(fileSizeEstimate, clientDuration)` 패턴
+  - 클라이언트 입력은 항상 조작 가능하다고 가정
+- **참조**: #75, `src/app/api/transcribe/route.ts`
 
 ---
 

@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
         return q;
       })(),
 
-      // 최근 비회원 세션 목록
+      // 최근 비회원 세션 목록 (질문 내용 포함)
       supabaseAdmin
         .from("interview_sessions")
         .select(
@@ -158,7 +158,10 @@ export async function GET(request: NextRequest) {
           is_completed,
           interview_type_id,
           interview_types(display_name, color),
-          session_questions(count)
+          session_questions(count),
+          session_questions_detail:session_questions(
+            questions(id, content)
+          )
         `,
         )
         .is("user_id", null)
@@ -260,6 +263,13 @@ export async function GET(request: NextRequest) {
               ).color,
             }
           : null,
+        questions: (
+          (s.session_questions_detail as {
+            questions: { id: string; content: string } | null;
+          }[]) ?? []
+        )
+          .map((sq) => sq.questions)
+          .filter((q): q is { id: string; content: string } => q !== null),
       }),
     );
 

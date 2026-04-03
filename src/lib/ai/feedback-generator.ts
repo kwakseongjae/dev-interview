@@ -12,6 +12,7 @@ import {
   fillPromptTemplate,
 } from "./feedback-prompts";
 import { classifyAndLogApiError } from "../error-logger";
+import { logApiUsage, estimateClaudeCost } from "../api-usage-logger";
 import type {
   QuickFeedbackData,
   DetailedFeedbackData,
@@ -45,6 +46,22 @@ const anthropic = new Anthropic({
 
 // Model configuration
 const SONNET_MODEL = "claude-sonnet-4-6";
+
+/** Log Claude usage after a feedback API call */
+function logFeedbackUsage(
+  endpoint: string,
+  usage: { input_tokens: number; output_tokens: number },
+) {
+  logApiUsage({
+    service: "claude",
+    endpoint,
+    model: SONNET_MODEL,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    totalTokens: usage.input_tokens + usage.output_tokens,
+    estimatedCost: estimateClaudeCost(usage.input_tokens, usage.output_tokens),
+  });
+}
 
 /**
  * Parse JSON from Claude response, handling markdown code blocks
@@ -99,6 +116,8 @@ export async function generateQuickFeedback(
     });
     throw err;
   }
+
+  logFeedbackUsage("/api/feedback/quick", response.usage);
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -183,6 +202,8 @@ export async function generateDetailedFeedback(
     });
     throw err;
   }
+
+  logFeedbackUsage("/api/feedback/detailed", response.usage);
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -270,6 +291,8 @@ export async function generateFullFeedback(
     });
     throw err;
   }
+
+  logFeedbackUsage("/api/feedback/full", response.usage);
 
   const content = response.content[0];
   if (content.type !== "text") {
@@ -391,6 +414,8 @@ export async function generateModelAnswer(
     });
     throw err;
   }
+
+  logFeedbackUsage("/api/feedback/model-answer", response.usage);
 
   const content = response.content[0];
   if (content.type !== "text") {

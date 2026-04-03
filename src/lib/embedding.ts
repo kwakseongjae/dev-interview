@@ -5,6 +5,7 @@
 
 import { VoyageAIClient } from "voyageai";
 import { classifyAndLogApiError } from "./error-logger";
+import { logApiUsage, estimateVoyageCost } from "./api-usage-logger";
 
 const voyageClient = new VoyageAIClient({
   apiKey: process.env.VOYAGE_API_KEY,
@@ -42,6 +43,16 @@ export async function generateEmbedding(
     throw new Error("임베딩 생성 실패: 빈 응답");
   }
 
+  // Log usage (fire-and-forget)
+  const tokens = result.usage?.totalTokens ?? 0;
+  logApiUsage({
+    service: "voyage",
+    endpoint: "/embedding/single",
+    model: EMBEDDING_MODEL,
+    totalTokens: tokens,
+    estimatedCost: estimateVoyageCost(tokens),
+  });
+
   return result.data[0].embedding;
 }
 
@@ -75,6 +86,17 @@ export async function generateEmbeddings(
   if (!result.data || result.data.length !== texts.length) {
     throw new Error("임베딩 생성 실패: 결과 수 불일치");
   }
+
+  // Log usage (fire-and-forget)
+  const tokens = result.usage?.totalTokens ?? 0;
+  logApiUsage({
+    service: "voyage",
+    endpoint: "/embedding/batch",
+    model: EMBEDDING_MODEL,
+    totalTokens: tokens,
+    estimatedCost: estimateVoyageCost(tokens),
+    metadata: { batchSize: texts.length },
+  });
 
   return result.data.map((d) => {
     if (!d.embedding) throw new Error("임베딩 생성 실패: 빈 임베딩");

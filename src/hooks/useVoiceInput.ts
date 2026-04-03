@@ -36,7 +36,7 @@ interface UseVoiceInputReturn {
   duration: number;
 }
 
-const DEFAULT_MAX_DURATION = 120;
+const DEFAULT_MAX_DURATION = 300;
 
 /**
  * Custom hook for voice input with STT transcription.

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { supabaseAdmin } from "./supabase";
 import { classifyAndLogApiError } from "./error-logger";
+import { logApiUsage, estimateClaudeCost } from "./api-usage-logger";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -120,6 +121,20 @@ export async function generateHintWithClaude(
     });
     throw err;
   }
+
+  // Log token usage (fire-and-forget)
+  logApiUsage({
+    service: "claude",
+    endpoint: "/api/hint/generate",
+    model: "claude-sonnet-4-6",
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+    estimatedCost: estimateClaudeCost(
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+    ),
+  });
 
   // 응답 파싱
   const content = response.content[0];

@@ -35,8 +35,8 @@ export async function isSttEnabled(): Promise<boolean> {
   }
 }
 
-/** Maximum audio duration allowed per transcription request (seconds) */
-export const MAX_AUDIO_DURATION_SECONDS = 120;
+/** Maximum audio duration allowed per transcription request (seconds) — 5 minutes */
+export const MAX_AUDIO_DURATION_SECONDS = 300;
 
 /** Maximum file size for audio upload (bytes) — 10MB */
 export const MAX_AUDIO_FILE_SIZE = 10 * 1024 * 1024;
@@ -56,10 +56,10 @@ export const SUPPORTED_AUDIO_TYPES = [
 ] as const;
 
 /**
- * Reserve quota atomically by pre-inserting a "pending" usage log.
- * This prevents race conditions — the row exists before transcription starts.
+ * Reserve quota atomically using INSERT ... SELECT WHERE.
+ * Single SQL statement prevents race conditions between concurrent requests.
  *
- * @returns success, remaining seconds, and logId for updating after transcription
+ * @returns success, remaining seconds, and logId for rollback on failure
  */
 export async function reserveQuota(
   userId: string,
@@ -68,21 +68,58 @@ export async function reserveQuota(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabaseAdmin as any;
 
-  // Get total quota (base + bonus)
-  const { data: bonusData } = await admin
-    .from("stt_user_quotas")
-    .select("bonus_seconds")
-    .eq("user_id", userId)
-    .single();
+  const cost = calculateSttCost(estimatedSeconds);
+
+  // Atomic INSERT ... SELECT: only inserts if quota allows.
+  // The WHERE clause and INSERT execute as a single statement,
+  // so concurrent requests can't both pass the check.
+  const { data, error } = await admin.rpc("reserve_stt_quota", {
+    p_user_id: userId,
+    p_duration: estimatedSeconds,
+    p_cost: cost,
+    p_model: "gpt-4o-mini-transcribe",
+    p_base_quota: STT_QUOTA_SECONDS,
+  });
+
+  // If RPC doesn't exist yet, fall back to non-atomic path
+  if (error?.code === "PGRST202") {
+    return reserveQuotaFallback(userId, estimatedSeconds, cost);
+  }
+
+  if (error) {
+    throw new Error(`Quota reservation failed: ${error.message}`);
+  }
+
+  const result = data;
+  return {
+    success: result.success,
+    remaining: Math.max(0, result.remaining),
+    logId: result.log_id ?? undefined,
+  };
+}
+
+/** Fallback for when RPC function hasn't been deployed yet */
+async function reserveQuotaFallback(
+  userId: string,
+  estimatedSeconds: number,
+  cost: number,
+): Promise<{ success: boolean; remaining: number; logId?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = supabaseAdmin as any;
+
+  const [{ data: bonusData }, { data: usageData }] = await Promise.all([
+    admin
+      .from("stt_user_quotas")
+      .select("bonus_seconds")
+      .eq("user_id", userId)
+      .single(),
+    admin
+      .from("stt_usage_logs")
+      .select("duration_seconds")
+      .eq("user_id", userId),
+  ]);
 
   const totalQuota = STT_QUOTA_SECONDS + (bonusData?.bonus_seconds ?? 0);
-
-  // Get current usage
-  const { data: usageData } = await admin
-    .from("stt_usage_logs")
-    .select("duration_seconds")
-    .eq("user_id", userId);
-
   const currentUsed = (usageData ?? []).reduce(
     (sum: number, row: { duration_seconds: number }) =>
       sum + row.duration_seconds,
@@ -93,13 +130,12 @@ export async function reserveQuota(
     return { success: false, remaining: Math.max(0, totalQuota - currentUsed) };
   }
 
-  // Pre-insert a "pending" usage log to reserve the quota
   const { data: inserted } = await admin
     .from("stt_usage_logs")
     .insert({
       user_id: userId,
       duration_seconds: estimatedSeconds,
-      estimated_cost: calculateSttCost(estimatedSeconds),
+      estimated_cost: cost,
       model: "gpt-4o-mini-transcribe",
     })
     .select("id")

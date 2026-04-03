@@ -13,26 +13,24 @@ import {
   SUPPORTED_AUDIO_TYPES,
 } from "@/lib/stt/config";
 
-// Simple in-memory rate limiter (per user, max 5 requests per minute)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+// DB-based rate limiter: counts stt_usage_logs created in the last 60 seconds
 const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
 
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
+async function checkRateLimit(userId: string): Promise<boolean> {
+  try {
+    const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count } = await (supabaseAdmin as any)
+      .from("stt_usage_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", oneMinuteAgo);
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return (count ?? 0) < RATE_LIMIT_MAX;
+  } catch {
+    // Fail-open: if DB check fails, allow (quota system is the real guard)
     return true;
   }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
 }
 
 /**
@@ -84,8 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
-    // 1. Rate limit check
-    if (!checkRateLimit(user.id)) {
+    // 1. Rate limit check (DB-based, survives serverless cold starts)
+    if (!(await checkRateLimit(user.id))) {
       return NextResponse.json(
         { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
         { status: 429 },
@@ -142,14 +140,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Atomic quota reservation (fail-closed)
-    // Prefer client-reported duration (capped), fallback to file size estimate
+    // Estimate duration from file size as a floor (prevents client spoofing duration=1)
+    // WebM Opus ~16kbps = ~2000 bytes/sec; use conservative 1500 bytes/sec for safety
+    const fileSizeEstimate = Math.max(1, Math.round(audioFile.size / 1500));
     const clientDuration = parseInt(
       (formData.get("duration") as string) || "0",
     );
-    const estimatedDuration =
-      clientDuration > 0
-        ? Math.min(clientDuration, MAX_AUDIO_DURATION_SECONDS)
-        : Math.max(1, Math.round(audioFile.size / 16000));
+    // Use whichever is LARGER: client-reported or file-size-estimated (prevents underreporting)
+    const estimatedDuration = Math.min(
+      MAX_AUDIO_DURATION_SECONDS,
+      Math.max(fileSizeEstimate, clientDuration > 0 ? clientDuration : 0),
+    );
 
     let reservation: {
       success: boolean;

@@ -69,6 +69,10 @@ function InterviewContent() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isRestoredFromLocal, setIsRestoredFromLocal] = useState(false);
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  // Whether voice is actively recording or transcribing (blocks navigation)
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  // Whether microphone is actively recording (textarea readOnly only during this)
+  const [isRecordingNow, setIsRecordingNow] = useState(false);
   const [sttEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return process.env.NEXT_PUBLIC_STT_ENABLED !== "false";
@@ -273,8 +277,12 @@ function InterviewContent() {
     }, 10000);
 
     // 페이지 이탈 전 저장 (beforeunload)
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocal();
+      // 음성 녹음/변환 중이면 이탈 경고
+      if (isVoiceActive) {
+        e.preventDefault();
+      }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -286,7 +294,7 @@ function InterviewContent() {
       }
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [session, isLoading, saveToLocal]);
+  }, [session, isLoading, saveToLocal, isVoiceActive]);
 
   const currentQuestion = session?.questions[currentQuestionIndex];
 
@@ -726,6 +734,9 @@ function InterviewContent() {
                       sessionId={sessionId}
                       questionId={currentQuestion.id}
                       isLoggedIn={isLoggedIn()}
+                      onVoiceActiveChange={setIsVoiceActive}
+                      onRecordingChange={setIsRecordingNow}
+                      autoApply
                     />
                   )}
 
@@ -738,7 +749,7 @@ function InterviewContent() {
                         : "답변을 입력해주세요..."
                     }
                     className="min-h-[250px] text-base border-0 focus-visible:ring-0 resize-none"
-                    readOnly={inputMode === "voice" && sttEnabled}
+                    readOnly={isRecordingNow}
                   />
                 </Card>
 
@@ -750,7 +761,11 @@ function InterviewContent() {
                     onToggle={() => setShowHint(!showHint)}
                   />
                   {sttEnabled && (
-                    <VoiceModeToggle mode={inputMode} onToggle={setInputMode} />
+                    <VoiceModeToggle
+                      mode={inputMode}
+                      onToggle={setInputMode}
+                      disabled={isVoiceActive}
+                    />
                   )}
                 </div>
 
@@ -759,7 +774,7 @@ function InterviewContent() {
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
-                    disabled={currentQuestionIndex === 0}
+                    disabled={currentQuestionIndex === 0 || isVoiceActive}
                     className="gap-2"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -770,9 +785,13 @@ function InterviewContent() {
                     {session.questions.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => handleGoToQuestion(index)}
+                        onClick={() =>
+                          !isVoiceActive && handleGoToQuestion(index)
+                        }
+                        disabled={isVoiceActive}
                         className={`
                           w-2 h-2 rounded-full transition-colors
+                          ${isVoiceActive ? "cursor-not-allowed opacity-50" : ""}
                           ${
                             index === currentQuestionIndex
                               ? "bg-navy"
@@ -789,6 +808,7 @@ function InterviewContent() {
                   {currentQuestionIndex < session.questions.length - 1 ? (
                     <Button
                       onClick={handleNext}
+                      disabled={isVoiceActive}
                       className="gap-2 bg-navy hover:bg-navy-light"
                     >
                       다음
@@ -797,7 +817,7 @@ function InterviewContent() {
                   ) : (
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isVoiceActive}
                       className="gap-2 bg-navy hover:bg-navy-light text-white"
                     >
                       {isSubmitting ? (

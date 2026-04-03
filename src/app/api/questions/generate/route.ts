@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateQuestions, type SupportedMediaType } from "@/lib/claude";
 import { validateInterviewInput } from "@/lib/validation";
 import { getUserOptional } from "@/lib/supabase/auth-helpers";
+import { checkDailyClaudeLimit } from "@/lib/api-usage-logger";
 import {
   getQuestionHistory,
   getQuestionHistoryByReference,
@@ -61,6 +62,22 @@ export async function POST(request: NextRequest) {
     // 선택적 인증 - 로그인 사용자는 질문 이력 기반 다양성 적용
     const auth = await getUserOptional();
     const userId = auth?.sub;
+
+    // 일일 Claude API 사용 제한 (로그인 유저만 체크, 비로그인은 세션 기반 제한)
+    if (userId) {
+      const dailyLimit = await checkDailyClaudeLimit(userId);
+      if (!dailyLimit.allowed) {
+        return NextResponse.json(
+          {
+            error: "일일 사용 한도를 초과했습니다. 내일 다시 이용해주세요.",
+            code: "DAILY_LIMIT_EXCEEDED",
+            remaining: dailyLimit.remaining,
+            limit: dailyLimit.limit,
+          },
+          { status: 429 },
+        );
+      }
+    }
 
     // 제외할 질문 내용 목록 (이미 추천된 질문들) - 최대 50개, 각 200자 제한
     let excludeQuestions: string[] = (exclude_questions || [])

@@ -22,6 +22,12 @@ interface VoiceInputPanelProps {
   questionId: string;
   disabled?: boolean;
   isLoggedIn?: boolean;
+  /** Fires when recording/transcribing state changes (true = active) */
+  onVoiceActiveChange?: (active: boolean) => void;
+  /** Fires when recording state changes (true = microphone active) */
+  onRecordingChange?: (recording: boolean) => void;
+  /** Auto-apply transcription to textarea without preview step */
+  autoApply?: boolean;
 }
 
 function formatDuration(seconds: number): string {
@@ -42,12 +48,17 @@ export function VoiceInputPanel({
   questionId,
   disabled = false,
   isLoggedIn = false,
+  onVoiceActiveChange,
+  onRecordingChange,
+  autoApply = true,
 }: VoiceInputPanelProps) {
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
   const [quotaExhausted, setQuotaExhausted] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  // Transcription result — held until user clicks "적용하기"
+  // Transcription result — held until user clicks "적용하기" (when autoApply=false)
   const [transcriptResult, setTranscriptResult] = useState<string | null>(null);
+  // Brief success indicator after auto-apply
+  const [showApplied, setShowApplied] = useState(false);
 
   // Refetch quota from the server
   const refetchQuota = useCallback(() => {
@@ -65,10 +76,17 @@ export function VoiceInputPanel({
 
   const handleTranscript = useCallback(
     (text: string) => {
-      setTranscriptResult(text);
+      if (autoApply) {
+        // Directly apply to textarea without preview step
+        onApply(text);
+        setShowApplied(true);
+        setTimeout(() => setShowApplied(false), 2000);
+      } else {
+        setTranscriptResult(text);
+      }
       refetchQuota();
     },
-    [refetchQuota],
+    [refetchQuota, autoApply, onApply],
   );
 
   const {
@@ -85,6 +103,17 @@ export function VoiceInputPanel({
     questionId,
     quotaRemaining,
   });
+
+  // Notify parent about voice active state (recording or transcribing)
+  const voiceActive = isRecording || isTranscribing;
+  useEffect(() => {
+    onVoiceActiveChange?.(voiceActive);
+  }, [voiceActive, onVoiceActiveChange]);
+
+  // Notify parent about recording state (for textarea readOnly control)
+  useEffect(() => {
+    onRecordingChange?.(isRecording);
+  }, [isRecording, onRecordingChange]);
 
   // Fetch quota on mount (only if logged in)
   useEffect(() => {
@@ -264,6 +293,11 @@ export function VoiceInputPanel({
             </>
           ) : isTranscribing ? (
             <span className="text-muted-foreground">변환 중...</span>
+          ) : showApplied ? (
+            <span className="flex items-center gap-1.5 text-green-600 font-medium">
+              <Check className="h-4 w-4" />
+              변환 완료 — 답변에 적용됨
+            </span>
           ) : !isLoggedIn ? (
             <span className="text-muted-foreground">
               로그인하면 음성 입력을 사용할 수 있습니다
@@ -275,13 +309,13 @@ export function VoiceInputPanel({
           )}
         </div>
 
-        {/* Quota remaining */}
-        {isLoggedIn &&
-        quotaRemaining !== null &&
-        !isRecording &&
-        !isTranscribing ? (
+        {/* Quota remaining — visible during recording with live countdown */}
+        {isLoggedIn && quotaRemaining !== null && !isTranscribing ? (
           <p className="text-xs text-muted-foreground/60">
-            남은 사용량: {formatMinutes(quotaRemaining)}
+            남은 사용량:{" "}
+            {isRecording
+              ? formatDuration(Math.max(0, quotaRemaining - duration))
+              : formatMinutes(quotaRemaining)}
           </p>
         ) : null}
 

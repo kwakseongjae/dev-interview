@@ -488,3 +488,108 @@ const sttEnabled = data?.value === "true";
 ### GitHub Issue
 
 - [#75 음성 면접 (STT) 기능 도입](https://github.com/kwakseongjae/dev-interview/issues/75)
+
+---
+
+## Implementation Summary
+
+**Completion Date**: 2026-04-03
+**Implemented By**: Claude Opus 4.6
+
+### 계획 대비 변경사항
+
+| 계획                       | 실제 구현               | 사유                                                                |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------- |
+| WebSocket Realtime Session | REST API + 녹음 후 전송 | WebSocket 복잡도 대비 REST가 초기 구현에 적합, 추후 업그레이드 예정 |
+| 실시간 스트리밍 텍스트     | 녹음 완료 후 일괄 변환  | REST 방식에 따른 자연스러운 차이                                    |
+| 녹음 상한 120초            | **300초 (5분)** 로 확대 | 사용자 피드백 반영, 실제 면접 답변 시 2분 이상 소요 빈번            |
+
+### Changes Made
+
+#### 핵심 기능 (기존 커밋)
+
+- `src/hooks/useVoiceInput.ts` — MediaRecorder + REST transcription 훅
+- `src/components/interview/VoiceInputPanel.tsx` — 마이크 버튼, 녹음 상태, 쿼터 표시 UI
+- `src/components/interview/VoiceModeToggle.tsx` — 텍스트/음성 모드 전환
+- `src/lib/stt/openai-realtime.ts` — OpenAI gpt-4o-mini-transcribe 호출
+- `src/lib/stt/tech-dictionary.ts` — 한국어→영어 기술 용어 사전 (142개)
+- `src/lib/stt/config.ts` — 쿼터 관리, kill switch, 원자적 예약
+- `src/app/api/transcribe/route.ts` — 메인 변환 API (인증+Rate Limit+쿼터+변환)
+- `src/app/api/transcribe/quota/route.ts` — 쿼터 조회 API
+- `src/app/api/transcribe/log/route.ts` — 사용량 로깅 API
+- `src/app/interview/page.tsx` — 면접 페이지 음성 통합
+- `src/app/case-studies/[slug]/interview/page.tsx` — 케이스 스터디 면접 음성 통합
+- `src/app/admin/_components/stt-usage-panel.tsx` — 관리자 STT 사용량 대시보드
+- `src/app/api/admin/stt-usage/route.ts` — STT 사용량 집계 API
+- `src/app/api/admin/stt-config/route.ts` — STT kill switch API
+
+#### 이번 세션 추가 작업 (보안/UX/비용 강화)
+
+**음성 면접 UX 개선**:
+
+- `VoiceInputPanel.tsx` — autoApply 모드 (변환 결과 자동 적용), onVoiceActiveChange/onRecordingChange 콜백
+- `interview/page.tsx`, `case-studies/.../page.tsx` — 녹음 중 이탈 방지 (beforeunload), 네비게이션 잠금 (이전/다음/제출 비활성화), textarea 녹음 중에만 readOnly
+- `VoiceInputPanel.tsx` — 녹음 중 남은 쿼터 실시간 카운트다운 표시
+
+**보안 강화**:
+
+- `route.ts` (transcribe) — Duration 조작 방지: `audioFile.size / 1500`과 클라이언트 값 중 큰 값 사용
+- `route.ts` (transcribe) — Rate Limit: 인메모리 Map → DB 기반 (`stt_usage_logs.created_at` 카운트)
+- `config.ts` — Race Condition 해결: `reserve_stt_quota` RPC 함수로 원자적 처리 (fallback 포함)
+- `20260403_add_reserve_stt_quota_rpc.sql` — PostgreSQL RPC 마이그레이션
+
+**API 비용 트래킹 통합** (전 서비스):
+
+- `src/lib/api-usage-logger.ts` — 통합 API 사용량 로깅 유틸리티 (신규)
+- `20260403_add_api_usage_logs.sql` — `api_usage_logs` 테이블 마이그레이션 (신규)
+- `src/lib/claude.ts` — generateQuestions, evaluateAnswer, validateReference, extractReference 토큰 로깅
+- `src/lib/hint-generator.ts` — generateHintWithClaude 토큰 로깅
+- `src/lib/ai/feedback-generator.ts` — quick/detailed/full/model-answer 4개 피드백 토큰 로깅
+- `src/lib/embedding.ts` — Voyage AI 임베딩 토큰 로깅
+
+**유저 일일 제한**:
+
+- `api-usage-logger.ts` — `checkDailyClaudeLimit()` (유저당 일일 50회)
+- `questions/generate/route.ts` — 로그인 유저 대상 일일 제한 적용
+
+**관리자 대시보드**:
+
+- `recent-sessions-table.tsx` — 세션별 생성 질문 토글 조회 기능
+- `stats/route.ts` — 세션 질문 내용 조인 추가
+
+### Quality Validation
+
+- [x] Build: Success
+- [x] Type Check: Passed (validator.ts 캐시 이슈 제외)
+- [x] Lint: Passed
+
+### Performance Impact
+
+- 녹음 상한: 120초 → 300초 (5분)
+- Rate Limit: 인메모리 → DB 기반 (서버리스 호환, ~50ms 추가)
+- 일일 제한 체크: 요청당 DB 쿼리 1회 추가 (~50ms)
+- API 사용량 로깅: fire-and-forget (응답 시간 영향 없음)
+
+### 생성된 이슈
+
+| 이슈                                                      | 제목                                             | 상태 |
+| --------------------------------------------------------- | ------------------------------------------------ | ---- |
+| [#83](https://github.com/kwakseongjae/mochabun/issues/83) | 비개발 면접 쿼리 어뷰징 방지 — 쿼리 검증 강화    | Open |
+| [#84](https://github.com/kwakseongjae/mochabun/issues/84) | 회원 행동 분석 대시보드 + API 비용 통합 탭       | Open |
+| [#85](https://github.com/kwakseongjae/mochabun/issues/85) | 반복 사용자 캐시 미스로 인한 질문 생성 속도 저하 | Open |
+
+### Commits
+
+```
+b0fa2de feat(stt): 음성 면접(STT) 기능 추가 — GPT-4o-mini-transcribe 기반
+4f061f5 chore(seeds): 질문 시드 72개 추가 (SYSTEM_DESIGN, DEVOPS, ARCHITECTURE, SECURITY, 트렌드)
+(pending) feat(stt): 보안/UX/비용 트래킹 강화 — Duration 검증, DB Rate Limit, 원자적 쿼터, API 사용량 통합 로깅
+```
+
+### Follow-up Tasks
+
+- [ ] #83 — 비개발 면접 쿼리 어뷰징 방지
+- [ ] #84 — 회원 행동 분석 대시보드 + API 비용 통합 탭
+- [ ] #85 — 반복 사용자 캐시 미스 속도 저하 해결
+- [ ] WebSocket Realtime Session 업그레이드 (실시간 스트리밍)
+- [ ] `api_usage_logs` 대시보드 UI 탭 구현

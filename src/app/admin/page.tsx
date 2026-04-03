@@ -49,6 +49,7 @@ interface AdminStats {
     is_completed: boolean;
     question_count: number;
     interview_type: { display_name: string; color: string } | null;
+    questions: { id: string; content: string }[];
   }[];
 }
 
